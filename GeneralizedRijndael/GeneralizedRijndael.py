@@ -92,31 +92,31 @@ class GeneralizedRijndael:
                 self._cx = [0x3,0x1,0x1,0x2]#MDS matrices (Maximum Distance Separable)
                 self._dx = [0xB,0xD,0x9,0xE]#c(x) \otimes d(x) = 1
             elif self.__nRows == 3:
-                self._cx = [0xD,0x1,0x1] #FIXME:
-                self._dx = [0x3C,0xAA,0x3C]
+                self._cx = [0xD,0x1,0x1] #FIXME: unknown
+                self._dx = [0x3C,0xAA,0x3C]#FIXME: unknown
             elif self.__nRows == 2:
-                self._cx = [0x2,0x3]
-                self._dx = [0x2,0x3]
+                self._cx = [0x2,0x3]#FIXME: unknown
+                self._dx = [0x2,0x3]#FIXME: unknown
         elif  self.__wordSize == 4:
             self._sbox = sbox_word4b
             self._sbox_inverted = sbox_word4b_inverted
             self._m = 0b10000
             if self.__nRows == 4:
-                self._cx = self._dx = [0,0,0,0] #FIXME:
+                self._cx = self._dx = [0,0,0,0] #FIXME: unknown
             elif self.__nRows == 3:
-                self._cx = self._dx = [0,0,0] #FIXME:
+                self._cx = self._dx = [0,0,0] #FIXME: unknown
             elif self.__nRows == 2:
-                self._cx = self._dx = [0,0] #FIXME:
+                self._cx = self._dx = [0,0] #FIXME: unknown
         elif  self.__wordSize == 2:
             self._sbox = sbox_word2b
             self._sbox_inverted = sbox_word2b_inverted
             self._m = 0b100
             if self.__nRows == 4:
-                self._cx = self._dx = [0x3,0x1,0x1,0x2]
+                self._cx = self._dx = [0x3,0x1,0x1,0x2]#FIXME: unknown
             elif self.__nRows == 3:
-                self._cx = self._dx = [0,0,0] #FIXME:
+                self._cx = self._dx = [0,0,0] #FIXME: unknown
             elif self.__nRows == 2:
-                self._cx = self._dx = [0x2,0x3]
+                self._cx = self._dx = [0x2,0x3]#FIXME: unknown
         if not (hasattr(self,"_sbox") or hasattr(self,"_sbox_inverted") or\
                 hasattr(self,'_m') or\
                 hasattr(self,"_cx") or hasattr(self,"_dx")):
