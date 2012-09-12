@@ -1,0 +1,88 @@
+#!/usr/bin/env python2.5
+
+##############################################################################
+##
+## file: datasaamples.py
+##
+## developers history & copyleft: Sergi Blanch-Torne
+##
+## Copyright 2011, 2012 (copyleft)
+## 
+## This file is free software: you can redistribute it and/or modify
+## it under the terms of the GNU Lesser General Public License as published by
+## the Free Software Foundation, either version 3 of the License, or
+## (at your option) any later version.
+## 
+## This file is distributed in the hope that it will be useful,
+## but WITHOUT ANY WARRANTY; without even the implied warranty of
+## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+## GNU Lesser General Public License for more details.
+## 
+## You should have received a copy of the GNU Lesser General Public License
+## along with this file.  If not, see <http://www.gnu.org/licenses/>.
+##
+##############################################################################
+
+""" Wrap 128 bits of Key Data with a 128-bit KEK
+"""
+
+d128k128 = {}
+d128k128['KEK'] = 0x000102030405060708090A0B0C0D0E0F
+d128k128['Data'] = 0x00112233445566778899AABBCCDDEEFF
+d128k128['Output'] = [0x1FA68B0A8112B447,0xAEF34BD8FB5A7B82,0x9D3E862371D2CFE5]
+d128k128['Input'] = [0xA6A6A6A6A6A6A6A6,0x0011223344556677,0x8899AABBCCDDEEFF]
+d128k128['len'] = [128,128]
+
+""" Wrap 128 bits of Key Data with a 192-bit KEK
+"""
+
+d128k192 = {}
+d128k192['KEK'] = 0x000102030405060708090A0B0C0D0E0F1011121314151617
+d128k192['Data'] = 0x00112233445566778899AABBCCDDEEFF
+d128k192['Output'] = [0x96778B25AE6CA435,0xF92B5B97C050AED2,0x468AB8A17AD84E5D]
+d128k192['Input'] = [0xA6A6A6A6A6A6A6A6,0x0011223344556677,0x8899AABBCCDDEEFF]
+d128k192['len'] = [128,192]
+
+
+""" Wrap 128 bits of Key Data with a 256-bit KEK
+"""
+
+d128k256 = {}
+d128k256['KEK'] = 0x000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F
+d128k256['Data'] = 0x00112233445566778899AABBCCDDEEFF
+d128k256['Output'] = [0x64E8C3F9CE0F5BA2,0x63E9777905818A2A,0x93C8191E7D6E8AE7]
+d128k256['Input'] = [0xA6A6A6A6A6A6A6A6,0x0011223344556677,0x8899AABBCCDDEEFF]
+d128k256['len'] = [128,256]
+
+""" Wrap 192 bits of Key Data with a 192-bit KEK
+"""
+
+d192k192 = {}
+d192k192['KEK'] = 0x000102030405060708090A0B0C0D0E0F1011121314151617
+d192k192['Data'] = 0x00112233445566778899AABBCCDDEEFF0001020304050607
+d192k192['Output'] = [0x031D33264E15D332,0x68F24EC260743EDC,0xE1C6C7DDEE725A93,0x6BA814915C6762D2]
+d192k192['Input'] = [0xA6A6A6A6A6A6A6A6,0x0011223344556677,0x8899AABBCCDDEEFF,0x0001020304050607]
+d192k192['len'] = [192,192]
+
+""" Wrap 192 bits of Key Data with a 256-bit KEK
+"""
+
+d192k256 = {}
+d192k256['KEK'] = 0x000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F
+d192k256['Data'] = 0x112233445566778899AABBCCDDEEFF0001020304050607
+d192k256['Output'] = [0xA8F9BC1612C68B3F,0xF6E6F4FBE30E71E4,0x769C8B80A32CB895,0x8CD5D17D6B254DA1]
+d192k256['Input'] = [0xA6A6A6A6A6A6A6A6,0x0011223344556677,0x8899AABBCCDDEEFF,0x0001020304050607]
+d192k256['len'] = [192,256]
+
+""" Wrap 256 bits of Key Data with a 256-bit KEK
+"""
+
+d256k256 = {}
+d256k256['KEK'] = 0x000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F
+d256k256['Data'] = 0x00112233445566778899AABBCCDDEEFF000102030405060708090A0B0C0D0E0F
+d256k256['Output'] = [0x28C9F404C4B810F4,0xCBCCB35CFB87F826,0x3F5786E2D80ED326,0xCBC7F0E71A99F43B,0xFB988B9B7A02DD21]
+d256k256['Input'] = [0xA6A6A6A6A6A6A6A6,0x0011223344556677,0x8899AABBCCDDEEFF,0x0001020304050607,0x08090A0B0C0D0E0F]
+d256k256['len'] = [256,256]
+
+""" list with all of them """
+structs = [d128k128,d128k192,d128k256,d192k192,d192k256,d256k256]
