@@ -125,7 +125,7 @@ class GeneralizedRijndael:
         #Prepare the key
         self.__key = self._keyExpansion(key)
 
-    def debug(self,logtext,data=None,round=None,operation=None):
+    def __debug_stream(self,logtext,data=None,round=None,operation=None):
         if self.__debug:
             msg = ""
             if not round == None:
@@ -153,167 +153,139 @@ class GeneralizedRijndael:
                     msg += "=%s"%(data)
             print msg
 
+    #----# interface methods
     def cipher(self,plain):
         '''plain (1d array) is copied to state matrix. 
            After the inicial round addition, the state is transformed by the 
            nRounds, finishing with the final round.
            At the end state matrix is copied to output 1d array.
+           Input:
+           Output:
+           descent methods: []
+           auxiliar methods: []
         '''
-        self.debug("plain",plain)
+        self.__debug_stream("plain",plain)
         plain = self.__long2array(plain, self.__nColumns*self.__nRows*self.__wordSize)
         #TODO: check the plain have the size to be ciphered
-        self.debug("plain array",plain)
+        self.__debug_stream("plain array",plain)
         #FIXME: State should be protected in memory to avoid side channel attacks
-        state = self._makeStateArray(plain)
-        self.debug("state",state)
+        state = self.__makeStateArray(plain)
+        self.__debug_stream("state",state)
         self._addRoundKey(state,self.__key[0:self.__nColumns])#w[0,Nb-1]
-        self.debug("state",state, 0, "cipher->addRoundKey()\t")
+        self.__debug_stream("state",state, 0, "cipher->addRoundKey()\t")
         for r in range(1,self.__nRounds):#[1..Nr-1] step 1
             self._subBytes(state)
-            self.debug("state",state,r,"cipher->subBytes()\t")
+            self.__debug_stream("state",state,r,"cipher->subBytes()\t")
             state = self._shiftRows(state)
-            self.debug("state",state,r,"cipher->shiftRows()\t")
+            self.__debug_stream("state",state,r,"cipher->shiftRows()\t")
             state = self._mixColumns(state)
-            self.debug("state",state,r,"cipher->mixColumns()\t")
+            self.__debug_stream("state",state,r,"cipher->mixColumns()\t")
             self._addRoundKey(state,self.__key[(r*self.__nColumns):(r+1)*(self.__nColumns)])
-            self.debug("state",state,r,"cipher->addRoundKey()\t")
+            self.__debug_stream("state",state,r,"cipher->addRoundKey()\t")
         self._subBytes(state)
-        self.debug("state",state,self.__nRounds,"cipher->subBytes()\t")
+        self.__debug_stream("state",state,self.__nRounds,"cipher->subBytes()\t")
         state = self._shiftRows(state)
-        self.debug("state",state,self.__nRounds,"cipher->shiftRows()\t")
+        self.__debug_stream("state",state,self.__nRounds,"cipher->shiftRows()\t")
         self._addRoundKey(state,self.__key[(self.__nRounds*self.__nColumns):(self.__nRounds+1)*(self.__nColumns)])
-        self.debug("state",state,self.__nRounds,"cipher->addRoundKey()\t")
-        cipher = self._unmakeStateArray(state)
-        self.debug("cipher array",cipher)
+        self.__debug_stream("state",state,self.__nRounds,"cipher->addRoundKey()\t")
+        cipher = self.__unmakeStateArray(state)
+        self.__debug_stream("cipher array",cipher)
         cipher = self.__array2long(cipher, self.__nColumns*self.__nRows*self.__wordSize)
-        self.debug("cipher",cipher)
-        return cipher#self._unmakeStateArray(state)
+        self.__debug_stream("cipher",cipher)
+        return cipher#self.__unmakeStateArray(state)
 
     def decipher(self,cipher):
         '''cipher (1d array) is copied to state matrix.
            The cipher round transformations are produced in the reverse order.
            At the end state matrix is copied to the output 1d array.
+           Input:
+           Output:
+           descent methods: []
+           auxiliar methods: []
         '''
-        self.debug("cipher",cipher)
+        self.__debug_stream("cipher",cipher)
         cipher = self.__long2array(cipher, self.__nColumns*self.__nRows*self.__wordSize)
         #TODO: check the cipher have the size to be deciphered
-        self.debug("cipher array",cipher)
+        self.__debug_stream("cipher array",cipher)
         #FIXME: State should be protected in memory to avoid side channel attacks
-        state = self._makeStateArray(cipher)
-        self.debug("state",state)
+        state = self.__makeStateArray(cipher)
+        self.__debug_stream("state",state)
         self._addRoundKey(state,self.__key[(self.__nRounds*self.__nColumns):(self.__nRounds+1)*(self.__nColumns)])
-        self.debug("state",state,self.__nRounds,"decipher->addRoundKey()\t")
+        self.__debug_stream("state",state,self.__nRounds,"decipher->addRoundKey()\t")
         for r in range(self.__nRounds-1,0,-1):#[Nr-1..1] step -1
             state = self._invertShiftRows(state)
-            self.debug("state",state,r,"decipher->invShiftRows()\t")
+            self.__debug_stream("state",state,r,"decipher->invShiftRows()\t")
             self._invertSubBytes(state)
-            self.debug("state",state,r,"decipher->invSubBytes()\t")
+            self.__debug_stream("state",state,r,"decipher->invSubBytes()\t")
             self._addRoundKey(state,self.__key[(r*self.__nColumns):(r+1)*(self.__nColumns)])
-            self.debug("state",state,r,"decipher->addRoundKey()\t")
+            self.__debug_stream("state",state,r,"decipher->addRoundKey()\t")
             state = self._invertMixColumns(state)
-            self.debug("state",state,r,"decipher->invMixColumns()\t")
+            self.__debug_stream("state",state,r,"decipher->invMixColumns()\t")
         state = self._invertShiftRows(state)
-        self.debug("state",state,0,"decipher->invShiftRows()\t")
+        self.__debug_stream("state",state,0,"decipher->invShiftRows()\t")
         self._invertSubBytes(state)
-        self.debug("state",state,0,"decipher->invSubBytes()\t")
+        self.__debug_stream("state",state,0,"decipher->invSubBytes()\t")
         self._addRoundKey(state,self.__key[0:self.__nColumns])
-        self.debug("state",state,0,"decipher->addRoundKey()\t")
-        self._unmakeStateArray(state), self.__nColumns*self.__nRows*self.__wordSize
-        plain = self._unmakeStateArray(state)
-        self.debug("plain array",plain)
+        self.__debug_stream("state",state,0,"decipher->addRoundKey()\t")
+        self.__unmakeStateArray(state), self.__nColumns*self.__nRows*self.__wordSize
+        plain = self.__unmakeStateArray(state)
+        self.__debug_stream("plain array",plain)
         plain = self.__array2long(plain, self.__nColumns*self.__nRows*self.__wordSize)
-        self.debug("plain",plain)
-        return plain#self._unmakeStateArray(state)
+        self.__debug_stream("plain",plain)
+        return plain#self.__unmakeStateArray(state)
+    #---- End interface methods
 
-    ####
-    # First descent level
-    ####
+    #----# First descent level
     def _keyExpansion(self,key):
-        '''TODO: Document it
+        '''a Pseudo Random Generator that takes the key as a seed to expand 
+           it to generate all the subkeys need for each round of the Rijndael.
+           Input: <integer> seed
+           Output: <integer array> subkeys
+           descent methods: ['__rotWord','__subWord']
+           auxiliar methods: ['__debug_stream','__long2array','__wordList2word']
         '''
-        self.debug("key",key,operation="keyExpansion()\t")
+        self.__debug_stream("key",key,operation="keyExpansion()\t")
         key = self.__long2array(key, self.__nKeyWords*self.__nRows*self.__wordSize)
         word = [None]*self.__nKeyWords
-        self.debug("key array",key,operation="keyExpansion()\t")
+        self.__debug_stream("key array",key,operation="keyExpansion()\t")
         for i in range(self.__nKeyWords):
             word[i] = self.__wordList2word(key[(self.__nRows*i):(self.__nRows*i)+self.__nRows])
         i = self.__nKeyWords
         while (i < (self.__nColumns*(self.__nRounds+1))):
-            self.debug("i", i, operation='keyExpansion()\t')
+            self.__debug_stream("i", i, operation='keyExpansion()\t')
             temp = word[i-1]
-            self.debug("temp", temp, operation='keyExpansion()\t')
+            self.__debug_stream("temp", temp, operation='keyExpansion()\t')
             if (i%self.__nKeyWords == 0):
                 rotWord = self.__rotWord(temp)
-                self.debug("rotWord", rotWord, operation='keyExpansion()\t')
+                self.__debug_stream("rotWord", rotWord, operation='keyExpansion()\t')
                 subWord = self.__subWord(rotWord)
-                self.debug("subWord", subWord, operation='keyExpansion()\t')
+                self.__debug_stream("subWord", subWord, operation='keyExpansion()\t')
                 Rcon = self.__wordList2word([RC[i/self.__nKeyWords],0,0,0])
                 subWord ^= Rcon
-                self.debug("Rcon", Rcon, operation='keyExpansion()\t')
-                self.debug("subWord with Rcon", subWord, operation='keyExpansion()\t')
+                self.__debug_stream("Rcon", Rcon, operation='keyExpansion()\t')
+                self.__debug_stream("subWord with Rcon", subWord, operation='keyExpansion()\t')
             elif i%self.__nKeyWords == 4:
                 subWord = self.__subWord(subWord)
-                self.debug("subWord", subWord, operation='keyExpansion()\t')
+                self.__debug_stream("subWord", subWord, operation='keyExpansion()\t')
             else:
                 subWord = temp
-            self.debug("w[i-Nk]", word[i-self.__nKeyWords], operation='keyExpansion()\t')
+            self.__debug_stream("w[i-Nk]", word[i-self.__nKeyWords], operation='keyExpansion()\t')
             word.append(word[i-self.__nKeyWords]^subWord)
-            self.debug("w[i]", word[i], operation='keyExpansion()\t')
+            self.__debug_stream("w[i]", word[i], operation='keyExpansion()\t')
             i += 1
-        self.debug("keyExpanded",word,operation="keyExpansion()\t")
-        self.debug("size of key expanded %d"%len(word))
+        self.__debug_stream("keyExpanded",word,operation="keyExpansion()\t")
+        self.__debug_stream("size of key expanded %d"%len(word))
         return word
 
-    def __long2array(self,input,length):
-        if input>int('0b'+('1'*length),2):
-            raise Exception("(long2array)","Too big input for %d lenght"%(length))
-        o = []
-        #cut the input blocs of the word size
-        mask = (int('0b'+('1'*self.__wordSize),2)<<(length-self.__wordSize))
-        for i in range(length/self.__wordSize):
-            e = (input&mask)>>(((length/self.__wordSize)-i-1)*self.__wordSize)
-            o.append(int(e))
-            mask >>= self.__wordSize
-        return o
-
-    def __array2long(self,input,length):
-        o = 0
-        for i in range(length/self.__wordSize):
-            o |= (input[i]<<(((length/self.__wordSize)-i-1)*self.__wordSize))
-        return o
-
-    def _makeStateArray(self,input):
-        '''Give one dimensional array, convert it to a r*c array following:
-           s[r,c] = in[r+rc] for 0<=r<nRows and 0<=c<nColumns
-        '''
-        #FIXME: what happens if the size of input is not r*c?
-        #       if exceeds, the rest are ignored;
-        #       if not enough, empty cells
-        state = [None]*self.__nRows
-        for i in range(len(input)):
-            row = i%self.__nRows
-            if row == i:
-                state[row] = [input[i]]
-            else:
-                state[row].append(input[i])
-        for i in range(self.__nRows):
-            self.debug("state[%d]"%i, state[i])
-        self.debug("makeArray",state)
-        return state
-
-    def _unmakeStateArray(self,state):
-        '''From a r*c array, returns a one dimensional array following:
-           out[r+rc] = s[r,c]  for 0<=r<nRows and 0<=c<nColumns
-        '''
-        output = []
-        for j in range(self.__nColumns):
-            for i in range(self.__nRows):
-                output.append(state[i][j])
-        self.debug("unmakeArray",output)
-        return output
-
+    #----## round transformation methods.
     def _addRoundKey(self,state,subkey):
-        '''The round key is XORted to the state elements.
+        '''One of the round transformation methods.
+           The round key (from the PRG) list of arrays (can be thougth as a 
+           matrix), is bitwise XORted with the state matrix.
+           Input: <integer arrays> state, subkey
+           Output: <integer arrays> state (modified)
+           descent methods: []
+           auxiliar methods: ['__word2wordList']
         '''
 #        for i in range(self.__nRows):
 #            for j in range(self.__nColumns):
@@ -326,20 +298,37 @@ class GeneralizedRijndael:
                 state[i][j] ^= byteSubkey[i]
     
     def _subBytes(self,state):
-        '''process the state matrix using a non-linear substitution table (sbox)
-           operates each byte independently.
+        '''One of the round transformation methods.
+           process the state matrix using a non-linear substitution table 
+           (sbox) operates each byte independently.
+           The sbox transformation is a faster way to compose two 
+           transformations (multiplicative inverse and an affine transformation,
+           both over a polynomial field F_{2^w}) to save calculations.
+           Input: <integer arrays> state
+           Output: <integer arrays> state (modified)
+           descent methods: ['__sboxTransformation']
+           auxiliar methods: []
         '''
         self.__sboxTransformation(state,self._sbox)
 
     def _invertSubBytes(self,state):
         '''Inverse of the subBytes() method.
+           Input: <integer arrays> state
+           Output: <integer arrays> state (modified)
+           descent methods: ['__sboxTransformation']
+           auxiliar methods: []
         '''
         self.__sboxTransformation(state,self._sbox_inverted)
 
     def _shiftRows(self,state):
-        '''cyclical left shift of the row 'i' of the state matrix by 'i' positions
+        '''One of the round transformation methods.
+           cyclical left shift of the row 'i' of the state matrix by 'i' positions
            s[r][c] = s[r][c+shift(r,nColumns) mod nColumns]
            for 0<r<nRows and 0<=c<nColumns.
+           Input: <integer arrays> state
+           Output: <integer arrays> state (modified)
+           descent methods: []
+           auxiliar methods: []
         '''
         newState = []
         for i in range(self.__nRows):
@@ -348,6 +337,10 @@ class GeneralizedRijndael:
 
     def _invertShiftRows(self,state):
         '''Inverse of the shiftRows() method.
+           Input: <integer arrays> state
+           Output: <integer arrays> state (modified)
+           descent methods: []
+           auxiliar methods: []
         '''
         newState = []
         for i in range(self.__nRows):
@@ -355,20 +348,35 @@ class GeneralizedRijndael:
         return newState
 
     def _mixColumns(self,state):
-        '''Transformation to mix the data of the columns (independently 
+        '''One of the round transformation methods.
+           Transformation to mix the data of the columns (independently 
            between them) of the state matrix.
+           Consider the columns of the state as polynomials rings, being each
+           cell as a coefficient, that is nested a polynomial field F_{2^w}.
+           Input: <integer arrays> state
+           Output: <integer arrays> state (modified)
+           descent methods: ['__matrixPolynomialModularProduct']
+           auxiliar methods: []
         '''
         return self.__matrixPolynomialModularProduct(self._cx, state)
     def _invertMixColumns(self,state):
         '''Inverse of the mixColumns() method.
+           Input: <integer arrays> state
+           Output: <integer arrays> state (modified)
+           descent methods: ['__matrixPolynomialModularProduct']
+           auxiliar methods: []
         '''
         return self.__matrixPolynomialModularProduct(self._dx, state)
+    #---- End round transformation methods.
+    #---- End First descent level
 
-    #### 
-    # Second descent level
-    ####
+    #----# Second descent level
     def __rotWord(self,w):
         '''Used in the key expansion for a cyclic permutation of a word.
+           Input:
+           Output:
+           descent methods: []
+           auxiliar methods: []
         '''
         #Parentesis are very important
         wordMask = int('0b'+('1'*self.__wordSize)+('0'*(self.__wordSize*(self.__nColumns-1))),2)
@@ -377,6 +385,10 @@ class GeneralizedRijndael:
 
     def __subWord(self,word):
         '''Used in the key expansion to apply the sbox to a word.
+           Input:
+           Output:
+           descent methods: []
+           auxiliar methods: []
         '''
         wordArray = self.__word2wordList(word)
         self.__sboxTransformation(wordArray, self._sbox)
@@ -388,6 +400,10 @@ class GeneralizedRijndael:
            The upper is understood as the row and the lower as the column in the sbox.
            The sbox is a paramenter because the transformation use one sbox or
            its invers, but the procedure is the same.
+           Input:
+           Output:
+           descent methods: []
+           auxiliar methods: []
         '''
         for i in range(len(state)):
             if type(state[i]) == list:
@@ -401,6 +417,10 @@ class GeneralizedRijndael:
     def __shift(self,l,n):
         '''cyclic rotation of the list 'l' y 'n' elements. 
            Positive n's means left, negative n's means right.
+           Input:
+           Output:
+           descent methods: []
+           auxiliar methods: []
         '''
         return l[n:] + l[:n]
 
@@ -421,27 +441,35 @@ class GeneralizedRijndael:
                     (a_2 \bullet s_2,c) \oplus (a_3 \bullet s_3,c)
            Where \bullet is the finite field (F_{2^8}) multiplication,
            and \oplus an xor operation
+           Input:
+           Output:
+           descent methods: []
+           auxiliar methods: []
         '''
         newState = deepcopy(state)
         for c in range(self.__nColumns):
             shifted_cx = self.__shift(cx, self.__nRows-1)
             for r in range(self.__nRows):
-                #self.debug("  a(x)  ",shifted_cx)
-                #self.debug("  s[%d]  "%(r), [state[rbis][c] for rbis in range(self.__nRows)])
+                #self.__debug_stream("  a(x)  ",shifted_cx)
+                #self.__debug_stream("  s[%d]  "%(r), [state[rbis][c] for rbis in range(self.__nRows)])
                 newState[r][c] = 0
                 for rbis in range(self.__nRows):
                     newState[r][c] ^= self.__productGF(shifted_cx[rbis], state[rbis][c])
-                #self.debug("s'[%d][%d]"%(r,c), newState[r][c])
+                #self.__debug_stream("s'[%d][%d]"%(r,c), newState[r][c])
                 shifted_cx = self.__shift(shifted_cx, -1)
         return newState
+    #---- End Second descent level
 
-    #### 
-    # Third descent level
-    ####
+    #----# Third descent level
+    #----## Mathematic methods
     def __productGF(self,a,b):
         '''multiplication of polynomials modulo an irreductible pylinomial of 
            field's degree. Over F_{2^8} this polynomial is 
            m(x) = x^8+x^4+x^3+x+1
+           Input:
+           Output:
+           descent methods: []
+           auxiliar methods: []
         '''
         #FIXME: made sure about the irreductible polynomials used
         b_ = b
@@ -458,11 +486,25 @@ class GeneralizedRijndael:
         return r
 
     def __xtime(self,a,m=0x11b):
+        '''
+           Input:
+           Output:
+           descent methods: []
+           auxiliar methods: []
+        '''
         a <<= 1
         if a & (1<<binlen(m)-1): a ^= m
         return a
+    #---- End Mathematic methods
 
+    #----## bit methods
     def __hexValue2MatrixCoords(self,value):
+        '''
+           Input:
+           Output:
+           descent methods: []
+           auxiliar methods: []
+        '''
         if self.__wordSize%2 == 1:
             raise Exception("(__hexValue2MatrixCoords)",
                             "Matrix coordinates impossible for an odd %d wordsize"\
@@ -472,21 +514,115 @@ class GeneralizedRijndael:
         c = (value & int(cmask,2))
         r = (value & int(rmask,2))>>(self.__wordSize/2)
         return r,c
+    #---- End bit methods
+
+    #----## integer manipulation methods
+    def __long2array(self,input,length):
+        '''Auxilliar method to unpack an integer to a set of smaller integers 
+           in an array. The size of each of the integers in the set have the 
+           wordSize
+           Input: <integer>
+           Output: <integer array>
+           descent methods: []
+           auxiliar methods: []
+        '''
+        if input>int('0b'+('1'*length),2):
+            raise Exception("(long2array)","Too big input for %d lenght"%(length))
+        o = []
+        #cut the input blocs of the word size
+        mask = (int('0b'+('1'*self.__wordSize),2)<<(length-self.__wordSize))
+        for i in range(length/self.__wordSize):
+            e = (input&mask)>>(((length/self.__wordSize)-i-1)*self.__wordSize)
+            o.append(int(e))
+            mask >>= self.__wordSize
+        return o
+
+    def __array2long(self,input,length):
+        '''Auxiliar method to pack an array of integers (with #wordSize bits)
+           onto one integer.
+           Input: <integer array>
+           Output: <integer>
+           descent methods: []
+           auxiliar methods: []
+        '''
+        o = 0
+        for i in range(length/self.__wordSize):
+            o |= (input[i]<<(((length/self.__wordSize)-i-1)*self.__wordSize))
+        return o
+
+    def __makeStateArray(self,input):
+        '''Given a one dimensional array, convert it to a r*c array following:
+           s[r,c] = in[r+rc] for 0<=r<nRows and 0<=c<nColumns
+           Input: <integer array> 1d
+           Output: <integer arrays> 2d
+           descent methods: []
+           auxiliar methods: []
+        '''
+        #FIXME: what happens if the size of input is not r*c?
+        #       if exceeds, the rest are ignored;
+        #       if not enough, empty cells
+        state = [None]*self.__nRows
+        for i in range(len(input)):
+            row = i%self.__nRows
+            if row == i:
+                state[row] = [input[i]]
+            else:
+                state[row].append(input[i])
+        for i in range(self.__nRows):
+            self.__debug_stream("state[%d]"%i, state[i])
+        self.__debug_stream("makeArray",state)
+        return state
+
+    def __unmakeStateArray(self,state):
+        '''From a r*c array, returns a one dimensional array following:
+           out[r+rc] = s[r,c]  for 0<=r<nRows and 0<=c<nColumns
+           Input: <integer arrays> 2d
+           Output: <integer array> 1d
+           descent methods: []
+           auxiliar methods: []
+        '''
+        output = []
+        for j in range(self.__nColumns):
+            for i in range(self.__nRows):
+                output.append(state[i][j])
+        self.__debug_stream("unmakeArray",output)
+        return output
 
     def __wordList2word(self,wordList):
+        '''
+           Input:
+           Output:
+           descent methods: []
+           auxiliar methods: []
+        '''
         word = 0
         for j in range(self.__nRows):
             word += wordList[j]<< self.__wordSize*(self.__nRows-j-1)
         return word
 
     def __word2wordList(self,word):
+        '''
+           Input:
+           Output:
+           descent methods: []
+           auxiliar methods: []
+        '''
         wordArray = []
         mask = int('0b'+'1'*self.__wordSize,2)
         for i in range(self.__nRows):
             wordArray.append((word>>self.__wordSize*i)&mask)
         return wordArray
+    #---- End integer manipulation methods
+    #---- End Third descent level
 
+    #----# test methods
     def unitTestCompare(self,calculation,expected):
+        '''
+           Input:
+           Output:
+           descent methods: []
+           auxiliar methods: []
+        '''
         if not type(calculation) == type(expected):
             print("Ooh!")
             return False
@@ -498,6 +634,7 @@ class GeneralizedRijndael:
         elif type(calculation) in [int,long]:
             if calculation == expected: return True
             else: return False
+    #---- End test methods
 
 # end class GeneralizedRijndael
 ####
