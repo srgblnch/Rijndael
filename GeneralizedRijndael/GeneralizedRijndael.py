@@ -159,10 +159,12 @@ class GeneralizedRijndael:
            After the inicial round addition, the state is transformed by the 
            nRounds, finishing with the final round.
            At the end state matrix is copied to output 1d array.
-           Input:
-           Output:
-           descent methods: []
-           auxiliar methods: []
+           Input: <integer> plainText
+           Output: <integer> cipherText
+           descent methods: ['_addRoundKey','_subBytes',
+                             '_shiftRows','_mixColumns']
+           auxiliar methods: ['__debug_stream','__long2array','__array2long',
+                              '__makeStateArray','__unmakeStateArray']
         '''
         self.__debug_stream("plain",plain)
         plain = self.__long2array(plain, self.__nColumns*self.__nRows*self.__wordSize)
@@ -198,10 +200,12 @@ class GeneralizedRijndael:
         '''cipher (1d array) is copied to state matrix.
            The cipher round transformations are produced in the reverse order.
            At the end state matrix is copied to the output 1d array.
-           Input:
-           Output:
-           descent methods: []
-           auxiliar methods: []
+           Input: <integer> cipherText
+           Output: <integer> plainText
+           descent methods: ['_addRoundKey','_invertShiftRows',
+                             '_invertSubBytes','_invertMixColumns' ]
+           auxiliar methods: ['__debug_stream','__long2array','__array2long',
+                              '__makeStateArray','__unmakeStateArray']
         '''
         self.__debug_stream("cipher",cipher)
         cipher = self.__long2array(cipher, self.__nColumns*self.__nRows*self.__wordSize)
@@ -287,10 +291,6 @@ class GeneralizedRijndael:
            descent methods: []
            auxiliar methods: ['__word2wordList']
         '''
-#        for i in range(self.__nRows):
-#            for j in range(self.__nColumns):
-#                state[i][j] ^= subkey[j]#FIXME: check this index are correct
-#
         for j in range(self.__nColumns):
             byteSubkey = self.__word2wordList(subkey[j])
             byteSubkey.reverse()
@@ -359,6 +359,7 @@ class GeneralizedRijndael:
            auxiliar methods: []
         '''
         return self.__matrixPolynomialModularProduct(self._cx, state)
+
     def _invertMixColumns(self,state):
         '''Inverse of the mixColumns() method.
            Input: <integer arrays> state
@@ -372,9 +373,9 @@ class GeneralizedRijndael:
 
     #----# Second descent level
     def __rotWord(self,w):
-        '''Used in the key expansion for a cyclic permutation of a word.
-           Input:
-           Output:
+        '''Used in the key expansion. A cyclic shift of the bytes in the word.
+           Input: <integer> w (with length wordSize)
+           Output: <integer> w (modified)
            descent methods: []
            auxiliar methods: []
         '''
@@ -384,11 +385,12 @@ class GeneralizedRijndael:
         return (((w & wordMask) >> (self.__wordSize*(self.__nRows-1))) | ((w << self.__wordSize)&shiftMask))
 
     def __subWord(self,word):
-        '''Used in the key expansion to apply the sbox to a word.
-           Input:
-           Output:
-           descent methods: []
-           auxiliar methods: []
+        '''Used in the key expansion. Apply a table lookup (sbox) to the set 
+           of words.
+           Input: <integer> word
+           Output: <integer> word
+           descent methods: ['__sboxTransformation']
+           auxiliar methods: ['__word2wordList','__wordList2word']
         '''
         wordArray = self.__word2wordList(word)
         self.__sboxTransformation(wordArray, self._sbox)
@@ -413,17 +415,10 @@ class GeneralizedRijndael:
             else:
                 r,c = self.__hexValue2MatrixCoords(state[i])
                 state[i] = sbox[r][c]
+    #---- End Second descent level
 
-    def __shift(self,l,n):
-        '''cyclic rotation of the list 'l' y 'n' elements. 
-           Positive n's means left, negative n's means right.
-           Input:
-           Output:
-           descent methods: []
-           auxiliar methods: []
-        '''
-        return l[n:] + l[:n]
-
+    #----# Third descent level
+    #----## Mathematic methods
     def __matrixPolynomialModularProduct(self,cx,state):
         '''Given two polynomials over F_{2^8} multiplie them modulo x^{4}+1
            s'(x) = a(x) \otimes s(x)
@@ -458,10 +453,7 @@ class GeneralizedRijndael:
                 #self.__debug_stream("s'[%d][%d]"%(r,c), newState[r][c])
                 shifted_cx = self.__shift(shifted_cx, -1)
         return newState
-    #---- End Second descent level
 
-    #----# Third descent level
-    #----## Mathematic methods
     def __productGF(self,a,b):
         '''multiplication of polynomials modulo an irreductible pylinomial of 
            field's degree. Over F_{2^8} this polynomial is 
@@ -486,9 +478,10 @@ class GeneralizedRijndael:
         return r
 
     def __xtime(self,a,m=0x11b):
-        '''
-           Input:
-           Output:
+        '''polynomial product by x reduced modulo m.
+           Input: <integer> a (polynomial bit representation)
+                  <integer> m (modulo polynomial)
+           Output: <integer> a*x (mod m)
            descent methods: []
            auxiliar methods: []
         '''
@@ -498,10 +491,21 @@ class GeneralizedRijndael:
     #---- End Mathematic methods
 
     #----## bit methods
-    def __hexValue2MatrixCoords(self,value):
-        '''
+    def __shift(self,l,n):
+        '''cyclic rotation of the list 'l' y 'n' elements. 
+           Positive n's means left, negative n's means right.
            Input:
            Output:
+           descent methods: []
+           auxiliar methods: []
+        '''
+        return l[n:] + l[:n]
+
+    def __hexValue2MatrixCoords(self,value):
+        '''Split the input in to equal halfs that will be used as coordinates 
+           in the sbox transformations.
+           Input: <integer> value
+           Output: <integer> row, <integer> column
            descent methods: []
            auxiliar methods: []
         '''
@@ -556,7 +560,7 @@ class GeneralizedRijndael:
            Input: <integer array> 1d
            Output: <integer arrays> 2d
            descent methods: []
-           auxiliar methods: []
+           auxiliar methods: ['__debug_stream']
         '''
         #FIXME: what happens if the size of input is not r*c?
         #       if exceeds, the rest are ignored;
@@ -579,7 +583,7 @@ class GeneralizedRijndael:
            Input: <integer arrays> 2d
            Output: <integer array> 1d
            descent methods: []
-           auxiliar methods: []
+           auxiliar methods: ['__debug_stream']
         '''
         output = []
         for j in range(self.__nColumns):
@@ -588,30 +592,31 @@ class GeneralizedRijndael:
         self.__debug_stream("unmakeArray",output)
         return output
 
-    def __wordList2word(self,wordList):
-        '''
-           Input:
-           Output:
+    def __wordList2word(self,wordsArray):
+        '''Concatenate a set of integers (with wordSize bits each) into one 
+           integer with size wordSize*len(wordList)
+           Input: <integer array> wordsArray
+           Output: <integer> superWord
            descent methods: []
            auxiliar methods: []
         '''
-        word = 0
+        superWord = 0
         for j in range(self.__nRows):
-            word += wordList[j]<< self.__wordSize*(self.__nRows-j-1)
-        return word
+            superWord += wordsArray[j]<< self.__wordSize*(self.__nRows-j-1)
+        return superWord
 
-    def __word2wordList(self,word):
-        '''
-           Input:
-           Output:
+    def __word2wordList(self,superWord):
+        '''Split an number in a set of integers with wordSize bits each
+           Input: <integer> superWord
+           Output: <integer array> wordsArray
            descent methods: []
            auxiliar methods: []
         '''
-        wordArray = []
+        wordsArray = []
         mask = int('0b'+'1'*self.__wordSize,2)
         for i in range(self.__nRows):
-            wordArray.append((word>>self.__wordSize*i)&mask)
-        return wordArray
+            wordsArray.append((superWord>>self.__wordSize*i)&mask)
+        return wordsArray
     #---- End integer manipulation methods
     #---- End Third descent level
 
