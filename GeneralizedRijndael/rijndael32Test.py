@@ -23,7 +23,7 @@
 ##
 ##############################################################################
 
-from GeneralizedRijndael import GeneralizedRijndael
+from GeneralizedRijndael import GeneralizedRijndael,debug_stream
 
 def rijndael32_32key_228(debug=False):
     plainText = 0x00112233
@@ -38,7 +38,7 @@ def rijndael32_32key_228(debug=False):
     unitTest = srv.unitTestCompare(plainText,resultText)
     print("Unit Test= %s"%unitTest)
     if not unitTest:
-        srv.debug("should be", plainText)
+        debug_stream("should be", plainText)
 
 def rijndael32_32key_442(debug=False):
     plainText = 0x00112233
@@ -53,7 +53,7 @@ def rijndael32_32key_442(debug=False):
     unitTest = srv.unitTestCompare(plainText,resultText)
     print("Unit Test= %s"%unitTest)
     if not unitTest:
-        srv.debug("should be", plainText)
+        debug_stream("should be", plainText)
 
 def rijndael32_48key_228(debug=False):
     plainText = 0x00112233
@@ -68,7 +68,7 @@ def rijndael32_48key_228(debug=False):
     unitTest = srv.unitTestCompare(plainText,resultText)
     print("Unit Test= %s"%unitTest)
     if not unitTest:
-        srv.debug("should be", plainText)
+        debug_stream("should be", plainText)
 
 def rijndael32_48key_442(debug=False):
     plainText = 0x00112233
@@ -83,7 +83,7 @@ def rijndael32_48key_442(debug=False):
     unitTest = srv.unitTestCompare(plainText,resultText)
     print("Unit Test= %s"%unitTest)
     if not unitTest:
-        srv.debug("should be", plainText)
+        debug_stream("should be", plainText)
 
 def rijndael32_64key_228(debug=False):
     plainText = 0x00112233
@@ -98,7 +98,7 @@ def rijndael32_64key_228(debug=False):
     unitTest = srv.unitTestCompare(plainText,resultText)
     print("Unit Test= %s"%unitTest)
     if not unitTest:
-        srv.debug("should be", plainText)
+        debug_stream("should be", plainText)
 
 def rijndael32_64key_442(debug=False):
     plainText = 0x00112233
@@ -113,7 +113,7 @@ def rijndael32_64key_442(debug=False):
     unitTest = srv.unitTestCompare(plainText,resultText)
     print("Unit Test= %s"%unitTest)
     if not unitTest:
-        srv.debug("should be", plainText)
+        debug_stream("should be", plainText)
 
 def rijndael32_128key_228(debug=False):
     plainText = 0x00112233
@@ -128,7 +128,7 @@ def rijndael32_128key_228(debug=False):
     unitTest = srv.unitTestCompare(plainText,resultText)
     print("Unit Test= %s"%unitTest)
     if not unitTest:
-        srv.debug("should be", plainText)
+        debug_stream("should be", plainText)
 
 def rijndael32_128key_442(debug=False):
     plainText = 0x00112233
@@ -143,7 +143,7 @@ def rijndael32_128key_442(debug=False):
     unitTest = srv.unitTestCompare(plainText,resultText)
     print("Unit Test= %s"%unitTest)
     if not unitTest:
-        srv.debug("should be", plainText)
+        debug_stream("should be", plainText)
 
 def rijndael32_128key_loop(n):
     from random import randint
@@ -161,8 +161,8 @@ def rijndael32_128key_loop(n):
         if not plain == plain_442 == plain_228: break
 
 if __name__ == "__main__":
-    rijndael32_32key_228()
-    rijndael32_32key_442()
+    rijndael32_32key_228(True)
+    rijndael32_32key_442(True)
     
     rijndael32_48key_228()
     rijndael32_48key_442()
