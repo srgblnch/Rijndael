@@ -43,7 +43,8 @@ from sboxes import *
 
 binlen = lambda x: len(bin(x))-2
 
-debug = True#by default
+debug = False#by default
+#debug = True
 
 def debug_stream(logtext,data=None,round=None,operation=None):
     if debug:
@@ -66,7 +67,7 @@ def debug_stream(logtext,data=None,round=None,operation=None):
             else: msg += "=%s"%(data)
         print msg
 
-#TODO: understand who this RC is generated
+#---- TODO: understand who this RC is generated
 # RC[1] = 0x01
 # RC[i] = x * RC[i-1] = x**(i-1)
 RC = [
@@ -87,6 +88,8 @@ RC = [
 0xC6,0x97,0x35,0x6A,0xD4,0xB3,0x7D,0xFA,0xEF,0xC5,0x91,0x39,0x72,0xE4,0xD3,0xBD,
 0x61,0xC2,0x9F,0x25,0x4A,0x94,0x33,0x66,0xCC,0x83,0x1D,0x3A,0x74,0xE8,0xCB
 ]
+#---- FIXME: replace it to startup calculation to be as big as necessary in the 
+#       Rijndael object, but not bigger than necessary
 #This is to have the Rcon in the key Expansion where Rcon[i] = (RC[i],00,00,00)
 
 class GeneralizedRijndael:
@@ -120,9 +123,9 @@ class GeneralizedRijndael:
         '''
         debug_stream("plaintext",plain)
         plain = Long(self.__wordSize).toArray(plain, self.__nColumns*self.__nRows*self.__wordSize)
-        #TODO: check the plain have the size to be ciphered
+        #---- TODO: check the plain have the size to be ciphered
         debug_stream("plaintext array",plain)
-        #FIXME: State should be protected in memory to avoid side channel attacks
+        #---- FIXME: State should be protected in memory to avoid side channel attacks
         state = State(self.__nRows,self.__nColumns).fromArray(plain)
         debug_stream("state",state)
         state = self._addRoundKey.do(state,self._keyExpander.getSubKey(0,self.__nColumns))#w[0,Nb-1]
@@ -157,9 +160,9 @@ class GeneralizedRijndael:
         '''
         debug_stream("ciphered",cipher)
         cipher = Long(self.__wordSize).toArray(cipher, self.__nColumns*self.__nRows*self.__wordSize)
-        #TODO: check the cipher have the size to be deciphered
+        #---- TODO: check the cipher have the size to be deciphered
         debug_stream("ciphered array",cipher)
-        #FIXME: State should be protected in memory to avoid side channel attacks
+        #---- FIXME: State should be protected in memory to avoid side channel attacks
         state = State(self.__nRows,self.__nColumns).fromArray(cipher)
         debug_stream("state",state)
         state = self._addRoundKey.do(state,self._keyExpander.getSubKey((self.__nRounds*self.__nColumns),(self.__nRounds+1)*(self.__nColumns)))
@@ -171,9 +174,9 @@ class GeneralizedRijndael:
             debug_stream("state",state,r,"decipher->invSubBytes()\t")
             state = self._addRoundKey.do(state,self._keyExpander.getSubKey((r*self.__nColumns),(r+1)*(self.__nColumns)))
             debug_stream("state",state,r,"decipher->addRoundKey()\t")
-            state = self._mixColumns.do(state)
+            state = self._mixColumns.invert(state)
             debug_stream("state",state,r,"decipher->invMixColumns()\t")
-        state = self._shiftRows.do(state)
+        state = self._shiftRows.invert(state)
         debug_stream("state",state,0,"decipher->invShiftRows()\t")
         state = self._subBytes.invert(state)
         debug_stream("state",state,0,"decipher->invSubBytes()\t")
@@ -275,7 +278,7 @@ class KeyExpander:
         '''
         wordArray = self.__word.toList(word)
         self.__sbox.transform(wordArray)
-        wordArray.reverse()#FIXME: Where is this in the fips pub-197?
+        wordArray.reverse()#---- FIXME: Where is this in the fips pub-197?
         return self.__word.fromList(wordArray)
 
 class SubBytes:
@@ -313,33 +316,33 @@ class ShiftRows:
 
 class MixColumns:
     def __init__(self,nRows,nColumns,wordSize):
-        #FIXME: refactor this horrible if
+        #---- FIXME: refactor this horrible if
         if wordSize == 8:
             if nRows == 4:
                 self.__cx = [0x3,0x1,0x1,0x2]#MDS matrices (Maximum Distance Separable)
-                self.__dx = [0xB,0xD,0x9,0xE]#c(x) \otimes d(x) = 1
+                self.__dx = [0xB,0xD,0x9,0xE]#c(x) \otimes d(x) = 1 (mod m)
             elif nRows == 3:
-                self.__cx = [0xD,0x1,0x1] #FIXME: unknown
-                self.__dx = [0x3C,0xAA,0x3C]#FIXME: unknown
+                self.__cx = [0xD,0x1,0x1] #---- FIXME: unknown
+                self.__dx = [0x3C,0xAA,0x3C]#---- FIXME: unknown
             elif nRows == 2:
-                self.__cx = [0x2,0x3]#FIXME: unknown
-                self.__dx = [0x2,0x3]#FIXME: unknown
+                self.__cx = [0x2,0x3]#---- FIXME: unknown
+                self.__dx = [0x2,0x3]#---- FIXME: unknown
             polynomialModule = 0b100011011
         elif  wordSize == 4:
             if nRows == 4:
-                self.__cx = self.__dx = [0,0,0,0] #FIXME: unknown
+                self.__cx = self.__dx = [0,0,0,0] #---- FIXME: unknown
             elif nRows == 3:
-                self.__cx = self.__dx = [0,0,0] #FIXME: unknown
+                self.__cx = self.__dx = [0,0,0] #---- FIXME: unknown
             elif nRows == 2:
-                self.__cx = self.__dx = [0,0] #FIXME: unknown
+                self.__cx = self.__dx = [0,0] #---- FIXME: unknown
             polynomialModule = 0b10000
         elif  wordSize == 2:
             if nRows == 4:
-                self.__cx = self.__dx = [0x3,0x1,0x1,0x2]#FIXME: unknown
+                self.__cx = self.__dx = [0x3,0x1,0x1,0x2]#---- FIXME: unknown
             elif nRows == 3:
-                self.__cx = self.__dx = [0,0,0] #FIXME: unknown
+                self.__cx = self.__dx = [0,0,0] #---- FIXME: unknown
             elif nRows == 2:
-                self.__cx = self.__dx = [0x2,0x3]#FIXME: unknown
+                self.__cx = self.__dx = [0x2,0x3]#---- FIXME: unknown
             polynomialModule = 0b100
         self.__polynomialRing = PolynomialRing(nRows,nColumns,polynomialModule)
     def do(self,input):
@@ -374,7 +377,7 @@ class AddRoundKey:
 #----# Second descent level
 class SBox:
     def __init__(self,wordSize):
-        #TODO: this must be avel to be modified to use a sbox as a table or as the pure calculations
+        #---- TODO: this must be avel to be modified to use a sbox as a table or as the pure calculations
         self.__wordSize = wordSize
         if wordSize == 8:
             self._sbox = sbox_word8b
@@ -448,25 +451,19 @@ class PolynomialRing:
            Input:
            Output:
         '''
-        debug_stream("a(x)", ax, operation='PolynomialRing.product()\t')
-        debug_stream("s(x)", sx, operation='PolynomialRing.product()\t')
-        res = deepcopy(sx)#[[0]*self.__nRows]*self.__nColumns#FIXME: was 'deepcopy(sx)' but is correct the
-        debug_stream("s'(x)", res, operation='PolynomialRing.product()\t')
+        res = deepcopy(sx) #---- FIXME: #[[0]*self.__nRows]*self.__nColumns
         for c in range(self.__nColumns):
             shifted_ax = shift(ax, self.__nRows-1)
             for r in range(self.__nRows):
-                #self.__debug_stream("  a(x)  ",shifted_ax)
-                #self.__debug_stream("  s[%d]  "%(r), [state[rbis][c] for rbis in range(self.__nRows)])
                 res[r][c] = 0
                 for rbis in range(self.__nRows):
                     res[r][c] ^= self.__polynomialsubfield.product(shifted_ax[rbis], sx[rbis][c])
-                #self.__debug_stream("s'[%d][%d]"%(r,c), res[r][c])
                 shifted_ax = shift(shifted_ax, -1)
         return res
 
 class PolynomialField:
     def __init__(self,m):
-        self.__m = m
+        self.__m = m#---- FIXME: made sure about the irreductible polynomials used
     def product(self,a,b):
         '''multiplication of polynomials modulo an irreductible pylinomial of 
            field's degree. Over F_{2^8} this polynomial is 
@@ -474,7 +471,6 @@ class PolynomialField:
            Input:
            Output:
         '''
-        #FIXME: made sure about the irreductible polynomials used
         b_ = b
         xor = []
         a_i = [a]
@@ -580,7 +576,7 @@ class State:
            Input: <integer array> 1d
            Output: <integer arrays> 2d
         '''
-        #FIXME: what happens if the size of input is not r*c?
+        #---- FIXME: what happens if the size of input is not r*c?
         #       if exceeds, the rest are ignored;
         #       if not enough, empty cells
         state = [None]*self.__nRows

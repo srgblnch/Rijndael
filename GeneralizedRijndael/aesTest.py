@@ -23,7 +23,7 @@
 ##
 ##############################################################################
 
-from GeneralizedRijndael import GeneralizedRijndael
+from GeneralizedRijndael import GeneralizedRijndael,debug_stream
 
 def aes128(debug=False):
     plainText = 0x00112233445566778899aabbccddeeff
@@ -38,7 +38,7 @@ def aes128(debug=False):
     unitTest = srv.unitTestCompare(plainText,resultText)
     print("Unit Test= %s"%unitTest)
     if not unitTest:
-        srv.debug("should be", plainText)
+        debug_stream("should be", plainText)
 
 def aes192(debug=False):
     plainText = 0x00112233445566778899aabbccddeeff
@@ -52,7 +52,7 @@ def aes192(debug=False):
     unitTest = srv.unitTestCompare(plainText,resultText)
     print("Unit Test= %s"%unitTest)
     if not unitTest:
-        srv.debug("should be", plainText)
+        debug_stream("should be", plainText)
 
 def aes256(debug=False):
     plainText = 0x00112233445566778899aabbccddeeff
@@ -67,7 +67,7 @@ def aes256(debug=False):
     unitTest = srv.unitTestCompare(plainText,resultText)
     print("Unit Test= %s"%unitTest)
     if not unitTest:
-        srv.debug("should be", plainText)
+        debug_stream("should be", plainText)
 
 def cipherExample(debug=False):
     plainText = 0x3243F6A8885A308D313198A2E0370734
@@ -82,10 +82,10 @@ def cipherExample(debug=False):
     unitTest = srv.unitTestCompare(plainText,resultText)
     print("Unit Test= %s"%unitTest)
     if not unitTest:
-        srv.debug("should be", plainText)
+        debug_stream("should be", plainText)
 
 if __name__ == "__main__":
     aes128()
-    aes192()
-    aes256()
-    cipherExample()
+    #aes192()
+    #aes256()
+    #cipherExample()
