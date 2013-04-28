@@ -43,10 +43,10 @@ from sboxes import *
 
 binlen = lambda x: len(bin(x))-2
 
-debug = False#by default
+#debug = False#by default
 #debug = True
 
-def debug_stream(logtext,data=None,round=None,operation=None):
+def debug_stream(logtext,data=None,round=None,operation=None,debug=False):
     if debug:
         msg = ""
         if not round == None: msg += "Round[%d];"%round
@@ -72,7 +72,7 @@ class GeneralizedRijndael:
                       debug=False,
                       nRounds=10,nRows=4,nColumns=4,wordSize=8,#stardard aes
                       nKeyWords=4):
-        debug = debug
+        self.__debug = debug
         self.__nRounds = nRounds     #Number of encryption rounds {10,12,14}
         self.__nRows = nRows         #Number of rows in the rectangular arrangement
         self.__nColumns = nColumns   #Number of columns in the rectangular arrangement
@@ -81,7 +81,7 @@ class GeneralizedRijndael:
         debug_stream(logtext="Rijndael(%d,%d,%d,%d): block=%dbits key=%dbits"
                      %(self.__nRounds,self.__nRows,self.__nColumns,self.__wordSize,
                        self.__nColumns*self.__nRows*self.__wordSize,
-                       self.__nKeyWords*self.__nRows*self.__wordSize))
+                       self.__nKeyWords*self.__nRows*self.__wordSize),debug=self.__debug)
         self._keyExpander = KeyExpander(key,self.__nRounds,self.__nRows,self.__nColumns,self.__wordSize,self.__nKeyWords)
         self._subBytes = SubBytes(wordSize)
         self._shiftRows = ShiftRows(nRows)
@@ -96,34 +96,34 @@ class GeneralizedRijndael:
            Input: <integer> plainText
            Output: <integer> cipherText
         '''
-        debug_stream("plaintext",plain)
+        debug_stream("plaintext",plain,debug=self.__debug)
         plain = Long(self.__wordSize).toArray(plain, self.__nColumns*self.__nRows*self.__wordSize)
         #---- TODO: check the plain have the size to be ciphered
-        debug_stream("plaintext array",plain)
+        debug_stream("plaintext array",plain,debug=self.__debug)
         #---- FIXME: State should be protected in memory to avoid side channel attacks
         state = State(self.__nRows,self.__nColumns).fromArray(plain)
-        debug_stream("state",state)
+        debug_stream("state",state,debug=self.__debug)
         state = self._addRoundKey.do(state,self._keyExpander.getSubKey(0,self.__nColumns))#w[0,Nb-1]
-        debug_stream("state",state, 0, "cipher->addRoundKey()\t")
+        debug_stream("state",state, 0, "cipher->addRoundKey()\t",debug=self.__debug)
         for r in range(1,self.__nRounds):#[1..Nr-1] step 1
             state = self._subBytes.do(state)
-            debug_stream("state",state,r,"cipher->subBytes()\t")
+            debug_stream("state",state,r,"cipher->subBytes()\t",debug=self.__debug)
             state = self._shiftRows.do(state)
-            debug_stream("state",state,r,"cipher->shiftRows()\t")
+            debug_stream("state",state,r,"cipher->shiftRows()\t",debug=self.__debug)
             state = self._mixColumns.do(state)
-            debug_stream("state",state,r,"cipher->mixColumns()\t")
+            debug_stream("state",state,r,"cipher->mixColumns()\t",debug=self.__debug)
             state = self._addRoundKey.do(state,self._keyExpander.getSubKey((r*self.__nColumns),(r+1)*(self.__nColumns)))
-            debug_stream("state",state,r,"cipher->addRoundKey()\t")
+            debug_stream("state",state,r,"cipher->addRoundKey()\t",debug=self.__debug)
         state = self._subBytes.do(state)
-        debug_stream("state",state,self.__nRounds,"cipher->subBytes()\t")
+        debug_stream("state",state,self.__nRounds,"cipher->subBytes()\t",debug=self.__debug)
         state = self._shiftRows.do(state)
-        debug_stream("state",state,self.__nRounds,"cipher->shiftRows()\t")
+        debug_stream("state",state,self.__nRounds,"cipher->shiftRows()\t",debug=self.__debug)
         state = self._addRoundKey.do(state,self._keyExpander.getSubKey((self.__nRounds*self.__nColumns),(self.__nRounds+1)*(self.__nColumns)))
-        debug_stream("state",state,self.__nRounds,"cipher->addRoundKey()\t")
+        debug_stream("state",state,self.__nRounds,"cipher->addRoundKey()\t",debug=self.__debug)
         cipher = State(self.__nRows,self.__nColumns).toArray(state)
-        debug_stream("ciphertext array",cipher)
+        debug_stream("ciphertext array",cipher,debug=self.__debug)
         cipher = Long(self.__wordSize).fromArray(cipher, self.__nColumns*self.__nRows*self.__wordSize)
-        debug_stream("ciphertext",cipher)
+        debug_stream("ciphertext",cipher,debug=self.__debug)
         return cipher
 
     def decipher(self,cipher):
@@ -133,34 +133,34 @@ class GeneralizedRijndael:
            Input: <integer> cipherText
            Output: <integer> plainText
         '''
-        debug_stream("ciphered",cipher)
+        debug_stream("ciphered",cipher,debug=self.__debug)
         cipher = Long(self.__wordSize).toArray(cipher, self.__nColumns*self.__nRows*self.__wordSize)
         #---- TODO: check the cipher have the size to be deciphered
-        debug_stream("ciphered array",cipher)
+        debug_stream("ciphered array",cipher,debug=self.__debug)
         #---- FIXME: State should be protected in memory to avoid side channel attacks
         state = State(self.__nRows,self.__nColumns).fromArray(cipher)
-        debug_stream("state",state)
+        debug_stream("state",state,debug=self.__debug)
         state = self._addRoundKey.do(state,self._keyExpander.getSubKey((self.__nRounds*self.__nColumns),(self.__nRounds+1)*(self.__nColumns)))
-        debug_stream("state",state,self.__nRounds,"decipher->addRoundKey()\t")
+        debug_stream("state",state,self.__nRounds,"decipher->addRoundKey()\t",debug=self.__debug)
         for r in range(self.__nRounds-1,0,-1):#[Nr-1..1] step -1
             state = self._shiftRows.invert(state)
-            debug_stream("state",state,r,"decipher->invShiftRows()\t")
+            debug_stream("state",state,r,"decipher->invShiftRows()\t",debug=self.__debug)
             state = self._subBytes.invert(state)
-            debug_stream("state",state,r,"decipher->invSubBytes()\t")
+            debug_stream("state",state,r,"decipher->invSubBytes()\t",debug=self.__debug)
             state = self._addRoundKey.do(state,self._keyExpander.getSubKey((r*self.__nColumns),(r+1)*(self.__nColumns)))
-            debug_stream("state",state,r,"decipher->addRoundKey()\t")
+            debug_stream("state",state,r,"decipher->addRoundKey()\t",debug=self.__debug)
             state = self._mixColumns.invert(state)
-            debug_stream("state",state,r,"decipher->invMixColumns()\t")
+            debug_stream("state",state,r,"decipher->invMixColumns()\t",debug=self.__debug)
         state = self._shiftRows.invert(state)
-        debug_stream("state",state,0,"decipher->invShiftRows()\t")
+        debug_stream("state",state,0,"decipher->invShiftRows()\t",debug=self.__debug)
         state = self._subBytes.invert(state)
-        debug_stream("state",state,0,"decipher->invSubBytes()\t")
+        debug_stream("state",state,0,"decipher->invSubBytes()\t",debug=self.__debug)
         state = self._addRoundKey.do(state,self._keyExpander.getSubKey(0,self.__nColumns))
-        debug_stream("state",state,0,"decipher->addRoundKey()\t")
+        debug_stream("state",state,0,"decipher->addRoundKey()\t",debug=self.__debug)
         plain = State(self.__nRows,self.__nColumns).toArray(state)
-        debug_stream("deciphered array",plain)
+        debug_stream("deciphered array",plain,debug=self.__debug)
         plain = Long(self.__wordSize).fromArray(plain, self.__nColumns*self.__nRows*self.__wordSize)
-        debug_stream("deciphered",plain)
+        debug_stream("deciphered",plain,debug=self.__debug)
         return plain
     #----# test methods
     def unitTestCompare(self,calculation,expected):
@@ -185,12 +185,13 @@ class GeneralizedRijndael:
 
 #----# First descent level
 class KeyExpander:
-    def __init__(self,key,nRounds,nRows,nColumns,wordSize,nKeyWords):
+    def __init__(self,key,nRounds,nRows,nColumns,wordSize,nKeyWords,debug=False):
         '''a Pseudo Random Generator that takes the key as a seed to expand 
            it to generate all the subkeys need for each round of the Rijndael.
            Input: <integer> seed
            Output: <integer array> subkeys
         '''
+        
         self.__key = key
         self.__nRounds = nRounds
         self.__nRows = nRows
@@ -201,38 +202,40 @@ class KeyExpander:
         self.__word = Word(nRows,wordSize)
         self.__keyExpanded = [None]*self.__nKeyWords
         
-        debug_stream("key",key,operation="keyExpansion()\t")
+        debug_stream("key",key,operation="keyExpansion()\t",debug=debug)
         key = Long(self.__wordSize).toArray(key, self.__nKeyWords*self.__nRows*self.__wordSize)
         self.__keyExpanded = [None]*self.__nKeyWords
-        debug_stream("key array",key,operation="keyExpansion()\t")
+        debug_stream("key array",key,operation="keyExpansion()\t",debug=debug)
         for i in range(self.__nKeyWords):
             self.__keyExpanded[i] = Word(self.__nRows,self.__wordSize).fromList(key[(self.__nRows*i):(self.__nRows*i)+self.__nRows])
         i = self.__nKeyWords
         while (i < (self.__nColumns*(self.__nRounds+1))):
-            debug_stream("i", i, operation='keyExpansion()\t')
+            debug_stream("i", i, operation='keyExpansion()\t',debug=debug)
             temp = self.__keyExpanded[i-1]
-            debug_stream("temp", temp, operation='keyExpansion()\t')
+            debug_stream("temp", temp, operation='keyExpansion()\t',debug=debug)
             if (i%self.__nKeyWords == 0):
                 rotWord = self.__rotWord(temp)
-                debug_stream("rotWord", rotWord, operation='keyExpansion()\t')
+                debug_stream("rotWord", rotWord, operation='keyExpansion()\t',debug=debug)
                 subWord = self.__subWord(rotWord)
-                debug_stream("subWord", subWord, operation='keyExpansion()\t')
+                debug_stream("subWord", subWord, operation='keyExpansion()\t',debug=debug)
                 Rcon = Word(self.__nRows,self.__wordSize).fromList([RC[i/self.__nKeyWords],0,0,0])
                 subWord ^= Rcon
-                debug_stream("Rcon", Rcon, operation='keyExpansion()\t')
-                debug_stream("subWord with Rcon", subWord, operation='keyExpansion()\t')
+                debug_stream("Rcon", Rcon, operation='keyExpansion()\t',debug=debug)
+                debug_stream("subWord with Rcon", subWord, operation='keyExpansion()\t',debug=debug)
             elif i%self.__nKeyWords == 4:
                 subWord = self.__subWord(subWord)
-                debug_stream("subWord", subWord, operation='keyExpansion()\t')
+                debug_stream("subWord", subWord, operation='keyExpansion()\t',debug=debug)
             else:
                 subWord = temp
-            debug_stream("w[i-Nk]", self.__keyExpanded[i-self.__nKeyWords], operation='keyExpansion()\t')
+            debug_stream("w[i-Nk]", self.__keyExpanded[i-self.__nKeyWords], operation='keyExpansion()\t',debug=debug)
             self.__keyExpanded.append(self.__keyExpanded[i-self.__nKeyWords]^subWord)
-            debug_stream("w[i]", self.__keyExpanded[i], operation='keyExpansion()\t')
+            debug_stream("w[i]", self.__keyExpanded[i], operation='keyExpansion()\t',debug=debug)
             i += 1
-        debug_stream("keyExpanded",self.__keyExpanded,operation="keyExpansion()\t")
-        debug_stream("size of key expanded %d"%len(self.__keyExpanded))
+        debug_stream("keyExpanded",self.__keyExpanded,operation="keyExpansion()\t",debug=debug)
+        debug_stream("size of key expanded %d"%len(self.__keyExpanded),debug=debug)
 
+    def getKey(self):
+        return self.__keyExpanded
     def getSubKey(self,start,end):
         return self.__keyExpanded[start:end]
     def __rotWord(self,w):

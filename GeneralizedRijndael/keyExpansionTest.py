@@ -23,20 +23,18 @@
 ##
 ##############################################################################
 
-from GeneralizedRijndael import GeneralizedRijndael
+from GeneralizedRijndael import KeyExpander
 
-def keyExpansionTest(rounds,rows,columns,wordSize,kColumns=0,debug=True):
+def keyExpansionTest(rounds,rows,columns,wordSize,kColumns=0,debug=False):
     from random import randint
     if kColumns == 0: kColumns = columns
     kbits = kColumns*rows*wordSize
     key = randint(0,int('0b'+'1'*(kbits),2))
-    rijndael = GeneralizedRijndael(key,
-                                    nRounds=rounds,
-                                    nRows=rows,
-                                    nColumns=columns,
-                                    wordSize=wordSize,
-                                    nKeyWords=kColumns,
-                                    debug=debug)
+    print("key %s"%hex(key))
+    keyExpander = KeyExpander(key,rounds,rows,columns,wordSize,kColumns,debug)
+    print("expanded key %s"%keyExpander.getKey())
 
 if __name__ == "__main__":
     keyExpansionTest(10,4,4,8,4)
+    keyExpansionTest(10,4,4,8,6)
+    keyExpansionTest(10,4,4,8,8)

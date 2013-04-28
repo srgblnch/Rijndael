@@ -31,8 +31,10 @@ def aes128(debug=False):
     srv = GeneralizedRijndael(cipherKey,
                                nRounds=10,nRows=4,nColumns=4,wordSize=8,nKeyWords=4,
                                debug=debug)
-    
+    print("aes128 -> 10 rounds, 4 rows, 4 columns, 8 bit word size, and key with 4 words")
+    print("plaintext %s (key %s)"%(hex(plainText),hex(cipherKey)))
     cipherText = srv.cipher(plainText)
+    print("cipherText %s"%hex(cipherText))
     resultText = srv.decipher(cipherText)
     
     unitTest = srv.unitTestCompare(plainText,resultText)
@@ -45,8 +47,10 @@ def aes192(debug=False):
     cipherKey = 0x000102030405060708090a0b0c0d0e0f1011121314151617
     srv = GeneralizedRijndael(cipherKey,nRounds=12,nKeyWords=6,
                       debug=debug)
-    
+    print("aes192 -> 12 rounds, 4 rows, 4 columns, 8 bit word size, and key with 6 words")
+    print("plaintext %s (key %s)"%(hex(plainText),hex(cipherKey)))
     cipherText = srv.cipher(plainText)
+    print("cipherText %s"%hex(cipherText))
     resultText = srv.decipher(cipherText)
     
     unitTest = srv.unitTestCompare(plainText,resultText)
@@ -60,8 +64,10 @@ def aes256(debug=False):
     srv = GeneralizedRijndael(cipherKey,
                                nRounds=14,nRows=4,nColumns=4,wordSize=8,nKeyWords=8,
                                debug=debug)
-    
+    print("aes256 -> 14 rounds, 4 rows, 4 columns, 8 bit word size, and key with 8 words")
+    print("plaintext %s (key %s)"%(hex(plainText),hex(cipherKey)))
     cipherText = srv.cipher(plainText)
+    print("cipherText %s"%hex(cipherText))
     resultText = srv.decipher(cipherText)
     
     unitTest = srv.unitTestCompare(plainText,resultText)
@@ -86,6 +92,6 @@ def cipherExample(debug=False):
 
 if __name__ == "__main__":
     aes128()
-    #aes192()
-    #aes256()
+    aes192()
+    aes256()
     #cipherExample()
