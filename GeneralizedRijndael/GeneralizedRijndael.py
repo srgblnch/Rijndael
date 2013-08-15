@@ -82,6 +82,9 @@ class GeneralizedRijndael:
                      %(self.__nRounds,self.__nRows,self.__nColumns,self.__wordSize,
                        self.__nColumns*self.__nRows*self.__wordSize,
                        self.__nKeyWords*self.__nRows*self.__wordSize),debug=self.__debug)
+        #restrictions:
+        if self.__nRows < self.__nColumns:
+            raise AssertionError("Number of rows must be equal of bigger than columns")
         self._keyExpander = KeyExpander(key,self.__nRounds,self.__nRows,self.__nColumns,self.__wordSize,self.__nKeyWords)
         self._subBytes = SubBytes(wordSize)
         self._shiftRows = ShiftRows(nRows)
