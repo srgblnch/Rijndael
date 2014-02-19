@@ -1,0 +1,39 @@
+The main file is the GeneralizedRijndael.py. This host the classes written
+to perform the Rijndael operation under an encapsulated way.
+
+This code is for learn how the Rijndael works and how it can be expanded (or
+minored) to more sizes than the original from Daemen and Rijmen.
+
+The main file of this code are:
+- GeneralizedRijndael.py
+- sboxes.py
+
+And there are several test scripts:
+
+- aesTest: The simpliest but complete. Uses the 3 AES standard sizes.
+
+- keyExpansionTest: To do unitary test on the expansion key operation
+
+- unitTest: This does unitary tests on the 4 main operations of Rijndael
+
+- rijndael32Test: Does test on a rijndael version with 32 bit block size.
+  This tests are made from two possible approaches:
+  - state matrix of 4*4 and word size of 2 bits
+  - state matrix of 2*2 and word size of 8 bits
+
+- rijndaelTest: The most generic test file. With parameters many different
+  sizes can be tested:
+  - For the aes standard sizes:
+    $ python rijndaelTest.py --sizes=10,4,4,8
+      state matrix 4*4, wordsize 8 bits, 10 rounds (key with 4 columns)
+    $ python rijndaelTest.py --sizes=12,4,4,8,8
+      state matrix 4*4, wordsize 8 bits, 12 rounds (key with 6 columns)
+    $ python rijndaelTest.py --sizes=14,4,4,8,8
+      state matrix 4*4, wordsize 8 bits, 14 rounds (key with 8 columns)
+  - Other weird sizes:
+    like 48 bit block and 80 bit keys:
+    $ python rijndaelTest.py --sizes=40,2,3,8,5
+      state matrix 2*3, wordsize 8 bits, 40 rounds (key with 5 columns)
+
+There are unsupported (yet) key sizes like odd word sizes or bigger than 8.
+The number of rows can only be in 2,3,4.

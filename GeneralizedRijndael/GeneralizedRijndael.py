@@ -293,6 +293,8 @@ class KeyExpander(Logger):
                           operation="keyExpansion()\t")
         self.debug_stream("size of key expanded %d"%len(self.__keyExpanded))
 
+    def getKey(self):
+        return self.__keyExpanded
     def getSubKey(self,start,end):
         return self.__keyExpanded[start:end]
     def __rotWord(self,w):
@@ -516,6 +518,10 @@ class RoundConstant:
         return [self.__rcon[i],0,0,0]
 
 class PolynomialRing:
+    '''This represents a polynomial over (GF(2^n))^l, with a modulo polynomial 
+       composed (decomposable in roots) this becomes a algebraic ring.
+       The coefficients on this polynomial ring are elements of a polynomial field.
+    '''
     def __init__(self,r,c,m=0x11b):
         self.__nRows=r
         self.__nColumns=c
@@ -552,6 +558,10 @@ class PolynomialRing:
         return res
 
 class PolynomialField:
+    '''This represents a polynomial over (GF(2^n) with a degree at most 2^{n}-1
+       Because the polynomial modulo is prime (it is a root) this 
+       describes an algebraic field.
+    '''
     def __init__(self,m):
         self.__m=m#---- FIXME: made sure about the irreductible polynomials used
     def product(self,a,b):
@@ -586,7 +596,8 @@ class PolynomialField:
 
 #----# Third descent level
 def shift(l,n):
-    '''cyclic rotation of the list 'l' y 'n' elements.
+    #---- Binary doesn't need a class
+    '''cyclic rotation of the list 'l' y 'n' elements. 
        Positive n's means left, negative n's means right.
        Input:
        Output:
