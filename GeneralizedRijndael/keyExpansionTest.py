@@ -39,4 +39,6 @@ def keyExpansionTest(rounds,rows,columns,wordSize,kColumns=0,debug=True):
                                     debug=debug)
 
 if __name__ == "__main__":
+    #---- TODO: cmd params to change this settings
+    #           - debug flag on cmd line
     keyExpansionTest(10,4,4,8,4)

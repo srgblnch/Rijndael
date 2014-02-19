@@ -96,11 +96,14 @@ if __name__ == "__main__":
                       help="Coma separated of the Rijndael parameters", metavar="SIZES")
     parser.add_option("-d", "--debug",
                       help="Set debug mode",default=False)
+    #---- TODO: allow different debugs
     
     (options, args) = parser.parse_args()
     debug = options.debug
     
-    if not options.all:
+    print options.all
+    
+    if not options.all == None:
         sizes = options.sizes.split(',')
         if len(sizes) in [4,5]:
             rounds = int(sizes[0])

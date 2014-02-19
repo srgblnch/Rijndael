@@ -23,7 +23,7 @@
 ##
 ##############################################################################
 
-from GeneralizedRijndael import GeneralizedRijndael,debug_stream
+from GeneralizedRijndael import GeneralizedRijndael,Logger
 
 def rijndael32_32key_228(debug=False):
     plainText = 0x00112233
@@ -38,7 +38,7 @@ def rijndael32_32key_228(debug=False):
     unitTest = srv.unitTestCompare(plainText,resultText)
     print("Unit Test= %s"%unitTest)
     if not unitTest:
-        debug_stream("should be", plainText)
+        Logger().debug_stream("should be", plainText)
 
 def rijndael32_32key_442(debug=False):
     plainText = 0x00112233
@@ -161,6 +161,9 @@ def rijndael32_128key_loop(n):
         if not plain == plain_442 == plain_228: break
 
 if __name__ == "__main__":
+    #---- TODO: cmdline arguments
+    #           - which of the tests to be called
+    #           - debug mode
     rijndael32_32key_228(True)
     rijndael32_32key_442(True)
     
