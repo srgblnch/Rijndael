@@ -23,6 +23,8 @@
 ##
 ##############################################################################
 
+import sys
+
 from GeneralizedRijndael import GeneralizedRijndael,Logger
 
 def aes128(debug=False):
@@ -94,7 +96,11 @@ if __name__ == "__main__":
     #---- TODO: cmdline arguments
     #           - which of the tests to be called
     #           - debug mode
-    aes128(True)
-    aes192(True)
-    aes256(True)
+    if len(sys.argv) > 1 and sys.argv[1] == '--debug':
+        debug = True
+    else:
+        debug = False
+    aes128(debug)
+    aes192(debug)
+    aes256(debug)
     #cipherExample()

@@ -23,6 +23,8 @@
 ##
 ##############################################################################
 
+import sys
+
 from GeneralizedRijndael import KeyExpander
 
 def keyExpansionTest(rounds,rows,columns,wordSize,kColumns=0,debug=False):
@@ -37,7 +39,11 @@ def keyExpansionTest(rounds,rows,columns,wordSize,kColumns=0,debug=False):
 if __name__ == "__main__":
     #---- TODO: cmd params to change this settings
     #           - debug flag on cmd line
-    keyExpansionTest(10,4,4,8,4)
-    keyExpansionTest(10,4,4,8,6)
-    keyExpansionTest(10,4,4,8,8)
+    if len(sys.argv) > 1 and sys.argv[1] == '--debug':
+        debug = True
+    else:
+        debug = False
+    keyExpansionTest(10,4,4,8,4,debug=debug)
+    keyExpansionTest(10,4,4,8,6,debug=debug)
+    keyExpansionTest(10,4,4,8,8,debug=debug)
 

@@ -173,9 +173,10 @@ def main():#arg0,arg1,arg2):
                       help="Set debug mode",default=False)
     
     parser.add_option("-l","--loop",
-                      help="Test the ticket system with in a loop of random values",default=NLOOPS)
+                      help="Test the ticket system with in a loop of random values")#,default=NLOOPS)
     
     (options, args) = parser.parse_args()
+    print options
     debug = options.debug
     
     if not options.loop:

@@ -23,6 +23,8 @@
 ##
 ##############################################################################
 
+import sys
+
 from GeneralizedRijndael import GeneralizedRijndael,Logger
 
 def unitTest(debug=False):
@@ -105,4 +107,8 @@ if __name__ == "__main__":
     #---- TODO: cmdline arguments
     #           - which of the tests to be called
     #           - debug mode
-    unitTest()
+    if len(sys.argv) > 1 and sys.argv[1] == '--debug':
+        debug = True
+    else:
+        debug = False
+    unitTest(debug)

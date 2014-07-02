@@ -23,6 +23,8 @@
 ##
 ##############################################################################
 
+import sys
+
 from GeneralizedRijndael import GeneralizedRijndael,Logger
 
 def rijndael32_32key_228(debug=False):
@@ -145,13 +147,13 @@ def rijndael32_128key_442(debug=False):
     if not unitTest:
         debug_stream("should be", plainText)
 
-def rijndael32_128key_loop(n):
+def rijndael32_128key_loop(n,debug):
     from random import randint
     for i in range(n):
         plain = randint(0,0xFFFFFFFF)
         key = randint(0,0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF)
-        rijndael32_442 = GeneralizedRijndael(key,nRounds=16,nRows=4,nColumns=4,wordSize=2,nKeyWords=16)
-        rijndael32_228 = GeneralizedRijndael(key,nRounds=16,nRows=2,nColumns=2,wordSize=8,nKeyWords=8)
+        rijndael32_442 = GeneralizedRijndael(key,nRounds=16,nRows=4,nColumns=4,wordSize=2,nKeyWords=16,debug=debug)
+        rijndael32_228 = GeneralizedRijndael(key,nRounds=16,nRows=2,nColumns=2,wordSize=8,nKeyWords=8,debug=debug)
         cipher_442 = rijndael32_442.cipher(plain)
         cipher_228 = rijndael32_228.cipher(plain)
         plain_442 = rijndael32_442.decipher(cipher_442)
@@ -164,17 +166,21 @@ if __name__ == "__main__":
     #---- TODO: cmdline arguments
     #           - which of the tests to be called
     #           - debug mode
-    rijndael32_32key_228(True)
-    rijndael32_32key_442(True)
+    if len(sys.argv) > 1 and sys.argv[1] == '--debug':
+        debug = True
+    else:
+        debug = False
+    rijndael32_32key_228(debug)
+    rijndael32_32key_442(debug)
     
-    rijndael32_48key_228()
-    rijndael32_48key_442()
+    rijndael32_48key_228(debug)
+    rijndael32_48key_442(debug)
     
-    rijndael32_64key_228()
-    rijndael32_64key_442()
+    rijndael32_64key_228(debug)
+    rijndael32_64key_442(debug)
     
-    rijndael32_128key_228()
-    rijndael32_128key_442()
+    rijndael32_128key_228(debug)
+    rijndael32_128key_442(debug)
     
-    rijndael32_128key_loop(100)
+    rijndael32_128key_loop(100,debug)
     
