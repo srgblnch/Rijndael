@@ -3,7 +3,7 @@
 #---- licence header
 ##############################################################################
 ##
-## file: GeneralizedRijndael.py
+## file: setup.py
 ##
 ## developers history & copyleft: Sergi Blanch-Torne
 ##
@@ -24,6 +24,7 @@
 ##
 ##############################################################################
 
-from GeneralizedRijndael import *
-from sboxes import *
-from version import *
+MAJOR_VERSION=0
+MINOR_VERSION=0
+BUILD_VERSION=1
+REVISION_VERSION=0

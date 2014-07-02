@@ -3,7 +3,7 @@
 #---- licence header
 ##############################################################################
 ##
-## file: GeneralizedRijndael.py
+## file: GeneralizedRijndael.pyx
 ##
 ## developers history & copyleft: Sergi Blanch-Torne
 ##
@@ -40,11 +40,16 @@
 
 from copy import deepcopy
 from sboxes import *
+from version import *
 
 binlen=lambda x: len(bin(x))-2
 
 debug=False#by default
 #debug = True
+
+def __version__():
+    return '%d.%d.%d-%d'%(MAJOR_VERSION,MINOR_VERSION,
+                          BUILD_VERSION,REVISION_VERSION),
 
 class Logger:
     def __init__(self,debug=False):
@@ -508,7 +513,7 @@ class RoundConstant:
         self.__calculateUntil(nColumns*(nRows+1))
     def __calculateUntil(self,n):
         if n<len(self.__rcon):
-            for i in range(len(self.__rcon,n)):
+            for i in range(len(self.__rcon),n):
                 self.__rcon.\
                    append(self.__polynomialsubfield.\
                              xtime(self.__rcon[len(self.__rcon)-1]))
