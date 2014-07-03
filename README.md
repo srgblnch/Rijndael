@@ -15,7 +15,28 @@ To compile the [cython](http://cython.org) module, just call:
 $ python setup.py build
 ```
 
-This will produce a '*GeneralizedRijndael.so*' in a new '*build*' directory if there wasn't any problem. As this is not finished, for testing purposes, you can manually symlink this '*GeneralizedRijndael.so*' file to the test directory, and do the same linking for the '*sboxes.py*' and '*version.py*' in the GeneralizedRijndael directory.
+This will produce a '*GeneralizedRijndael.so*' in a new '*build*' directory if there wasn't any problem. As this is not a finished modules, the install process is not made, but this *so* file can be placed somewhere within the *$PYTHONPATH* or simlinked inside the test directory. Two py files will be needed also in same place, the '*sboxes.py*' and '*version.py*', from the GeneralizedRijndael directory.
+
+The from IPython you can:
+```
+In[1]: from GeneralizedRijndael import GeneralizedRijndael
+In[2]: from random import randint
+In[3]: rows,columns,wordSize = 4,4,8
+In[4]: kColumns = columns
+In[5]: kbits = kColumns*rows*wordSize
+In[6]: rounds = max(columns,kColumns) + 6
+In[7]: rijndael = GeneralizedRijndael(key=randint(0,int(2**kbits)-1),
+                                      nRounds=rounds,
+                                      nRows=rows,
+                                      nColumns=columns,
+                                      wordSize=wordSize,
+                                      nKeyWords=kColumns)
+In[8]: nbits = columns*rows*wordSize
+In[9]: plain = randint(0,int(2**nbits)-1)
+In[10]: cipher = rijndael.cipher(plain)
+In[11]: plainbis = rijndael.decipher(cipher)
+In[12]: plain == plainbis
+```
 
 Testing
 -------
@@ -47,6 +68,13 @@ Or other sizes can be also set like for example a 48 bit block and 80 bit keys:
       state matrix 2*3, wordsize 8 bits, 40 rounds (key with 5 columns)
 ```
 Note: There are unsupported (yet) key sizes like odd word sizes or bigger than 8. The number of rows can only be in 2,3,4.
+
+Following the previous IPython example, *%timeit* magic command can be used:
+```
+ %timeit -n10000 -p6 -r10 rijndael = GeneralizedRijndael(key=randint(0,int(2**kbits)-1),nRounds=rounds,nRows=rows,nColumns=columns,wordSize=wordSize,nKeyWords=kColumns)
+10000 loops, best of 10: 253.347 us per loop
+```
+For this purpose there is another test script called '*timeitTest*' who will return an output file with a set of block and keys size examples with a list the time for 10000 loops repeated 10 times, for statistics purposes.
 
 Extras
 ------
