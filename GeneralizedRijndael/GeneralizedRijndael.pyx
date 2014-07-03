@@ -326,6 +326,14 @@ class KeyExpander(Logger):
         return self.__word.fromList(wordArray)
 
 class SubBytes(Logger):
+    '''This class is made to do the subBytes Rijndael's non-linear 
+       substitution to provide confusion to the ciphertext, and its inverse.
+       It uses a secondary object SBox as a builder pattern to allow the 
+       transformation from this operation.
+       FIXME: The precalculated SBoxes shall be replaced by the calculations
+       themselves specially to allow arbitrary word sizes and not only the
+       original 8 bits and the two included here for 2 and 4 bits.
+    '''
     def __init__(self,wordSize,debug=False):
         self._debug = [debug]
         self.__sbox=SBox(wordSize)
@@ -426,22 +434,45 @@ class AddRoundKey:
 
 #----# Second descent level
 class SBox:
-    def __init__(self,wordSize):
-        #---- TODO: this must be avel to be modified to use a sbox as a table 
+    '''This class is used from the subBytes rijndael's transformation. But it 
+       is using an auxiliar python source file who have stored the original 
+       sbox and its inverse, for 8 bits word size, as well as it have two 
+       other pairs of sboxes for word size 2 and 4 made on this development.
+    '''
+    def __init__(self,wordSize,useCalculations=False):
+        #---- TODO: this must be able to be modified to use a sbox as a table 
         #           or as the pure calculations
-        self.__wordSize=wordSize
-        if wordSize==8:
-            self._sbox=sbox_word8b
-            self._sbox_inverted=sbox_word8b_inverted
-        elif  self.__wordSize==4:
-            self._sbox=sbox_word4b
-            self._sbox_inverted=sbox_word4b_inverted
-        elif  self.__wordSize==2:
-            self._sbox=sbox_word2b
-            self._sbox_inverted=sbox_word2b_inverted
-        if not (hasattr(self,"_sbox") or hasattr(self,"_sbox_inverted")):
-            raise Exception("(__init__)","There is no Sbox for %d wordsize"\
-                            %(self.__wordSize))
+        if useCalculation:
+            self._modulo = {2:0x07,#z^2+z+1
+                            3:0x0B,#z^3+z+1
+                            4:0x13,#z^4+z+1
+                            5:0x25,#z^5+z^2+1
+                            6:0x43,#z^6+z+1
+                            7:0x83,#z^7+z+1
+                            8:0x11B,#z^8+z^4+z^3+z+1 the Rijndael's original
+                            9:0x203,#z^9+z+1
+                            10:0x409,#z^10+z^3+1
+                            11:0x805,#z^11+z^2+1
+                            12:0x1009,#z^12+z^3+1
+                            13:0x201B,#z^13+z^4+z^3+z+1
+                            14:0x4021,#z^14+z^5+1
+                            15:0x8003,#z^15+z+1
+                            16:0x1002B,#z^16+z^5+z^3+z+1
+                            }[wordSize]
+        else:
+            self.__wordSize=wordSize
+            if wordSize==8:
+                self._sbox=sbox_word8b
+                self._sbox_inverted=sbox_word8b_inverted
+            elif  self.__wordSize==4:
+                self._sbox=sbox_word4b
+                self._sbox_inverted=sbox_word4b_inverted
+            elif  self.__wordSize==2:
+                self._sbox=sbox_word2b
+                self._sbox_inverted=sbox_word2b_inverted
+            if not (hasattr(self,"_sbox") or hasattr(self,"_sbox_inverted")):
+                raise Exception("(__init__)","There is no Sbox for %d wordsize"\
+                                %(self.__wordSize))
     def transform(self,state,invert=False):
         '''Given the content of one cell of the state matrix, 'divide' in 2 
            halfs. The upper is understood as the row and the lower as the 
@@ -477,6 +508,15 @@ class SBox:
         c=(value&int(cmask,2))
         r=(value&int(rmask,2))>>(self.__wordSize/2)
         return r,c
+    
+    def multiplicativeInverse(self,value):
+        '''First of the two transformations, called g.
+        '''
+        pass
+    def affineTransformation(self,value):
+        '''Second of the transformation, called f.
+        '''
+        pass
 
 #RoundConstant
 # RC[1] = 0x01
