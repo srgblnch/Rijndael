@@ -1,10 +1,10 @@
 ##############################################################################
 ##
-## file: finiteFieldModularMultiplication.py
+## file: finiteField.py
 ##
-## developers history & copyleft: Sergi Blanch-Torne
+## developers history & copyleft: Sergi Blanch-Torn\'e
 ##
-## Copyright 2011, 2012, 2013, 2014 (copyleft)
+## Copyright 2014 (copyleft)
 ## 
 ## This file is free software: you can redistribute it and/or modify
 ## it under the terms of the GNU Lesser General Public License as published by
