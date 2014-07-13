@@ -439,26 +439,12 @@ class SBox:
        sbox and its inverse, for 8 bits word size, as well as it have two 
        other pairs of sboxes for word size 2 and 4 made on this development.
     '''
-    def __init__(self,wordSize,useCalculations=False):
+    def __init__(self,wordSize,useCalc=False):
         #---- TODO: this must be able to be modified to use a sbox as a table 
         #           or as the pure calculations
-        if useCalculation:
-            self._modulo = {2:0x07,#z^2+z+1
-                            3:0x0B,#z^3+z+1
-                            4:0x13,#z^4+z+1
-                            5:0x25,#z^5+z^2+1
-                            6:0x43,#z^6+z+1
-                            7:0x83,#z^7+z+1
-                            8:0x11B,#z^8+z^4+z^3+z+1 the Rijndael's original
-                            9:0x203,#z^9+z+1
-                            10:0x409,#z^10+z^3+1
-                            11:0x805,#z^11+z^2+1
-                            12:0x1009,#z^12+z^3+1
-                            13:0x201B,#z^13+z^4+z^3+z+1
-                            14:0x4021,#z^14+z^5+1
-                            15:0x8003,#z^15+z+1
-                            16:0x1002B,#z^16+z^5+z^3+z+1
-                            }[wordSize]
+        self._useCalc = useCalc
+        if self._useCalc:
+            self._field = PolynomialField(wordSize)
         else:
             self.__wordSize=wordSize
             if wordSize==8:
@@ -482,16 +468,28 @@ class SBox:
            Input:
            Output:
         '''
-        if invert: sbox=self._sbox_inverted
-        else: sbox=self._sbox
-        for i in range(len(state)):
-            if type(state[i])==list:
-                for j in range(len(state[i])):
-                    r,c=self.__hexValue2MatrixCoords(state[i][j])
-                    state[i][j]=sbox[r][c]
-            else:
-                r,c=self.__hexValue2MatrixCoords(state[i])
-                state[i]=sbox[r][c]
+        if self._useCalc:
+            raise Exception("SBox transformation with calculations "\
+                            "not supported yet!")
+            if invert: sbox=self._invertsbox_call_
+            else: sbox=self._sbox_call_
+            for i in range(len(state)):
+                if type(state[i])==list:
+                    for j in range(len(state[i])):
+                        state[i][j] = sbox(state[i][j])
+                else:
+                    state[i] = sbox(state[i])
+        else:
+            if invert: sbox=self._sbox_inverted
+            else: sbox=self._sbox
+            for i in range(len(state)):
+                if type(state[i])==list:
+                    for j in range(len(state[i])):
+                        r,c=self.__hexValue2MatrixCoords(state[i][j])
+                        state[i][j]=sbox[r][c]
+                else:
+                    r,c=self.__hexValue2MatrixCoords(state[i])
+                    state[i]=sbox[r][c]
         return state
     def __hexValue2MatrixCoords(self,value):
         '''Split the input in to equal halfs that will be used as coordinates
@@ -508,15 +506,14 @@ class SBox:
         c=(value&int(cmask,2))
         r=(value&int(rmask,2))>>(self.__wordSize/2)
         return r,c
-    
-    def multiplicativeInverse(self,value):
-        '''First of the two transformations, called g.
-        '''
-        pass
-    def affineTransformation(self,value):
-        '''Second of the transformation, called f.
-        '''
-        pass
+    def _sbox_call_(self,value):
+        g = self._field.multiplicativeInverse(value)
+        f = self._field.affineTransformation(g)
+        return f
+    def _invertsbox_call_(self,value):
+        g = self._field.multiplicativeInverse(value)
+        f = self._field.invertAffineTransformation(g)
+        return f
 
 #RoundConstant
 # RC[1] = 0x01
@@ -546,10 +543,10 @@ class RoundConstant:
         x^(i-1) power of x, where x is denoted 0x02 in GF(2^8)
         i, starts at 1, not 0.
     '''
-    def __init__(self,nRows,nColumns,modulo):
+    def __init__(self,nRows,nColumns,wordSize):
         #---- FIXME:why this has this initial unused 0x8D?
         self.__rcon=[0x8D,0x01]
-        self.__polynomialsubfield=PolynomialField(modulo)
+        self.__polynomialsubfield=PolynomialField(wordSize)
         self.__calculateUntil(nColumns*(nRows+1))
     def __calculateUntil(self,n):
         if n<len(self.__rcon):
@@ -567,10 +564,10 @@ class PolynomialRing:
        composed (decomposable in roots) this becomes a algebraic ring.
        The coefficients on this polynomial ring are elements of a polynomial field.
     '''
-    def __init__(self,r,c,m=0x11b):
-        self.__nRows=r
-        self.__nColumns=c
-        self.__polynomialsubfield=PolynomialField(m)
+    def __init__(self,nRows,nColumns,wordSize):
+        self.__nRows=nRows
+        self.__nColumns=nColumns
+        self.__polynomialsubfield=PolynomialField(wordSize)
     def product(self,ax,sx):
         '''Given two polynomials over F_{2^8} multiplie them modulo x^{4}+1
            s'(x) = a(x) \otimes s(x)
@@ -598,23 +595,40 @@ class PolynomialRing:
                 res[r][c]=0
                 for rbis in range(self.__nRows):
                     res[r][c]^=self.__polynomialsubfield.\
-                       product(shifted_ax[rbis],sx[rbis][c])
+                                          product(shifted_ax[rbis],sx[rbis][c])
                 shifted_ax=shift(shifted_ax,-1)
         return res
+
+PolynomialFieldModulo = {2:0x07,#z^2+z+1
+                         3:0x0B,#z^3+z+1
+                         4:0x13,#z^4+z+1
+                         5:0x25,#z^5+z^2+1
+                         6:0x43,#z^6+z+1
+                         7:0x83,#z^7+z+1
+                         8:0x11B,#z^8+z^4+z^3+z+1 the Rijndael's original
+                         9:0x203,#z^9+z+1
+                         10:0x409,#z^10+z^3+1
+                         11:0x805,#z^11+z^2+1
+                         12:0x1009,#z^12+z^3+1
+                         13:0x201B,#z^13+z^4+z^3+z+1
+                         14:0x4021,#z^14+z^5+1
+                         15:0x8003,#z^15+z+1
+                         16:0x1002B,#z^16+z^5+z^3+z+1
+                        }[wordSize]
 
 class PolynomialField:
     '''This represents a polynomial over (GF(2^n) with a degree at most 2^{n}-1
        Because the polynomial modulo is prime (it is a root) this 
        describes an algebraic field.
     '''
-    def __init__(self,m):
-        self.__m=m#---- FIXME: made sure about the irreductible polynomials used
+    def __init__(self,degree):
+        self._degree = degree
+        self._modulo = PolynomialFieldModulo[degree]
     def product(self,a,b):
-        '''multiplication of polynomials modulo an irreductible pylinomial of
-           field's degree. Over F_{2^8} this polynomial is
-           m(x) = x^8+x^4+x^3+x+1
-           Input:
-           Output:
+        '''multiplication of two polynomials reduced modulo m(z).
+           Input: <integer> a,b (polynomial bit representations)
+                  <integer> m (modulo polynomial)
+           Output: <integer> r = a*b (mod m)
         '''
         b_=b
         xor=[]
@@ -635,8 +649,35 @@ class PolynomialField:
            Output: <integer> a*x (mod m)
         '''
         a<<=1
-        if a&(1<<binlen(self.__m)-1): a^=self.__m
+        if a&(1<<binlen(self._modulo)-1): a^=self._modulo
         return a
+    def multiplicativeInverse(self,value):
+        '''Multiplicative inverse based on ...
+           Input: <integer> a (polynomial bit representation)
+                  <integer> m (modulo polynomial)
+           Output: <integer> a^-1: a*a^-1 = 1 (mod m)
+           This it the first of the two transformations for the SBoxes in the 
+           subBytes operation, the one called called g.
+        '''
+        gcd,x,y = self._egcd(value, self._modulo)
+        if gcd != 1:
+            raise Exception("The inverse of %s modulo %s doens't exist!"%(value,self._modulo))
+        else:
+            return x%m
+    def affineTransformation(self,value):
+        '''Second of the transformation, called f.
+        '''
+        pass
+    def _egcd(self,a,b):
+        '''Extended Euclidean Algorithm
+        '''
+        x,y,u,v = 0,1,1,0
+        while a != 0:
+            q,r = b/a,b%a
+            m,n = x-u*q,y-v*q
+            b,a,x,y,u,v=a,r,u,v,m,n
+        gcd = b
+        return gcd,x,y
 #---- End Second descent level
 
 #----# Third descent level
