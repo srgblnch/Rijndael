@@ -64,6 +64,7 @@ class Polynomial:
         return self._variable
     def isZero(self):
         return not bool(len(self._coefficients))
+    #TODO: another isFunc with the neutral element of the second operation
     def checkTypes(function):
         '''Decorator to precheck the input parameters on some of the operations
         '''
@@ -75,7 +76,7 @@ class Polynomial:
         return comparator
     def __repr__(self):
         if self.isZero():
-            return '0'
+            return '0'#FIXME: the neutral element of the first operation
         else:
             cR = [] #coefficients representations list
             #FIXME: review this naming
