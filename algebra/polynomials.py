@@ -64,10 +64,15 @@ class Polynomial:
         return self._variable
     def isZero(self):
         return not bool(len(self._coefficients))
-    def checkTypes(self,other):
-        if not self.variable == other.variable:
-            raise EnvironmentError("Uncompatible polynomials")
-        #TODO: check if their coefficients have the same type
+    def checkTypes(function):
+        '''Decorator to precheck the input parameters on some of the operations
+        '''
+        def comparator(self,other):
+            if not self.variable == other.variable:
+                raise EnvironmentError("Uncompatible polynomials")
+            #TODO: check if their coefficients have the same type
+            return function(self,other)
+        return comparator
     def __repr__(self):
         if self.isZero():
             return '0'
@@ -98,9 +103,8 @@ class Polynomial:
         return len(self._coefficients)
     def __len__(self):
         return len(self._coefficients)
-    #@checkTypes#FIXME: decorator with arguments
+    @checkTypes
     def __add__(self,other):
-        self.checkTypes(other)
         a = copy(self.coefficients)
         b = copy(other.coefficients)
         if self.degree > other.degree:
@@ -122,10 +126,9 @@ class Polynomial:
         return iter(self._coefficients)
     def iter(self):
         return self.__iter__()
-    #@checkTypes
+    @checkTypes
     def __mul__(self,other):
         #FIXME: more test needed
-        self.checkTypes(other)
         if self.isZero() or other.isZero():
             return Polynomial([],variable=self.variable)
         m = [0]*(self.degree+other.degree+2)
