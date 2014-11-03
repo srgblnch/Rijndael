@@ -3,7 +3,7 @@
 #---- licence header
 ##############################################################################
 ##
-## file: GeneralizedRijndael.pyx
+## file: grijndael.py
 ##
 ## developers history & copyleft: Sergi Blanch-Torne
 ##
@@ -24,25 +24,7 @@
 ##
 ##############################################################################
 
-import Logger
-
-class GeneralizedRijndael(Logger.Logger):
-    def __init__(self,loglevel):
-        Logger.Logger.__init__(self,loglevel)
-        self.debug_stream("Init GeneralizedRijndael")
-
-from optparse import OptionParser
-
-def main():
-    #---- TODO: introduce parameters to:
-    #           - define parameters to use and use random input and key.
-    #           - allow to setup by params the input and/or the key, and
-    #           - operations to do: cipher and/or decipher
-    parser = OptionParser()
-    parser.add_option('-l',"--log-level",default="info",help="Set log level")
-    (options, args) = parser.parse_args()
-    gr = GeneralizedRijndael(Logger.log_level(options.log_level))
-    #---- TODO: 
+import GeneralizedRijndael
 
 if __name__ == "__main__":
-    main()
+    GeneralizedRijndael.main()

@@ -10,7 +10,12 @@ The code has been made to academic cryptographic purposes and its cryptoanalysis
 Usage
 -----
 
-**TODO**
+To compile the [cython](http://cython.org) module, just call:
+```
+$ python setup.py build
+```
+
+This will produce a '*GeneralizedRijndael.so*' in a new '*build*' directory if there wasn't any problem. As this is not a finished modules, the install process is not made, but this *so* file can be placed somewhere within the *$PYTHONPATH* or simlinked inside the test directory. Two py files will be needed also in same place, the '*sboxes.py*' and '*version.py*', from the GeneralizedRijndael directory.
 
 Testing
 -------

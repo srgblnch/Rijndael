@@ -24,7 +24,9 @@
 ##
 ##############################################################################
 
-import version
+import sys
+import warnings
+from version import *
 try:
     from Cython.Distutils import build_ext
     from setuptools import setup, Extension
@@ -32,34 +34,52 @@ try:
 except ImportError as e:
     HAVE_CYTHON = False
     warnings.warn(e.message)
-    from distutils.core import setup, Extension
-    from distutils.command import build_ext
+    sys.exit(-1)
 
-GeneralizedRijndaelModule = Extension('GeneralizedRijndael',
-                                      define_macros = [('MAJOR_VERSION',
-                                                        '%d'%MAJOR_VERSION),
-                                                       ('MINOR_VERSION',
-                                                        '%d'%MINOR_VERSION),
-                                                       ('BUILD_VERSION',
-                                                        '%d'%BUILD_VERSION),
-                                                       ('REVISION_VERSION',
-                                                        '%d'%REVISION_VERSION)
-                                                       ],
-                                      sources = [
-                                 'GeneralizedRijndael/GeneralizedRijndael.pyx',
-                                                 ]
-                                      )
+extensions = [
+Extension('GeneralizedRijndael',
+          define_macros = [('MAJOR_VERSION',
+                            '%d'%MAJOR_VERSION),
+                           ('MINOR_VERSION',
+                            '%d'%MINOR_VERSION),
+                           ('BUILD_VERSION',
+                            '%d'%BUILD_VERSION),
+                           ('REVISION_VERSION',
+                            '%d'%REVISION_VERSION)
+                           ],
+          sources = ['GeneralizedRijndael/GeneralizedRijndael.pyx'],
+          language = "c++"),
+Extension('Logger',['GeneralizedRijndael/Logger.pyx'],language='c++')
+]
+
+shortDescription = "Generalization of the rijndael for "\
+                   "academic cryptographic purposes"
+longDescription = \
+'''This is just a probe of concept. You MUST NOT use this code in production 
+projects.
+
+The original schema of the Rijndael cryptosystem has one block size with 5 key 
+lenghts. During the AES contest process this was restricted to 3 known key 
+lenght sizes: 128, 192 and 256 bits (discating the options for 160 and 224). 
+But the parameters flexibility of this schema allows even more posibilities.
+
+The code has been made to academic cryptographic purposes and its 
+cryptoanalysis hasn't start yet. It encrypts and decrypts, but it hasn't been 
+demonstrated its properties like the original Rijndael has. The side-channel 
+attacks neither wasn't studied yet, then they are not prevented in the current 
+code stage.
+'''
 
 configuration = {'name':'GeneralizedRijndael',
                  'version':'%d.%d.%d-%d'
                             %(MAJOR_VERSION,MINOR_VERSION,
                               BUILD_VERSION,REVISION_VERSION),
                  'license':'GPLv3+',
-                 'description': "TODO: pending",
-                 'long_description':'''TODO: Long description pending''',
+                 'description': shortDescription,
+                 'long_description':longDescription,
                  'author':"Sergi Blanch-Torn\'e",
                  'author_email':"sblanch@alumnes.udl.cat",
-                 'ext_modules': [GeneralizedRijndaelModule],
+                 'ext_modules': extensions,
                  'cmdclass': {'build_ext': build_ext},
                  'classifiers':["Development Status :: 1 - Planning",
                                 "Environment :: Console",
