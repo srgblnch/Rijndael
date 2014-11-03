@@ -24,7 +24,7 @@
 ##
 ##############################################################################
 
-def log_level(value):
+def levelFromMeaning(value):
     try:
         return {'error':Logger.error,
                 'warning':Logger.warning,
@@ -46,7 +46,7 @@ class Logger:
     def __init__(self,loglevel):
         '''
         '''
-        self.setLogLevel(loglevel)
+        self._logLevel = loglevel
 
     def setLogLevel(self,level):
         self._logLevel = level

@@ -47,9 +47,11 @@ Extension('GeneralizedRijndael',
                            ('REVISION_VERSION',
                             '%d'%REVISION_VERSION)
                            ],
-          sources = ['GeneralizedRijndael/GeneralizedRijndael.pyx'],
+          sources = ['GeneralizedRijndael/GeneralizedRijndael.py'],
           language = "c++"),
-Extension('Logger',['GeneralizedRijndael/Logger.pyx'],language='c++')
+Extension('Logger',['GeneralizedRijndael/Logger.py'],language='c++'),
+Extension('KeyExpansion',
+          ['GeneralizedRijndael/KeyExpansion.py'],language='c++'),
 ]
 
 shortDescription = "Generalization of the rijndael for "\
