@@ -52,6 +52,14 @@ Extension('GeneralizedRijndael',
 Extension('Logger',['GeneralizedRijndael/Logger.py'],language='c++'),
 Extension('KeyExpansion',
           ['GeneralizedRijndael/KeyExpansion.py'],language='c++'),
+Extension('SubBytes',['GeneralizedRijndael/SubBytes.py'],language='c++'),
+Extension('ShiftRows',['GeneralizedRijndael/ShiftRows.py'],language='c++'),
+Extension('MixColumns',['GeneralizedRijndael/MixColumns.py'],language='c++'),
+Extension('AddRoundKey',['GeneralizedRijndael/AddRoundKey.py'],language='c++'),
+Extension('SBox',['GeneralizedRijndael/SBox.py'],language='c++'),
+Extension('RoundConstant',['GeneralizedRijndael/RoundConstant.py'],
+          language='c++'),
+Extension('ThirdLevel',['GeneralizedRijndael/ThirdLevel.py'],language='c++'),
 ]
 
 shortDescription = "Generalization of the rijndael for "\

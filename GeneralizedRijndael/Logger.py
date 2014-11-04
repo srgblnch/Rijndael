@@ -64,23 +64,23 @@ class Logger:
     def _printIntegers(self,data):
         '''
         '''
-        return "=%s"%hex(data)
+        return "%s"%hex(data)
 
     def _printLists(self,data):
         '''
         '''
-        msg = "["
+        msg = "[ "
         for element in data:
             if self._areIntegers(element):
-                msg+=self._printIntegers(element)#msg+="%4s,"%hex(element)
+                msg += "%4s "%(self._printIntegers(element))#msg+="%4s,"%hex(element)
             elif self._areLists(element):
-                self._printLists(element)
-                #msg+="["
-                #for subelem in element: msg+="%4s,"%hex(subelem)
-                #msg=msg[:len(msg)-1]+"],"
+                msg += self._printLists(element)
             else:
-                msg+="%s,"%element
-        return msg[:len(msg)-1]+"]"
+                msg+="=%s,"%element
+        if msg[len(msg)-1] == ' ':
+            msg = msg[:len(msg)-1]
+        msg += " ]"
+        return msg
 
     def print_line(self,logtext,data=None,round=None,operation=None):
         '''
@@ -91,11 +91,11 @@ class Logger:
         msg+=logtext
         if not data==None:
             if self._areIntegers(data):
-                msg += self._printIntegers(data)
+                msg += "=%s"%(self._printIntegers(data))
             elif self._areLists(data):
                 msg += self._printLists(data)
             else:
-                msg+="=%s"%(data)
+                msg+="%s"%(data)
         print msg
 
     def print_stream(self,logtext,loglevel,
