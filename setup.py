@@ -26,16 +26,19 @@
 
 import sys
 import warnings
-from version import *
+from GeneralizedRijndael.version import *
 try:
     from Cython.Distutils import build_ext
     from setuptools import setup, Extension
+    from Cython.Build import cythonize
     HAVE_CYTHON = True
 except ImportError as e:
     HAVE_CYTHON = False
     warnings.warn(e.message)
     sys.exit(-1)
 
+#FIXME: This shall produce only one .so with all the modules inside!
+#       But is generating one .so for each of the .py files
 extensions = [
 Extension('GeneralizedRijndael',
           define_macros = [('MAJOR_VERSION',
@@ -47,7 +50,18 @@ Extension('GeneralizedRijndael',
                            ('REVISION_VERSION',
                             '%d'%REVISION_VERSION)
                            ],
-          sources = ['GeneralizedRijndael/GeneralizedRijndael.py'],
+          sources = [#'GeneralizedRijndael/*.py',
+#                    'GeneralizedRijndael/Logger.py',
+#                    'GeneralizedRijndael/ThirdLevel.py',
+#                    'GeneralizedRijndael/SBox.py',
+#                    'GeneralizedRijndael/RoundConstant.py',
+#                    'GeneralizedRijndael/KeyExpansion.py',
+#                    'GeneralizedRijndael/SubBytes.py',
+#                    'GeneralizedRijndael/ShiftRows.py',
+#                    'GeneralizedRijndael/MixColumns.py',
+#                    'GeneralizedRijndael/AddRoundKey.py',
+                    'GeneralizedRijndael/GeneralizedRijndael.py',
+                    ],
           language = "c++"),
 Extension('Logger',['GeneralizedRijndael/Logger.py'],language='c++'),
 Extension('KeyExpansion',
@@ -60,6 +74,7 @@ Extension('SBox',['GeneralizedRijndael/SBox.py'],language='c++'),
 Extension('RoundConstant',['GeneralizedRijndael/RoundConstant.py'],
           language='c++'),
 Extension('ThirdLevel',['GeneralizedRijndael/ThirdLevel.py'],language='c++'),
+Extension('version',['GeneralizedRijndael/version.py'],language='c++'),
 ]
 
 shortDescription = "Generalization of the rijndael for "\
@@ -89,7 +104,8 @@ configuration = {'name':'GeneralizedRijndael',
                  'long_description':longDescription,
                  'author':"Sergi Blanch-Torn\'e",
                  'author_email':"sblanch@alumnes.udl.cat",
-                 'ext_modules': extensions,
+                 #'ext_modules': extensions,
+                 'ext_modules':cythonize(extensions),
                  'cmdclass': {'build_ext': build_ext},
                  'classifiers':["Development Status :: 1 - Planning",
                                 "Environment :: Console",

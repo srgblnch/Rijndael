@@ -32,6 +32,8 @@ from MixColumns import MixColumns
 from AddRoundKey import AddRoundKey
 from ThirdLevel import Long,State
 
+from version import *
+
 class GeneralizedRijndael(Logger):
     def __init__(self,key,
                  nRounds=10,nRows=4,nColumns=4,wordSize=8,#stardard aes
@@ -192,6 +194,7 @@ def main():
         print("Error")
     else:
         print("Ok")
+    print("Release: %s"%(version()))
 
 if __name__ == "__main__":
     main()
