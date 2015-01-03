@@ -105,6 +105,8 @@ class BinaryPolynomialModulo(Logger):
         return iter("{0:b}".format(self._coefficients))
     def iter(self):
         return self.__iter__()
+    def __type__(self):
+        return self.__class__
     def checkTypes(function):
         '''Decorator to precheck the input parameters on some of the operations
         '''
@@ -166,12 +168,12 @@ class BinaryPolynomialModulo(Logger):
                 value |= 1<<exponent
             else:
                 raise SyntaxError("the term %s cannot be interpreted"
-                                  %(term[i]))
+                                  %(terms[i]))
         return value
     def __abs__(self):
         return BinaryPolynomialModulo(abs(self._coefficients),self._modulo,
                                       variable=self._variable,
-                                      debug=self._debug)
+                                      loglevel=self._logLevel)
     def __len__(self):
         bits = "{0:b}".format(self._coefficients)
         if bits[0] == '-':
@@ -199,11 +201,11 @@ class BinaryPolynomialModulo(Logger):
         a = copy(self.coefficients)
         b = copy(other.coefficients)
         return BinaryPolynomialModulo(a^b,self._modulo,variable=self.variable,
-                                      debug=self._debug)
+                                      loglevel=self._logLevel)
     def __iadd__(self,other):# => a+=b
         bar = self + other
         return BinaryPolynomialModulo(bar._coefficients,self._modulo,
-                                      variable=self.variable,debug=self._debug)
+                                      variable=self.variable,loglevel=self._logLevel)
     #---- Substraction
     def __neg__(self):# => -a
         return self
@@ -212,15 +214,18 @@ class BinaryPolynomialModulo(Logger):
         a = copy(self.coefficients)
         b = copy(other.coefficients)
         return BinaryPolynomialModulo(a^b,self._modulo,variable=self.variable,
-                                      debug=self._debug)
+                                      loglevel=self._logLevel)
     def __isub__(self,other):# => a-=b
         bar = self - other
         return BinaryPolynomialModulo(bar._coefficients,self._modulo,
-                                      variable=self.variable,debug=self._debug)
+                                      variable=self.variable,loglevel=self._logLevel)
     #---- Product
-    def __multipy__(self,a,b):
+    def __multiply__(self,a,b):
+        if len("{0:b}".format(a))-len("{0:b}".format(b)) > 0:
+            # a <-> b
+            a,b = b,a
         mask = 1
-        b_shift = copy(a)
+        #b_shift = copy(a)
         accum = 0
         self.debug_stream("a",a)
         self.debug_stream("b",b)
@@ -234,7 +239,7 @@ class BinaryPolynomialModulo(Logger):
                         #only an assignment and doing all the ops in any case.
                 accum = temp
             mask <<= 1
-            b_shift <<= 1
+            #b_shift <<= 1
         self.debug_stream("accum",accum)
         return accum
     @checkTypes
@@ -244,12 +249,25 @@ class BinaryPolynomialModulo(Logger):
         a = copy(self._coefficients)
         b = copy(other._coefficients)
         res = self.__multiply__(a,b)
-        return BinaryPolynomialModulo(res,self._modulo,
-                                      variable=self.variable,debug=self._debug)
+        return BinaryPolynomialModulo(res,self._modulo,variable=self.variable,
+                                      loglevel=self._logLevel)
     def __imul__(self,other):# => a*=b
         bar = self * other
         return BinaryPolynomialModulo(bar._coefficients,self._modulo,
-                                      variable=self.variable,debug=self._debug)
+                                      variable=self.variable,
+                                      loglevel=self._logLevel)
+    def xtimes(self):
+        x = BinaryPolynomialModulo("%s^1"%(self._variable),self._modulo,
+                                   self._variable,loglevel=self._logLevel)
+        res = self.__multiply__(self._coefficients,2)
+        return BinaryPolynomialModulo(res,self._modulo,
+                                      variable=self.variable,
+                                      loglevel=self._logLevel)
+        #bar = self * x
+        #return bar
+#        return BinaryPolynomialModulo(bar._coefficients,self._modulo,
+#                                      variable=self.variable,
+#                                      loglevel=self._logLevel)
     #---- Division
     def __division__(self,a,b):
         '''
@@ -295,19 +313,19 @@ class BinaryPolynomialModulo(Logger):
     def __div__(self,other):# => a/b
         q,r = self.__division__(self._coefficients,other._coefficients)
         return BinaryPolynomialModulo(q,self._modulo,variable=self.variable,
-                                      debug=self._debug)
+                                      loglevel=self._logLevel)
     def __idiv__(self,other):# => a/=b
         q,r = self.__division__(self._coefficients,other._coefficients)
         return BinaryPolynomialModulo(q,self._modulo,variable=self.variable,
-                                      debug=self._debug)
+                                      loglevel=self._logLevel)
     def __mod__(self,other):# => a%b
         q,r = self.__division__(self._coefficients,other._coefficients)
         return BinaryPolynomialModulo(r,self._modulo,variable=self.variable,
-                                      debug=self._debug)
+                                      loglevel=self._logLevel)
     def _imod__(self,other):# => a%=b
         q,r = self.__division__(self._coefficients,other._coefficients)
         return BinaryPolynomialModulo(r,self._modulo,variable=self.variable,
-                                      debug=self._debug)
+                                      loglevel=self._logLevel)
     #---- TODO: Multiplicative inverse 
     #      - operator.__inv__(a) => ~a
     def __egcd__(self,a,b):
@@ -412,80 +430,80 @@ def getBinaryPolynomialFieldModulo(wordSize):
     }[wordSize]
     return BinaryPolynomialFieldModulo
 #
-#class BinaryPolynomialField(Logger):
-#    '''This represents a polynomial over (GF(2^n) with a degree at most 2^{n}-1
-#       Because the polynomial modulo is prime (it is a root) this 
-#       describes an algebraic field.
-#       This is used for the multiplicative inverse of the SBoxes and from the 
-#       Polynomial Ring with coefficients in a polynomial field (MixColumns).
-#    '''
-#    def __init__(self,degree,loglevel=Logger.info):
-#        Logger.__init__(self,loglevel)
-#        self._degree = degree
-#        self._modulo = getBinaryPolynomialFieldModulo(degree)
-#
-#    def product(self,a,b):
-#        '''multiplication of two polynomials reduced modulo m(z).
-#           Input: <integer> a,b (polynomial bit representations)
-#                  <integer> m (modulo polynomial)
-#           Output: <integer> r = a*b (mod m)
-#        '''
-#        b_=b
-#        xor=[]
-#        a_i=[a]
-#        for i in range(binlen(b)):
-#            if b_&1:
-#                xor.append(a_i[len(a_i)-1])
-#            b_>>=1
-#            a_i.append(self.xtime(a_i[len(a_i)-1]))
-#        r=0
-#        for x in xor:
-#            r^=x
-#        return r
-#
-#    def xtime(self,a):
-#        '''polynomial product by x reduced modulo m.
-#           Input: <integer> a (polynomial bit representation)
-#                  <integer> m (modulo polynomial)
-#           Output: <integer> a*x (mod m)
-#        '''
-#        a<<=1
-#        if a&(1<<binlen(self._modulo)-1): a^=self._modulo
-#        return a
-#
-#    def multiplicativeInverse(self,value):
-#        '''Multiplicative inverse based on ...
-#           Input: <integer> a (polynomial bit representation)
-#                  <integer> m (modulo polynomial)
-#           Output: <integer> a^-1: a*a^-1 = 1 (mod m)
-#           This it the first of the two transformations for the SBoxes in the 
-#           subBytes operation, the one called called g.
-#        '''
-#        if value == 0:#FIXME: is this true?
-#            return value
-#        gcd,x,y = self._egcd(value, self._modulo)
-#        if gcd != 1:
-#            raise Exception("The inverse of %s modulo %s doens't exist!"
-#                            %(value,self._modulo))
-#        else:
-#            return x#%self._modulo
-#
-#    def _egcd(self,a,b):
-#        '''Extended Euclidean gcd (Greatest Common Divisor) Algorithm
-#           Input: <integer> a (polynomial bit representation)
-#                  <integer> b (polynomial bit representation)
-#           Output: <integer> gcd
-#                   <integer> x (polynomial bit representation)
-#                   <integer> y (polynomial bit representation)
-#        '''
-#        x,y,u,v = 0,1,1,0
-#        while a != 0:
-#            q,r = b/a,b%a
-#            m,n = x-u*q,y-v*q
-#            b,a,x,y,u,v=a,r,u,v,m,n
-#        gcd = b
-#        return gcd,x,y
-#        
+class BinaryPolynomialField(Logger):
+    '''This represents a polynomial over (GF(2^n) with a degree at most 2^{n}-1
+       Because the polynomial modulo is prime (it is a root) this 
+       describes an algebraic field.
+       This is used for the multiplicative inverse of the SBoxes and from the 
+       Polynomial Ring with coefficients in a polynomial field (MixColumns).
+    '''
+    def __init__(self,degree,loglevel=Logger.info):
+        Logger.__init__(self,loglevel)
+        self._degree = degree
+        self._modulo = getBinaryPolynomialFieldModulo(degree)
+
+    def product(self,a,b):
+        '''multiplication of two polynomials reduced modulo m(z).
+           Input: <integer> a,b (polynomial bit representations)
+                  <integer> m (modulo polynomial)
+           Output: <integer> r = a*b (mod m)
+        '''
+        b_=b
+        xor=[]
+        a_i=[a]
+        for i in range(binlen(b)):
+            if b_&1:
+                xor.append(a_i[len(a_i)-1])
+            b_>>=1
+            a_i.append(self.xtime(a_i[len(a_i)-1]))
+        r=0
+        for x in xor:
+            r^=x
+        return r
+
+    def xtime(self,a):
+        '''polynomial product by x reduced modulo m.
+           Input: <integer> a (polynomial bit representation)
+                  <integer> m (modulo polynomial)
+           Output: <integer> a*x (mod m)
+        '''
+        a<<=1
+        if a&(1<<binlen(self._modulo)-1): a^=self._modulo
+        return a
+
+    def multiplicativeInverse(self,value):
+        '''Multiplicative inverse based on ...
+           Input: <integer> a (polynomial bit representation)
+                  <integer> m (modulo polynomial)
+           Output: <integer> a^-1: a*a^-1 = 1 (mod m)
+           This it the first of the two transformations for the SBoxes in the 
+           subBytes operation, the one called called g.
+        '''
+        if value == 0:#FIXME: is this true?
+            return value
+        gcd,x,y = self._egcd(value, self._modulo)
+        if gcd != 1:
+            raise Exception("The inverse of %s modulo %s doens't exist!"
+                            %(value,self._modulo))
+        else:
+            return x#%self._modulo
+
+    def _egcd(self,a,b):
+        '''Extended Euclidean gcd (Greatest Common Divisor) Algorithm
+           Input: <integer> a (polynomial bit representation)
+                  <integer> b (polynomial bit representation)
+           Output: <integer> gcd
+                   <integer> x (polynomial bit representation)
+                   <integer> y (polynomial bit representation)
+        '''
+        x,y,u,v = 0,1,1,0
+        while a != 0:
+            q,r = b/a,b%a
+            m,n = x-u*q,y-v*q
+            b,a,x,y,u,v=a,r,u,v,m,n
+        gcd = b
+        return gcd,x,y
+        
 
 def getBinaryPolynomialRingModulo(wordSize):
     '''Who is chosen m'(z)? z^8+1 is the first that those the job
@@ -551,46 +569,50 @@ def getNu(wordSize):
 #        pass
 #        #TODO: this is returning None by now
 
-#class PolynomialRing:
-#    '''This represents a polynomial over (GF(2^n))^l, with a modulo polynomial 
-#       composed (decomposable in roots) this becomes a algebraic ring.
-#       The coefficients on this polynomial ring are elements of a polynomial 
-#       field.
-#    '''
-#    def __init__(self,nRows,nColumns,wordSize):
-#        self.__nRows=nRows
-#        self.__nColumns=nColumns
-#        self.__polynomialsubfield=BinaryPolynomialField(wordSize)
-#    def product(self,ax,sx):
-#        '''Given two polynomials over F_{2^8} multiplie them modulo x^{4}+1
-#           s'(x) = a(x) \otimes s(x)
-#           [s'_0,c]   [a_3 a_0 a_1 a_2] [s_0,c]
-#           [s'_1,c] = [a_2 a_3 a_0 a_1] [s_1,c]
-#           [s'_2,c]   [a_1 a_2 a_3 a_0] [s_2,c]
-#           [s'_3,c]   [a_0 a_1 a_2 a_3] [s_3,c]
-#           s'_0,c = (a_3 \bullet s_0,c) \oplus (a_0 \bullet s_1,c) \oplus
-#                    (a_1 \bullet s_2,c) \oplus (a_2 \bullet s_3,c)
-#           s'_1,c = (a_2 \bullet s_0,c) \oplus (a_3 \bullet s_1,c) \oplus
-#                    (a_0 \bullet s_2,c) \oplus (a_1 \bullet s_3,c)
-#           s'_2,c = (a_1 \bullet s_0,c) \oplus (a_2 \bullet s_1,c) \oplus
-#                    (a_3 \bullet s_2,c) \oplus (a_0 \bullet s_3,c)
-#           s'_3,c = (a_0 \bullet s_0,c) \oplus (a_1 \bullet s_1,c) \oplus
-#                    (a_2 \bullet s_2,c) \oplus (a_3 \bullet s_3,c)
-#           Where \bullet is the finite field (F_{2^8}) multiplication,
-#           and \oplus an xor operation
-#           Input:
-#           Output:
-#        '''
-#        res=deepcopy(sx)#---- FIXME: #[[0]*self.__nRows]*self.__nColumns
-#        for c in range(self.__nColumns):
-#            shifted_ax=shift(ax,self.__nRows-1)
-#            for r in range(self.__nRows):
-#                res[r][c]=0
-#                for rbis in range(self.__nRows):
-#                    res[r][c]^=self.__polynomialsubfield.\
-#                                          product(shifted_ax[rbis],sx[rbis][c])
-#                shifted_ax=shift(shifted_ax,-1)
-#        return res
+class PolynomialRing:
+    '''This represents a polynomial over (GF(2^n))^l, with a modulo polynomial 
+       composed (decomposable in roots) this becomes a algebraic ring.
+       The coefficients on this polynomial ring are elements of a polynomial 
+       field.
+    '''
+    def __init__(self,nRows,nColumns,wordSize):
+        self.__nRows=nRows
+        self.__nColumns=nColumns
+        self.__polynomialsubfield=BinaryPolynomialField(wordSize)
+        #self._field_modulo = getBinaryPolynomialFieldModulo(wordSize)
+    def product(self,ax,sx):
+        '''Given two polynomials over F_{2^8} multiplie them modulo x^{4}+1
+           s'(x) = a(x) \otimes s(x)
+           [s'_0,c]   [a_3 a_0 a_1 a_2] [s_0,c]
+           [s'_1,c] = [a_2 a_3 a_0 a_1] [s_1,c]
+           [s'_2,c]   [a_1 a_2 a_3 a_0] [s_2,c]
+           [s'_3,c]   [a_0 a_1 a_2 a_3] [s_3,c]
+           s'_0,c = (a_3 \bullet s_0,c) \oplus (a_0 \bullet s_1,c) \oplus
+                    (a_1 \bullet s_2,c) \oplus (a_2 \bullet s_3,c)
+           s'_1,c = (a_2 \bullet s_0,c) \oplus (a_3 \bullet s_1,c) \oplus
+                    (a_0 \bullet s_2,c) \oplus (a_1 \bullet s_3,c)
+           s'_2,c = (a_1 \bullet s_0,c) \oplus (a_2 \bullet s_1,c) \oplus
+                    (a_3 \bullet s_2,c) \oplus (a_0 \bullet s_3,c)
+           s'_3,c = (a_0 \bullet s_0,c) \oplus (a_1 \bullet s_1,c) \oplus
+                    (a_2 \bullet s_2,c) \oplus (a_3 \bullet s_3,c)
+           Where \bullet is the finite field (F_{2^8}) multiplication,
+           and \oplus an xor operation
+           Input:
+           Output:
+        '''
+        res=deepcopy(sx)#---- FIXME: #[[0]*self.__nRows]*self.__nColumns
+        for c in range(self.__nColumns):
+            shifted_ax=shift(ax,self.__nRows-1)
+            for r in range(self.__nRows):
+                res[r][c]=0
+                for rbis in range(self.__nRows):
+#                    a = BinaryPolynomialModulo(shifted_ax[rbis],self._field_modulo)
+#                    b = BinaryPolynomialModulo(sx[rbis][c],self._field_modulo)
+                    #res[r][c]^=(a*b)._coefficients
+                    res[r][c]^=self.__polynomialsubfield.\
+                                          product(shifted_ax[rbis],sx[rbis][c])
+                shifted_ax=shift(shifted_ax,-1)
+        return res
 
 def printAsPolynomial(value,vble='z'):
     if value == 0:
@@ -627,32 +649,30 @@ def printAsPolynomial(value,vble='z'):
 from optparse import OptionParser
 from random import randint
 
-#def testBinaryPolynomialField(value,degree):
-#    
-#    loglevel=Logger.debug
-#    p = BinaryPolynomialField(degree,loglevel)
-#    mod = p._modulo
-#    
-#    print("Testing: %s=%s (%s) as polynomial %s (mod %s): %s = %s"
-#          %(value,hex(value),bin(value),
-#            printAsPolynomial(value),printAsPolynomial(mod),bin(mod),hex(mod)))
-#    xtime = p.xtime(value)
-#    print("\txtime(%s) =\t(%s) = %s = %s = %s"
-#          %(printAsPolynomial(value),
-#            printAsPolynomial(xtime),bin(xtime),hex(xtime),xtime))
-#    product2 = p.product(value,2)
-#    print("\t(%s) * (%s) =\t(%s) = %s = %s = %s"
-#          %(printAsPolynomial(value),printAsPolynomial(2),
-#            printAsPolynomial(product2),bin(product2),hex(product2),product2))
-#    product3 = p.product(value,3)
-#    print("\t(%s) * (%s) =\t(%s) = %s = %s = %s"
-#          %(printAsPolynomial(value),printAsPolynomial(3),
-#            printAsPolynomial(product3),bin(product3),hex(product3),product3))
-#    inverse = p.multiplicativeInverse(value)
-#    print("\t(%s)^-1 = \t(%s) = %s = %s = %s"
-#          %(printAsPolynomial(value),
-#            printAsPolynomial(inverse),bin(inverse),hex(inverse),inverse))
-#    print("\n")
+def testBinaryPolynomialField(value,degree):
+    loglevel=Logger.info#debug
+    modulo = getBinaryPolynomialFieldModulo(degree)
+    sample = BinaryPolynomialModulo(value,modulo,loglevel=loglevel)
+    
+    print("Testing: %s = %s (%s) as polynomial %r"
+          %(value,hex(value),bin(value),sample))
+    xtime = sample.xtimes()
+    print("\txtime(%s) =\t(%s) = %s = %s "%(sample,xtime,
+                                                bin(xtime._coefficients),
+                                                hex(xtime._coefficients)))
+    product2 = sample*sample
+    print("\t(%s) * (%s) =\t(%s) = %s = %s "%(sample,sample,product2,
+                                                bin(product2._coefficients),
+                                                hex(product2._coefficients)))
+    product3 = product2*sample
+    print("\t3 * (%s) =\t(%s) = %s = %s "%(sample,product3,
+                                                bin(product3._coefficients),
+                                                hex(product3._coefficients)))
+    inverse = ~sample
+    print("\t(%s)^-1 =\t(%s) = %s = %s "%(sample,inverse,
+                                                bin(inverse._coefficients),
+                                                hex(inverse._coefficients)))
+    print("\n")
 
 def getBinaryPolinomialFieldInverse(value):
     '''From the table C.5 in the 'Design of Rijndael' book. 
@@ -707,10 +727,10 @@ def main():
     '''Test the correct functionality of the Polynomial Field and Ring classes.
     '''
     parser = OptionParser()
-#    parser.add_option('',"--binary-polynomial",type="int",
-#                     help="numerical representation of the polynomial to test")
+    parser.add_option('',"--binary-polynomial",type="int",
+                     help="numerical representation of the polynomial to test")
     parser.add_option('',"--table-c5",action="store_true",
-                      help="Reproduce the table C5 from the 'Design of "\
+                      help="Test the table C5 from the 'Design of "\
                            "Rijndael' book ")
     (options, args) = parser.parse_args()
     degree=8
@@ -719,9 +739,9 @@ def main():
     #This test the multiplicative inverse, 
     #the first part of the two SBox transformations
     print("\n")
-#    if options.binary_polynomial:
-#        testBinaryPolynomialField(options.binary_polynomial,degree)
-    if options.table_c5:
+    if options.binary_polynomial:
+        testBinaryPolynomialField(options.binary_polynomial,degree)
+    elif options.table_c5:
         testTableC5()
     else:
         #TODO: loop with a bigger sample set.

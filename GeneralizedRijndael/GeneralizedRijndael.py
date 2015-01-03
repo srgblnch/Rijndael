@@ -24,6 +24,8 @@
 ##
 ##############################################################################
 
+import sys
+
 from Logger import Logger,levelFromMeaning
 from KeyExpansion import KeyExpansion
 from SubBytes import SubBytes
@@ -164,37 +166,71 @@ class GeneralizedRijndael(Logger):
 
 from optparse import OptionParser
 
+def understandInteger(value):
+    try:
+        if value.startswith('0x'):
+            return int(value,16)
+        elif value.startswith('0b'):
+            return int(value,2)
+        elif value.startswith('0'):#first check hexadecimal and binary
+            return int(value,8)
+        else:
+            return int(value)
+    except Exception,e:
+        return None
+
 def main():
     #---- TODO: introduce parameters to:
     #           - define parameters to use and use random input and key.
     #           - allow to setup by params the input and/or the key, and
     #           - operations to do: cipher and/or decipher
     parser = OptionParser()
-    parser.add_option('',"--log-level",default="info",help="Set log level")
-    parser.add_option('',"--rounds",default="10",help="Number of rounds")
-    parser.add_option('',"--rows",default="4",help="Number of rows")
-    parser.add_option('',"--columns",default="4",help="Number of columns")
-    parser.add_option('',"--wordsize",default="8",help="bit size of the word")
-    parser.add_option('',"--kolumns",default="4",
+    parser.add_option('',"--log-level",default="info",
+                      help="Set log level: error,warning,info,debug,trace")
+    parser.add_option('',"--rounds",type="int",default=10,
+                                                       help="Number of rounds")
+    parser.add_option('',"--rows",type="int",default=4,help="Number of rows")
+    parser.add_option('',"--columns",type="int",default=4,
+                                                      help="Number of columns")
+    parser.add_option('',"--wordsize",type="int",default=8,
+                                                   help="Bit size of the word")
+    parser.add_option('',"--kolumns",type="int",default=4,
                                            help="Number of columns of the key")
     parser.add_option('',"--key",default="0",
                                           help="Key in numeric representation")
     parser.add_option('',"--plainText",default="0",
-                                    help="plaintext in numeric representation")
+                                    help="Plaintext in numeric representation")
+    parser.add_option('',"--only-keyexpansion",action="store_true",
+                      default=False,
+                      help="No [de]cipher operations. Made to test the PRG "\
+                      "with the key as seed to generate each round subkeys.")
+    #TODO: add options to only [de]cipher 
+    #      (the will be also need a --cipherText)
     (options, args) = parser.parse_args()
-    gr = GeneralizedRijndael(key=int(options.key),
-                             nRounds=int(options.rounds),
-                             nRows=int(options.rows),
-                             nColumns=int(options.columns),
-                             wordSize=int(options.wordsize),
-                             nKeyWords=int(options.kolumns),
+    key = understandInteger(options.key)
+    if key == None:
+        print("\n\tError: It was not possible to understand the input key "\
+              "'%s' as a number.\n"%(options.key))
+        sys.exit(-1)
+    gr = GeneralizedRijndael(key=key,
+                             nRounds=options.rounds,
+                             nRows=options.rows,
+                             nColumns=options.columns,
+                             wordSize=options.wordsize,
+                             nKeyWords=options.kolumns,
                              loglevel=levelFromMeaning(options.log_level))
-    cipherText = gr.cipher(int(options.plainText))
-    if int(options.plainText) != gr.decipher(cipherText):
-        print("Error")
-    else:
-        print("Ok")
-    print("Release: %s"%(version()))
+    if not options.only_keyexpansion:
+        plainText = understandInteger(options.plainText)
+        if plainText == None:
+            print("\n\tError: It was not possible to understand the input "\
+                  "plain text '%s' as a number.\n"%(options.plainText))
+            sys.exit(-2)
+        cipherText = gr.cipher(plainText)
+        if int(plainText) != gr.decipher(cipherText):
+            print("Error")
+        else:
+            print("Ok")
+        print("Release: %s"%(version()))
 
 if __name__ == "__main__":
     main()

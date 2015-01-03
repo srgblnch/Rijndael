@@ -3,7 +3,7 @@
 #---- licence header
 ##############################################################################
 ##
-## file: KeyExpansion.pyx
+## file: KeyExpansion.py
 ##
 ## developers history & copyleft: Sergi Blanch-Torne
 ##
@@ -47,6 +47,7 @@ class KeyExpansion(Logger):
         self.__wordSize=wordSize
         self.__nKeyWords=nKeyWords
         self.__sbox=SBox(wordSize,loglevel=loglevel)
+                         #,useCalc=True)
         self.__word=Word(nRows,wordSize)
         self.__keyExpanded=[None]*self.__nKeyWords
         self.debug_stream("key",key,operation="keyExpansion()\t")
@@ -116,6 +117,6 @@ class KeyExpansion(Logger):
            Output: <integer> word
         '''
         wordArray=self.__word.toList(word)
-        self.__sbox.transform(wordArray)
+        wordArray = self.__sbox.transform(wordArray)
         wordArray.reverse()#---- FIXME: Where is this in the fips pub-197?
         return self.__word.fromList(wordArray)

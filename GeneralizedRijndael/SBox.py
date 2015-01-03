@@ -3,7 +3,7 @@
 #---- licence header
 ##############################################################################
 ##
-## file: SBox.pyx
+## file: SBox.py
 ##
 ## developers history & copyleft: Sergi Blanch-Torne
 ##
@@ -25,6 +25,9 @@
 ##############################################################################
 
 from Logger import Logger
+from Polynomials import getBinaryPolynomialFieldModulo,\
+                        getBinaryPolynomialRingModulo,\
+                        BinaryPolynomialModulo
 
 class SBox(Logger):
     '''This class is used from the subBytes rijndael's transformation. But it 
@@ -38,7 +41,8 @@ class SBox(Logger):
         #           or as the pure calculations
         self._useCalc = useCalc
         if self._useCalc:
-            #self._field = PolynomialField(wordSize)
+#            self._field_modulo = getBinaryPolynomialFieldModulo(wordSize)
+#            self._ring_modulo = getBinaryPolynomialRingModulo(wordSize)
             raise Exception("Not implemented")
         else:
             self.__wordSize=wordSize
@@ -67,14 +71,14 @@ class SBox(Logger):
         if self._useCalc:
             raise Exception("SBox transformation with calculations "\
                             "not supported yet!")
-            if invert: sbox=self._invertsbox_call_
-            else: sbox=self._sbox_call_
-            for i in range(len(state)):
-                if type(state[i])==list:
-                    for j in range(len(state[i])):
-                        state[i][j] = sbox(state[i][j])
-                else:
-                    state[i] = sbox(state[i])
+#            if invert: sbox=self._invertsbox_call_
+#            else: sbox=self._sbox_call_
+#            for i in range(len(state)):
+#                if type(state[i])==list:
+#                    for j in range(len(state[i])):
+#                        state[i][j] = sbox(state[i][j])
+#                else:
+#                    state[i] = sbox(state[i])
         else:
             if invert: sbox=self._sbox_inverted
             else: sbox=self._sbox
@@ -183,3 +187,28 @@ sbox_word8b_inverted = [
 #[0b10,0b11],#0b0
 #[0b00,0b01],#0b1
 #]
+
+def main():
+    '''Test the correct functionality of SBox transformations.
+    '''
+    wordSize = 8
+    loglevel=Logger.debug
+    
+    SBoxUsingTables = SBox(wordSize,loglevel=loglevel)
+    SBoxUsingCalculation = SBox(wordSize,loglevel=loglevel,useCalc=True)
+    
+    #TODO: loop with a bigger sample set.
+    bar = 0
+    barUsingTables = SBoxUsingTables.transform([bar])[0]
+    barUsingCalculation = SBoxUsingCalculation.transform([bar])[0]
+    
+    if barUsingTables != barUsingCalculation:
+        print("\n\tError: test not passed!\n\tFrom %d, using tables we get "\
+              "'%s' and using calculation has been '%s'\n"
+              %(bar,barUsingTables,barUsingCalculation))
+    #TODO: check the inverse transformation.
+
+
+if __name__ == "__main__":
+    main()
+    

@@ -73,6 +73,7 @@ Extension('AddRoundKey',['GeneralizedRijndael/AddRoundKey.py'],language='c++'),
 Extension('SBox',['GeneralizedRijndael/SBox.py'],language='c++'),
 Extension('RoundConstant',['GeneralizedRijndael/RoundConstant.py'],
           language='c++'),
+Extension('Polynomials',['GeneralizedRijndael/Polynomials.py'],language='c++'),
 Extension('ThirdLevel',['GeneralizedRijndael/ThirdLevel.py'],language='c++'),
 Extension('version',['GeneralizedRijndael/version.py'],language='c++'),
 ]

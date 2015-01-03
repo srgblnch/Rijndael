@@ -25,7 +25,7 @@
 ##############################################################################
 
 from Logger import Logger
-from ThirdLevel import PolynomialRing,PolynomialFieldModulo
+from Polynomials import PolynomialRing,getBinaryPolynomialFieldModulo
 
 class MixColumns(Logger):
     def __init__(self,nRows,nColumns,wordSize,loglevel=Logger.info):
@@ -42,7 +42,7 @@ class MixColumns(Logger):
             elif nRows==2:
                 self.__cx=[0x2,0x3]#---- FIXME: unknown
                 self.__dx=[0x2,0x3]#---- FIXME: unknown
-            polynomialModule=PolynomialFieldModulo[wordSize]#0b100011011
+            polynomialModule=getBinaryPolynomialFieldModulo(wordSize)#0b100011011
 #        elif  wordSize==4:
 #            if nRows==4:
 #                self.__cx=self.__dx=[0,0,0,0]#---- FIXME: unknown

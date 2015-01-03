@@ -29,7 +29,8 @@
 '''
 
 from Logger import Logger
-from copy import deepcopy
+
+binlen=lambda x: len(bin(x))-2
 
 class Word:
     def __init__(self,nRows,wordSize):
@@ -94,128 +95,6 @@ class Long:
         for i in range(length/self.__wordSize):
             o|=(input[i]<<(((length/self.__wordSize)-i-1)*self.__wordSize))
         return o
-
-class PolynomialRing:
-    '''This represents a polynomial over (GF(2^n))^l, with a modulo polynomial 
-       composed (decomposable in roots) this becomes a algebraic ring.
-       The coefficients on this polynomial ring are elements of a polynomial field.
-    '''
-    def __init__(self,nRows,nColumns,wordSize):
-        self.__nRows=nRows
-        self.__nColumns=nColumns
-        self.__polynomialsubfield=PolynomialField(wordSize)
-    def product(self,ax,sx):
-        '''Given two polynomials over F_{2^8} multiplie them modulo x^{4}+1
-           s'(x) = a(x) \otimes s(x)
-           [s'_0,c]   [a_3 a_0 a_1 a_2] [s_0,c]
-           [s'_1,c] = [a_2 a_3 a_0 a_1] [s_1,c]
-           [s'_2,c]   [a_1 a_2 a_3 a_0] [s_2,c]
-           [s'_3,c]   [a_0 a_1 a_2 a_3] [s_3,c]
-           s'_0,c = (a_3 \bullet s_0,c) \oplus (a_0 \bullet s_1,c) \oplus
-                    (a_1 \bullet s_2,c) \oplus (a_2 \bullet s_3,c)
-           s'_1,c = (a_2 \bullet s_0,c) \oplus (a_3 \bullet s_1,c) \oplus
-                    (a_0 \bullet s_2,c) \oplus (a_1 \bullet s_3,c)
-           s'_2,c = (a_1 \bullet s_0,c) \oplus (a_2 \bullet s_1,c) \oplus
-                    (a_3 \bullet s_2,c) \oplus (a_0 \bullet s_3,c)
-           s'_3,c = (a_0 \bullet s_0,c) \oplus (a_1 \bullet s_1,c) \oplus
-                    (a_2 \bullet s_2,c) \oplus (a_3 \bullet s_3,c)
-           Where \bullet is the finite field (F_{2^8}) multiplication,
-           and \oplus an xor operation
-           Input:
-           Output:
-        '''
-        res=deepcopy(sx)#---- FIXME: #[[0]*self.__nRows]*self.__nColumns
-        for c in range(self.__nColumns):
-            shifted_ax=shift(ax,self.__nRows-1)
-            for r in range(self.__nRows):
-                res[r][c]=0
-                for rbis in range(self.__nRows):
-                    res[r][c]^=self.__polynomialsubfield.\
-                                          product(shifted_ax[rbis],sx[rbis][c])
-                shifted_ax=shift(shifted_ax,-1)
-        return res
-
-PolynomialFieldModulo = {2:0x07,#z^2+z+1
-                         3:0x0B,#z^3+z+1
-                         4:0x13,#z^4+z+1
-                         5:0x25,#z^5+z^2+1
-                         6:0x43,#z^6+z+1
-                         7:0x83,#z^7+z+1
-                         8:0x11B,#z^8+z^4+z^3+z+1 the Rijndael's original
-                         9:0x203,#z^9+z+1
-                         10:0x409,#z^10+z^3+1
-                         11:0x805,#z^11+z^2+1
-                         12:0x1009,#z^12+z^3+1
-                         13:0x201B,#z^13+z^4+z^3+z+1
-                         14:0x4021,#z^14+z^5+1
-                         15:0x8003,#z^15+z+1
-                         16:0x1002B,#z^16+z^5+z^3+z+1
-                        }#[wordSize]
-
-binlen=lambda x: len(bin(x))-2
-
-class PolynomialField:
-    '''This represents a polynomial over (GF(2^n) with a degree at most 2^{n}-1
-       Because the polynomial modulo is prime (it is a root) this 
-       describes an algebraic field.
-    '''
-    def __init__(self,degree):
-        self._degree = degree
-        self._modulo = PolynomialFieldModulo[degree]
-    def product(self,a,b):
-        '''multiplication of two polynomials reduced modulo m(z).
-           Input: <integer> a,b (polynomial bit representations)
-                  <integer> m (modulo polynomial)
-           Output: <integer> r = a*b (mod m)
-        '''
-        b_=b
-        xor=[]
-        a_i=[a]
-        for i in range(binlen(b)):
-            if b_&1:
-                xor.append(a_i[len(a_i)-1])
-            b_>>=1
-            a_i.append(self.xtime(a_i[len(a_i)-1]))
-        r=0
-        for x in xor:
-            r^=x
-        return r
-    def xtime(self,a):
-        '''polynomial product by x reduced modulo m.
-           Input: <integer> a (polynomial bit representation)
-                  <integer> m (modulo polynomial)
-           Output: <integer> a*x (mod m)
-        '''
-        a<<=1
-        if a&(1<<binlen(self._modulo)-1): a^=self._modulo
-        return a
-    def multiplicativeInverse(self,value):
-        '''Multiplicative inverse based on ...
-           Input: <integer> a (polynomial bit representation)
-                  <integer> m (modulo polynomial)
-           Output: <integer> a^-1: a*a^-1 = 1 (mod m)
-           This it the first of the two transformations for the SBoxes in the 
-           subBytes operation, the one called called g.
-        '''
-        gcd,x,y = self._egcd(value, self._modulo)
-        if gcd != 1:
-            raise Exception("The inverse of %s modulo %s doens't exist!"%(value,self._modulo))
-        else:
-            return x%self._modulo
-    def affineTransformation(self,value):
-        '''Second of the transformation, called f.
-        '''
-        pass
-    def _egcd(self,a,b):
-        '''Extended Euclidean Algorithm
-        '''
-        x,y,u,v = 0,1,1,0
-        while a != 0:
-            q,r = b/a,b%a
-            m,n = x-u*q,y-v*q
-            b,a,x,y,u,v=a,r,u,v,m,n
-        gcd = b
-        return gcd,x,y
 
 def shift(l,n):
     #---- Binary doesn't need a class

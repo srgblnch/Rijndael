@@ -51,6 +51,11 @@ class Logger:
     def setLogLevel(self,level):
         self._logLevel = level
 
+    def _arePolynomials(self,data):
+        '''
+        '''
+        return str(data.__type__()) == 'Polynomials.BinaryPolynomialModulo'
+
     def _areIntegers(self,data):
         '''
         '''
@@ -82,6 +87,11 @@ class Logger:
         msg += " ]"
         return msg
 
+    def printPolynomials(self,data):
+        '''
+        '''
+        return "%s = %s"%("{0:b}".format(data),self.__interpretToStr__(data))
+
     def print_line(self,logtext,data=None,round=None,operation=None):
         '''
         '''
@@ -94,6 +104,8 @@ class Logger:
                 msg += "=%s"%(self._printIntegers(data))
             elif self._areLists(data):
                 msg += self._printLists(data)
+            elif self._arePolynomials(data):
+                msg += self._printPolynomials(data)
             else:
                 msg+="%s"%(data)
         print msg
