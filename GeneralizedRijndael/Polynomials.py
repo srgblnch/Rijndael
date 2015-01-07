@@ -28,381 +28,396 @@ from Logger import Logger
 from ThirdLevel import shift,binlen
 from copy import copy,deepcopy
 
-class BinaryPolynomialModulo(Logger):
-    def __init__(self,value,modulo,variable='x',loglevel=Logger.info):
-        '''Polynomial defined by binary coefficients for a field or a ring.
-           The constructor parameter value is expected to be an integer 
-           representation of the binary polynomial. That is to, taking the
-           integer in binary form assign the most significant bit to the 
-           highest degree and the less significant bit to the 0 degree.
-           Example: Polynomials.BinaryPolynomialModulo(73,'x^8+x^7+x^3+1')
-                    means: x^6+x^3+1 as the binary representation is 0b1001001,
-                    modulo a polynomial written as string that corresponds to
-                    the 0b110001001 in binary representation.
-           There is a third, optional, parameter to specify the char used 
-           to tag the indeterminate. This is a single character and to operate
-           polynomials they have to have the same tag.
-        '''
-        #FIXME: improve the logging on this class
-        Logger.__init__(self,loglevel)
-        if len(variable) != 1:
-            raise NameError("The indeterminate must be a single character.")
-        if ord('a') > variable.lower() > ord('z'):
-            raise NameError("The indeterminate must be a valid "\
-                            "alphabet letter.")
-        self._variable = variable
-        if type(value) == BinaryPolynomialModulo or \
-           value.__class__ == BinaryPolynomialModulo:
-            self._coefficients = value.coefficients
-        elif type(value) == int:
-            self._coefficients = abs(value)
-        elif type(value) == str:
-            self._coefficients = self.__interpretFromStr__(value)
-        else:
-            try:#Do a last try to interpret the coefficients
-                self._coefficients = int(value)
-            except Exception,e:
-                raise AssertionError("The given coefficients type '%s'"\
-                                     "is not interpretable"%(type(value)))
-        self.debug_stream("coefficients", self._coefficients)
-        if type(modulo) == int:
-            self._modulo = modulo
-        elif type(modulo) == str:
-            self._modulo = self.__interpretFromStr__(modulo)
-        else:
-            try:#Do a last try to interpret the coefficients
-                self._modulo = int(modulo)
-            except Exception,e:
-                raise AssertionError("The given modulo type '%s'"\
-                                     "is not interpretable"%(type(modulo)))
-        self.debug_stream("modulo", self._modulo)
-        #if the degree of coefficients > degree of modulo, do the reduction
-        if self.degree >= len("{0:b}".format(self._modulo)):
-            q,r = self.__division__(self._coefficients,self._modulo)
-            self._coefficients = r
-            self.debug_stream("reduced coefficients", self._coefficients)
-    @property
-    def coefficients(self):
-        return self._coefficients
-    @property
-    def modulo(self):
-        return self.__interpretToStr__(self._modulo)
-    @property
-    def variable(self):
-        return self._variable
-    @property
-    def degree(self):
-        return len("{0:b}".format(self._coefficients))
-    @property
-    def isZero(self):
-        '''Neutral element of the first operation, addition.'''
-        return self._coefficients == 0
-    @property
-    def isOne(self):
-        '''Neutral element of the second operation, product.'''
-        return self._coefficients == 1
-    def __iter__(self):
-        return iter("{0:b}".format(self._coefficients))
-    def iter(self):
-        return self.__iter__()
-    def __type__(self):
-        return self.__class__
-    def checkTypes(function):
-        '''Decorator to precheck the input parameters on some of the operations
-        '''
-        def comparator(self,other):
-            if other.__class__ != BinaryPolynomialModulo:
-                raise EnvironmentError("Cannot compare with non polynomials "\
-                                       "(%s)"%(type(other)))
-            if not self.variable == other.variable:
-                raise EnvironmentError("Uncompatible polynomials")
-            if not self._modulo == other._modulo:
-                raise EnvironmentError("Those polynomials are not in the "\
-                                       "same equivalence class")
-            return function(self,other)
-        return comparator
-    def __str__(self):
-        '''Readable representation. (%s)
-        '''
-        return self.__interpretToStr__(self._coefficients)
-    def __repr__(self):
-        '''Unambiguous representation. (%r)
-        '''
-        return "%s (mod %s)"%(self.__interpretToStr__(self._coefficients),
-                              self.__interpretToStr__(self._modulo))
-    def __hex__(self):
-        '''
-        '''
-        return hex(self._coefficients)
-    def __interpretToStr__(self,value):
-        if value == 0:
-            return '0'#FIXME: the neutral element of the first operation
-        else:
-            terms = [] #coefficients representations list
-            bitlist = "{0:b}".format(value)
-            #FIXME: Improve this dirtied casuistry... Not efficient.
-            for idx,coefficient in enumerate(bitlist):
-                exponent = len(bitlist)-idx-1
-                if coefficient == '0':
-                    terms.append('')
-                elif exponent == 0:#and coefficient == '1'
-                    terms.append('+1')
-                elif exponent == 1:#and coefficient == '1'
-                    terms.append('+%s'%(self._variable))#equiv to x^1 but short
-                else:
-                    terms.append('+%s^%d'%(self._variable,exponent))
-            collect = ''.join(["%s"%(r) for r in terms])
-            if collect[0] == '+':#remove the first sign if present
-                collect = collect[1:]
-            return collect
-    def __interpretFromStr__(self,string):
-        terms = string.strip().split('+')
-        value = 0
-        for i in range(len(terms)):
-            if terms[i] == '%s'%self._variable:
-                value |= 1<<1#x^1
-            elif terms[i] == '1':
-                value |= 1
-            elif terms[i].count(self._variable):
-                exponent = int(terms[i].split('%s^'%self._variable)[1])
-                value |= 1<<exponent
+def BinaryPolynomialModulo(modulo,variable='x',loglevel=Logger.info):
+    '''BinaryPolynomialModulo is a builder for the given modulo. The returning
+       object can generate elements in this field or ring (depending on the 
+       reducibility of the modulo polynomial).
+       
+       The integer representation will use binary representation to assign the 
+       MSB to highest degree and the LSB to the 0 degree. For the string 
+       representation the sage notation has been take as inspiration.
+       
+       Arguments:
+       - modulo: (mandatory) an integer or an string representation of a 
+         polynomial (like 'x^8+x^4+x^3+x+1' that's equivalent to 0x11B).
+       - variable: by default is 'x' and it is only used for the output strings
+         representing the polynomials.
+       - loglevel: by default info, based on the superclass Logger enumeration.
+       
+       Example:
+       >>> import Polynomials
+       >>> field = Polynomials.BinaryPolynomialModulo('x^8+x^4+x^3+x+1')
+    '''
+    #This help is shown when
+    #>>> Polynomials.BinaryPolynomialModulo?
+    class BinaryPolynomialModuloConstructor(Logger):
+        def __init__(self,value):
+            '''Polynomial defined by an integer or an string representation 
+               of an element of the field or ring defined when made the builder
+               object.
+               
+               Argument:
+               - value: (mandatory) the value to be interpreted as a binary 
+                 polynomial finite field or ring.
+                 
+               Example:
+               >>> from Polynomials import BinaryPolynomialModulo
+               >>> field = BinaryPolynomialModulo('x^8+x^4+x^3+x+1')
+               >>> a = field(73); a
+               x^6+x^3+1 (mod x^8+x^4+x^3+x+1)
+            '''
+            #This help is shown when, from the last one
+            #>>> field?
+            #FIXME: improve the logging on this class
+            Logger.__init__(self,loglevel)
+            if len(variable) != 1:
+                raise NameError("The indeterminate must be "\
+                                "a single character.")
+            if ord('a') > variable.lower() > ord('z'):
+                raise NameError("The indeterminate must be a valid "\
+                                "alphabet letter.")
+            self._variable = variable
+            if type(value) == BinaryPolynomialModuloConstructor or \
+               value.__class__ == BinaryPolynomialModuloConstructor:
+                self._coefficients = value.coefficients
+            elif type(value) == int:
+                self._coefficients = abs(value)
+            elif type(value) == str:
+                self._coefficients = self.__interpretFromStr__(value)
             else:
-                raise SyntaxError("the term %s cannot be interpreted"
-                                  %(terms[i]))
-        return value
-    def __abs__(self):
-        return BinaryPolynomialModulo(abs(self._coefficients),self._modulo,
-                                      variable=self._variable,
-                                      loglevel=self._logLevel)
-    def __len__(self):
-        bits = "{0:b}".format(self._coefficients)
-        if bits[0] == '-':
-            bits = bits[1:]
-        return len(bits)
-    @checkTypes
-    def __eq__(self,other):# => a == b
-        if self._coefficients == other._coefficients:
-            return True
-        return False
-    @checkTypes
-    def __ne__(self,other):# => a!=b
-        if self.__eq__(other):
+                try:#Do a last try to interpret the coefficients
+                    self._coefficients = int(value)
+                except Exception,e:
+                    raise AssertionError("The given coefficients type '%s'"\
+                                         "is not interpretable"%(type(value)))
+            self.debug_stream("coefficients", self._coefficients)
+            if type(modulo) == int:
+                self._modulo = modulo
+            elif type(modulo) == str:
+                self._modulo = self.__interpretFromStr__(modulo)
+            else:
+                try:#Do a last try to interpret the coefficients
+                    self._modulo = int(modulo)
+                except Exception,e:
+                    raise AssertionError("The given modulo type '%s'"\
+                                         "is not interpretable"%(type(modulo)))
+            self.debug_stream("modulo", self._modulo)
+            #if the degree of coefficients > degree of modulo, do the reduction
+            if self.degree >= len("{0:b}".format(self._modulo)):
+                q,r = self.__division__(self._coefficients,self._modulo)
+                self._coefficients = r
+                self.debug_stream("reduced coefficients", self._coefficients)
+        @property
+        def coefficients(self):
+            return self._coefficients
+        @property
+        def modulo(self):
+            return self.__interpretToStr__(self._modulo)
+        @property
+        def variable(self):
+            return self._variable
+        @property
+        def degree(self):
+            return len("{0:b}".format(self._coefficients))
+        @property
+        def isZero(self):
+            '''Neutral element of the first operation, addition.'''
+            return self._coefficients == 0
+        @property
+        def isOne(self):
+            '''Neutral element of the second operation, product.'''
+            return self._coefficients == 1
+        def __iter__(self):
+            return iter("{0:b}".format(self._coefficients))
+        def iter(self):
+            return self.__iter__()
+        def __type__(self):
+            return self.__class__
+        def checkTypes(function):
+            '''Decorator to precheck the input parameters on some of the 
+               operations.
+            '''
+            def comparator(self,other):
+                if other.__class__ != BinaryPolynomialModuloConstructor:
+                    raise EnvironmentError("Cannot compare with non "\
+                                           "polynomials (%s)"%(type(other)))
+                if not self.variable == other.variable:
+                    raise EnvironmentError("Uncompatible polynomials")
+                if not self._modulo == other._modulo:
+                    raise EnvironmentError("Those polynomials are not in the "\
+                                           "same equivalence class")
+                return function(self,other)
+            return comparator
+        def __str__(self):
+            '''Readable representation. (%s)
+            '''
+            return self.__interpretToStr__(self._coefficients)
+        def __repr__(self):
+            '''Unambiguous representation. (%r)
+            '''
+            return "%s (mod %s)"%(self.__interpretToStr__(self._coefficients),
+                                  self.__interpretToStr__(self._modulo))
+        def __hex__(self):
+            '''
+            '''
+            return hex(self._coefficients)
+        def __interpretToStr__(self,value):
+            if value == 0:
+                return '0'#FIXME: the neutral element of the first operation
+            else:
+                terms = [] #coefficients representations list
+                bitlist = "{0:b}".format(value)
+                #FIXME: Improve this dirtied casuistry... Not efficient.
+                for idx,coefficient in enumerate(bitlist):
+                    exponent = len(bitlist)-idx-1
+                    if coefficient == '0':
+                        terms.append('')
+                    elif exponent == 0:#and coefficient == '1'
+                        terms.append('+1')
+                    elif exponent == 1:#and coefficient == '1'
+                        #equiv to x^1 but short
+                        terms.append('+%s'%(self._variable))
+                    else:
+                        terms.append('+%s^%d'%(self._variable,exponent))
+                collect = ''.join(["%s"%(r) for r in terms])
+                if collect[0] == '+':#remove the first sign if present
+                    collect = collect[1:]
+                return collect
+        def __interpretFromStr__(self,string):
+            terms = string.strip().split('+')
+            value = 0
+            for i in range(len(terms)):
+                if terms[i] == '%s'%self._variable:
+                    value |= 1<<1#x^1
+                elif terms[i] == '1':
+                    value |= 1
+                elif terms[i].count(self._variable):
+                    exponent = int(terms[i].split('%s^'%self._variable)[1])
+                    value |= 1<<exponent
+                else:
+                    raise SyntaxError("the term %s cannot be interpreted"
+                                      %(terms[i]))
+            return value
+        def __abs__(self):
+            return BinaryPolynomialModuloConstructor(abs(self._coefficients))
+        def __len__(self):
+            bits = "{0:b}".format(self._coefficients)
+            if bits[0] == '-':
+                bits = bits[1:]
+            return len(bits)
+        @checkTypes
+        def __eq__(self,other):# => a == b
+            if self._coefficients == other._coefficients:
+                return True
             return False
-        return True
-    #Meaningless operators in polynomials:
-    # operator.__lt__(a,b) => a<b
-    # operator.__le__(a,b) => a<=b
-    # operator.__gt__(a,b) => a>b
-    # operator.__ge__(a,b) => a>=b
-    #---- #Operations
-    #---- Addition
-    @checkTypes
-    def __add__(self,other):# => a+b
-        a = copy(self.coefficients)
-        b = copy(other.coefficients)
-        return BinaryPolynomialModulo(a^b,self._modulo,variable=self.variable,
-                                      loglevel=self._logLevel)
-    def __iadd__(self,other):# => a+=b
-        bar = self + other
-        return BinaryPolynomialModulo(bar._coefficients,self._modulo,
-                                      variable=self.variable,loglevel=self._logLevel)
-    #---- Substraction
-    def __neg__(self):# => -a
-        return self
-    def __sub__(self, other):# => a-b
-        bar = -other
-        a = copy(self.coefficients)
-        b = copy(other.coefficients)
-        return BinaryPolynomialModulo(a^b,self._modulo,variable=self.variable,
-                                      loglevel=self._logLevel)
-    def __isub__(self,other):# => a-=b
-        bar = self - other
-        return BinaryPolynomialModulo(bar._coefficients,self._modulo,
-                                      variable=self.variable,loglevel=self._logLevel)
-    #---- Product
-    def __multiply__(self,a,b):
-        if len("{0:b}".format(a))-len("{0:b}".format(b)) > 0:
-            # a <-> b
-            a,b = b,a
-        mask = 1
-        #b_shift = copy(a)
-        accum = 0
-        self.debug_stream("a",a)
-        self.debug_stream("b",b)
-        while mask < b:
-            temp = a << (len("{0:b}".format(mask))-1)
-            if b & mask:
-                self.debug_stream("mask",mask)
-                self.debug_stream("temp",temp)
-            temp ^= accum
-            if b & mask:#trying a constant time operation, doing in the if
-                        #only an assignment and doing all the ops in any case.
-                accum = temp
-            mask <<= 1
-            #b_shift <<= 1
-        self.debug_stream("accum",accum)
-        return accum
-    @checkTypes
-    def __mul__(self,other):# => a*b
-        '''
-        '''
-        a = copy(self._coefficients)
-        b = copy(other._coefficients)
-        res = self.__multiply__(a,b)
-        return BinaryPolynomialModulo(res,self._modulo,variable=self.variable,
-                                      loglevel=self._logLevel)
-    def __imul__(self,other):# => a*=b
-        bar = self * other
-        return BinaryPolynomialModulo(bar._coefficients,self._modulo,
-                                      variable=self.variable,
-                                      loglevel=self._logLevel)
-    def xtimes(self):
-        x = BinaryPolynomialModulo("%s^1"%(self._variable),self._modulo,
-                                   self._variable,loglevel=self._logLevel)
-        res = self.__multiply__(self._coefficients,2)
-        return BinaryPolynomialModulo(res,self._modulo,
-                                      variable=self.variable,
-                                      loglevel=self._logLevel)
-        #bar = self * x
-        #return bar
-#        return BinaryPolynomialModulo(bar._coefficients,self._modulo,
-#                                      variable=self.variable,
-#                                      loglevel=self._logLevel)
-    #---- Division
-    def __division__(self,a,b):
-        '''
-        '''
-        #FIXME: check division by 0 => ZeroDivisionError
-        self.debug_stream("\n<division>")
-        gr_a = len("{0:b}".format(a))-1
-        gr_b = len("{0:b}".format(b))-1
-        q = 0
-        r = a
-        self.debug_stream("a",a)
-        self.debug_stream("b",b)
-        self.debug_stream("q",q)
-        self.debug_stream("r",r)
-        shift = gr_a-gr_b
-        while len("{0:b}".format(r))>=len("{0:b}".format(b)) and \
-              shift >= 0:
-            #FIXME: this means deg(r) >= deg(b), but it's horrible
-            gr_r = len("{0:b}".format(r))-1
-            if shift > 0:
-                temp = int("{0:b}".format(r)[0:-shift],2)<<shift
-            else:
-                temp = r
-            self.debug_stream("temp",temp)
-            subs = b << shift
-            self.debug_stream("subs",subs)
-            if len("{0:b}".format(temp)) == len("{0:b}".format(subs)):
-                bar = temp ^ subs
-                self.debug_stream("temp ^subs",bar)
-                if shift > 0:
-                    mask = int('1'*shift,2)
-                    q = q | 1<<(shift)
-                    r = bar | (a & mask)
-                else:
-                    q |= 1
-                    r = bar
+        @checkTypes
+        def __ne__(self,other):# => a!=b
+            if self.__eq__(other):
+                return False
+            return True
+        #Meaningless operators in polynomials:
+        # operator.__lt__(a,b) => a<b
+        # operator.__le__(a,b) => a<=b
+        # operator.__gt__(a,b) => a>b
+        # operator.__ge__(a,b) => a>=b
+        #---- #Operations
+        #---- Addition
+        @checkTypes
+        def __add__(self,other):# => a+b
+            a = copy(self.coefficients)
+            b = copy(other.coefficients)
+            return BinaryPolynomialModuloConstructor(a^b)
+        def __iadd__(self,other):# => a+=b
+            bar = self + other
+            return BinaryPolynomialModuloConstructor(bar._coefficients)
+        #---- Substraction
+        def __neg__(self):# => -a
+            return self
+        def __sub__(self, other):# => a-b
+            bar = -other
+            a = copy(self.coefficients)
+            b = copy(other.coefficients)
+            return BinaryPolynomialModuloConstructor(a^b)
+        def __isub__(self,other):# => a-=b
+            bar = self - other
+            return BinaryPolynomialModuloConstructor(bar._coefficients)
+        #---- Product
+        def __multiply__(self,a,b):
+            if len("{0:b}".format(a))-len("{0:b}".format(b)) > 0:
+                # a <-> b
+                a,b = b,a
+            mask = 1
+            #b_shift = copy(a)
+            accum = 0
+            self.debug_stream("a",a)
+            self.debug_stream("b",b)
+            while mask < b:
+                temp = a << (len("{0:b}".format(mask))-1)
+                if b & mask:
+                    self.debug_stream("mask",mask)
+                    self.debug_stream("temp",temp)
+                temp ^= accum
+                if b & mask:#trying a constant time operation, doing in the if
+                            #only an assignment and doing all the ops in 
+                            #any case.
+                    accum = temp
+                mask <<= 1
+                #b_shift <<= 1
+            self.debug_stream("accum",accum)
+            return accum
+        @checkTypes
+        def __mul__(self,other):# => a*b
+            '''
+            '''
+            a = copy(self._coefficients)
+            b = copy(other._coefficients)
+            res = self.__multiply__(a,b)
+            return BinaryPolynomialModuloConstructor(res)
+        def __imul__(self,other):# => a*=b
+            bar = self * other
+            return BinaryPolynomialModuloConstructor(bar._coefficients)
+        def xtimes(self):
+            x = BinaryPolynomialModuloConstructor("%s^1"%(self._variable))
+            res = self.__multiply__(self._coefficients,2)
+            return BinaryPolynomialModuloConstructor(res)
+            #bar = self * x
+            #return bar
+    #        return BinaryPolynomialModuloConstructor(bar._coefficients)
+        #---- Division
+        def __division__(self,a,b):
+            '''
+            '''
+            #FIXME: check division by 0 => ZeroDivisionError
+            self.debug_stream("\n<division>")
+            gr_a = len("{0:b}".format(a))-1
+            gr_b = len("{0:b}".format(b))-1
+            q = 0
+            r = a
+            self.debug_stream("a",a)
+            self.debug_stream("b",b)
             self.debug_stream("q",q)
             self.debug_stream("r",r)
-            gr_a -= 1
             shift = gr_a-gr_b
-        self.debug_stream("<\\division>\n")
-        return (q,r)
-    def __div__(self,other):# => a/b
-        q,r = self.__division__(self._coefficients,other._coefficients)
-        return BinaryPolynomialModulo(q,self._modulo,variable=self.variable,
-                                      loglevel=self._logLevel)
-    def __idiv__(self,other):# => a/=b
-        q,r = self.__division__(self._coefficients,other._coefficients)
-        return BinaryPolynomialModulo(q,self._modulo,variable=self.variable,
-                                      loglevel=self._logLevel)
-    def __mod__(self,other):# => a%b
-        q,r = self.__division__(self._coefficients,other._coefficients)
-        return BinaryPolynomialModulo(r,self._modulo,variable=self.variable,
-                                      loglevel=self._logLevel)
-    def _imod__(self,other):# => a%=b
-        q,r = self.__division__(self._coefficients,other._coefficients)
-        return BinaryPolynomialModulo(r,self._modulo,variable=self.variable,
-                                      loglevel=self._logLevel)
-    #---- TODO: Multiplicative inverse 
-    #      - operator.__inv__(a) => ~a
-    def __egcd__(self,a,b):
-        '''Extended Euclidean gcd (Greatest Common Divisor) Algorithm
-           From Hankerson,Menezes,Vanstone "Guide to Elliptic Curve 
-           Cryptography" Algorithm 2.47.
-           Input: <integer> a (polynomial bit representation)
-                  <integer> b (polynomial bit representation)
-           Output: <integer> gcd
-                   <integer> x (polynomial bit representation)
-                   <integer> y (polynomial bit representation)
-        '''
-        u,v = a,b
-        self.debug_stream("u",u)
-        self.debug_stream("v",v)
-        g1,g2,h1,h2 = 1,0,0,1
-        self.debug_stream("g1",g1)
-        self.debug_stream("g2",g2)
-        self.debug_stream("h1",h1)
-        self.debug_stream("h2",h2)
-        while u != 0:
-            j = len("{0:b}".format(u))-len("{0:b}".format(v))
-            if j < 0:
-                self.debug_stream("%d < 0"%j)
-                #u <-> v
-                u,v = v,u
-                #g1 <-> g2
-                g1,g2 = g2,g1
-                #h1 <-> h2
-                h1,h2 = h2,h1
-                j = -j
-            u = u^(v<<j)
-            g1 = g1^(g2<<j)
-            h1 = h1^(h2<<j)
-            self.debug_stream("\tu",u)
-            self.debug_stream("\tg1",g1)
-            self.debug_stream("\th1",h1)
-        d,g,h = v,g2,h2
-        self.debug_stream("d",d)
-        self.debug_stream("g",g)
-        self.debug_stream("h",h)
-        return d,g,h
-    @checkTypes
-    def __gcd__(self,other):
-        a = self._coefficients
-        b = other._coefficients
-        gcd,x,y = self.__egcd__(a,b)
-        return gcd
-    def __multiplicativeInverse__(self):
-        '''Multiplicative inverse based on ...
-           Input: <integer> a (polynomial bit representation)
-                  <integer> m (modulo polynomial)
-           Output: <integer> a^-1: a*a^-1 = 1 (mod m)
-           This it the first of the two transformations for the SBoxes in the 
-           subBytes operation, the one called called g.
-        '''
-        if self._coefficients == 0:#FIXME: is this true?
-            return self
-        gcd,x,y = self.__egcd__(self._coefficients,self._modulo)
-        self.debug_stream("gcd",gcd)
-        self.debug_stream("x",x)
-        self.debug_stream("y",y)
-        if gcd != 1:
-            raise ArithmeticError("The inverse of %s modulo %s doens't exist!"
-                                  %(self.__interpretToStr__(self._coefficients),
-                                    self.__interpretToStr__(self._modulo)))
-        else:
-            return x#%self._modulo
-    def __invert__(self):# => ~a, that means like a^-1
-        res = self.__multiplicativeInverse__()
-        return BinaryPolynomialModulo(res,self._modulo,self._variable)
-    #---- Shifts
-#    #TODO: shift operations (
-#    #      - operator.__lshift__ => <<
-#    #      - operator.__rshift__ => >>
-#    #      - operator.__ilshift__ => <<=
-#    #      - operator.__irshift__ => >>=
+            while len("{0:b}".format(r))>=len("{0:b}".format(b)) and \
+                  shift >= 0:
+                #FIXME: this means deg(r) >= deg(b), but it's horrible
+                gr_r = len("{0:b}".format(r))-1
+                if shift > 0:
+                    temp = int("{0:b}".format(r)[0:-shift],2)<<shift
+                else:
+                    temp = r
+                self.debug_stream("temp",temp)
+                subs = b << shift
+                self.debug_stream("subs",subs)
+                if len("{0:b}".format(temp)) == len("{0:b}".format(subs)):
+                    bar = temp ^ subs
+                    self.debug_stream("temp ^subs",bar)
+                    if shift > 0:
+                        mask = int('1'*shift,2)
+                        q = q | 1<<(shift)
+                        r = bar | (a & mask)
+                    else:
+                        q |= 1
+                        r = bar
+                self.debug_stream("q",q)
+                self.debug_stream("r",r)
+                gr_a -= 1
+                shift = gr_a-gr_b
+            self.debug_stream("<\\division>\n")
+            return (q,r)
+        def __div__(self,other):# => a/b
+            q,r = self.__division__(self._coefficients,other._coefficients)
+            return BinaryPolynomialModuloConstructor(q)
+            #FIXME: the constructor will reduce it having the rest 
+            #and not the quotient
+        def __idiv__(self,other):# => a/=b
+            q,r = self.__division__(self._coefficients,other._coefficients)
+            return BinaryPolynomialModuloConstructor(q)
+        def __mod__(self,other):# => a%b
+            q,r = self.__division__(self._coefficients,other._coefficients)
+            return BinaryPolynomialModuloConstructor(r)
+        def _imod__(self,other):# => a%=b
+            q,r = self.__division__(self._coefficients,other._coefficients)
+            return BinaryPolynomialModuloConstructor(r)
+        #---- TODO: Multiplicative inverse 
+        #      - operator.__inv__(a) => ~a
+        def __egcd__(self,a,b):
+            '''Extended Euclidean gcd (Greatest Common Divisor) Algorithm
+               From Hankerson,Menezes,Vanstone "Guide to Elliptic Curve 
+               Cryptography" Algorithm 2.47.
+               Input: <integer> a (polynomial bit representation)
+                      <integer> b (polynomial bit representation)
+               Output: <integer> gcd
+                       <integer> x (polynomial bit representation)
+                       <integer> y (polynomial bit representation)
+            '''
+            u,v = a,b
+            self.debug_stream("u",u)
+            self.debug_stream("v",v)
+            g1,g2,h1,h2 = 1,0,0,1
+            self.debug_stream("g1",g1)
+            self.debug_stream("g2",g2)
+            self.debug_stream("h1",h1)
+            self.debug_stream("h2",h2)
+            while u != 0:
+                j = len("{0:b}".format(u))-len("{0:b}".format(v))
+                if j < 0:
+                    self.debug_stream("%d < 0"%j)
+                    #u <-> v
+                    u,v = v,u
+                    #g1 <-> g2
+                    g1,g2 = g2,g1
+                    #h1 <-> h2
+                    h1,h2 = h2,h1
+                    j = -j
+                u = u^(v<<j)
+                g1 = g1^(g2<<j)
+                h1 = h1^(h2<<j)
+                self.debug_stream("\tu",u)
+                self.debug_stream("\tg1",g1)
+                self.debug_stream("\th1",h1)
+            d,g,h = v,g2,h2
+            self.debug_stream("d",d)
+            self.debug_stream("g",g)
+            self.debug_stream("h",h)
+            return d,g,h
+        @checkTypes
+        def __gcd__(self,other):
+            a = self._coefficients
+            b = other._coefficients
+            gcd,x,y = self.__egcd__(a,b)
+            return gcd
+        def __multiplicativeInverse__(self):
+            '''Multiplicative inverse based on ...
+               Input: <integer> a (polynomial bit representation)
+                      <integer> m (modulo polynomial)
+               Output: <integer> a^-1: a*a^-1 = 1 (mod m)
+               This it the first of the two transformations for the SBoxes 
+               in the subBytes operation, the one called called g.
+            '''
+            if self._coefficients == 0:#FIXME: is this true?
+                return self
+            gcd,x,y = self.__egcd__(self._coefficients,self._modulo)
+            self.debug_stream("gcd",gcd)
+            self.debug_stream("x",x)
+            self.debug_stream("y",y)
+            if gcd != 1:
+                raise ArithmeticError("The inverse of %s modulo %s "\
+                                      "doens't exist!"
+                                 %(self.__interpretToStr__(self._coefficients),
+                                        self.__interpretToStr__(self._modulo)))
+            else:
+                return x#%self._modulo
+        def __invert__(self):# => ~a, that means like a^-1
+            res = self.__multiplicativeInverse__()
+            return BinaryPolynomialModuloConstructor(res)
+        #---- Shifts
+    #    #TODO: shift operations (
+    #    #      - operator.__lshift__ => <<
+    #    #      - operator.__rshift__ => >>
+    #    #      - operator.__ilshift__ => <<=
+    #    #      - operator.__irshift__ => >>=
+    return BinaryPolynomialModuloConstructor
 
 def getBinaryPolynomialFieldModulo(wordSize):
     '''Who is chosen m(z)? [1] z^8+z^4+z^3+z+1 is the first that those the job
@@ -579,7 +594,8 @@ class PolynomialRing:
         self.__nRows=nRows
         self.__nColumns=nColumns
         self.__polynomialsubfield=BinaryPolynomialField(wordSize)
-        #self._field_modulo = getBinaryPolynomialFieldModulo(wordSize)
+        #self._field_modulo = BinaryPolynomialModulo(\
+        #                             getBinaryPolynomialFieldModulo(wordSize))
     def product(self,ax,sx):
         '''Given two polynomials over F_{2^8} multiplie them modulo x^{4}+1
            s'(x) = a(x) \otimes s(x)
@@ -606,11 +622,11 @@ class PolynomialRing:
             for r in range(self.__nRows):
                 res[r][c]=0
                 for rbis in range(self.__nRows):
-#                    a = BinaryPolynomialModulo(shifted_ax[rbis],self._field_modulo)
-#                    b = BinaryPolynomialModulo(sx[rbis][c],self._field_modulo)
-                    #res[r][c]^=(a*b)._coefficients
                     res[r][c]^=self.__polynomialsubfield.\
                                           product(shifted_ax[rbis],sx[rbis][c])
+#                    a = self._field_modulo(shifted_ax[rbis])
+#                    b = self._field_modulo(sx[rbis][c])
+#                    res[r][c]^=(a*b)._coefficients
                 shifted_ax=shift(shifted_ax,-1)
         return res
 
@@ -650,9 +666,10 @@ from optparse import OptionParser
 from random import randint
 
 def testBinaryPolynomialField(value,degree):
-    loglevel=Logger.info#debug
-    modulo = getBinaryPolynomialFieldModulo(degree)
-    sample = BinaryPolynomialModulo(value,modulo,loglevel=loglevel)
+    level=Logger.info#debug
+    modulo = BinaryPolynomialModulo(getBinaryPolynomialFieldModulo(degree),
+                                    loglevel=level)
+    sample = modulo(value)
     
     print("Testing: %s = %s (%s) as polynomial %r"
           %(value,hex(value),bin(value),sample))
@@ -705,10 +722,10 @@ def getBinaryPolinomialFieldInverse(value):
 def testTableC5():
     loglevel=Logger.debug
     degree = 8
-    modulo = getBinaryPolynomialFieldModulo(degree)
+    field = BinaryPolynomialModulo(getBinaryPolynomialFieldModulo(degree))
     ok,failed = 0,0
     for i in range(256):
-        p = BinaryPolynomialModulo(i,modulo)
+        p = field(i)
         calc = ~p
         table = getBinaryPolinomialFieldInverse(i)
         if calc._coefficients != table:
