@@ -242,29 +242,6 @@ def BinaryPolynomialModulo(modulo,variable='x',loglevel=Logger.info):
             bar = self - other
             return BinaryPolynomialModuloConstructor(bar._coefficients)
         #---- Product
-        def __multiply__(self,a,b):
-            if len("{0:b}".format(a))-len("{0:b}".format(b)) > 0:
-                # a <-> b
-                a,b = b,a
-            mask = 1
-            #b_shift = copy(a)
-            accum = 0
-            self.debug_stream("a",a)
-            self.debug_stream("b",b)
-            while mask < b:
-                temp = a << (len("{0:b}".format(mask))-1)
-                if b & mask:
-                    self.debug_stream("mask",mask)
-                    self.debug_stream("temp",temp)
-                temp ^= accum
-                if b & mask:#trying a constant time operation, doing in the if
-                            #only an assignment and doing all the ops in 
-                            #any case.
-                    accum = temp
-                mask <<= 1
-                #b_shift <<= 1
-            self.debug_stream("accum",accum)
-            return accum
         @checkTypes
         def __mul__(self,other):# => a*b
             '''
@@ -272,17 +249,51 @@ def BinaryPolynomialModulo(modulo,variable='x',loglevel=Logger.info):
             a = copy(self._coefficients)
             b = copy(other._coefficients)
             res = self.__multiply__(a,b)
+            self.info_stream("c = %s"%self.__interpretToStr__(res))
             return BinaryPolynomialModuloConstructor(res)
         def __imul__(self,other):# => a*=b
             bar = self * other
             return BinaryPolynomialModuloConstructor(bar._coefficients)
         def xtimes(self):
-            x = BinaryPolynomialModuloConstructor("%s^1"%(self._variable))
-            res = self.__multiply__(self._coefficients,2)
-            return BinaryPolynomialModuloConstructor(res)
-            #bar = self * x
-            #return bar
-    #        return BinaryPolynomialModuloConstructor(bar._coefficients)
+            return BinaryPolynomialModuloConstructor(self._coefficients << 1)
+        def __multiply__(self,a,b):
+            aOnes = "{0:b}".format(a).count('1')
+            bOnes = "{0:b}".format(b).count('1')
+            self.info_stream("a has %d ones and b has %d ones"%(aOnes,bOnes))
+            if aOnes < bOnes:
+                # a <-> b
+                a,b = b,a
+                self.info_stream("a and b swapped to have on b the minimum"\
+                                 "number of 1s.")
+            self.info_stream("a %s"%self.__interpretToStr__(a))
+            self.info_stream("b %s"%self.__interpretToStr__(b))
+            result = 0
+            mask = 1
+            i = 0
+            while mask < b:
+                bit = b & mask
+                result = self.__multiplicationStep__(a,bit,i,result)
+                if bit:
+                    self.info_stream("aShifted: %s"%
+                                      self.__interpretToStr__(a<<i))
+                mask <<= 1
+                i += 1
+            return result
+        def __multiplicationStep__(self,a,bit,i,accum):
+            '''Constant time function to calculate one of the steps in the 
+               multiplication.
+               Input: <integer> a (the first element of the product)
+                      <boolean> bit (the bit of b on the step)
+                      <integer> i (the exponent where 'bit' is located)
+                      <integer> accum (partial result from previous steps)
+               Output: <integer> (the accumulated result of the product)
+            '''
+            aShifted = a << i
+            newerAccum = accum ^ aShifted
+            if bit:
+                return newerAccum
+            else:
+                return accum
         #---- Division
         def __division__(self,a,b):
             '''
