@@ -249,7 +249,10 @@ def BinaryPolynomialModulo(modulo,variable='x',loglevel=Logger.info):
             a = copy(self._coefficients)
             b = copy(other._coefficients)
             res = self.__multiply__(a,b)
-            self.info_stream("c = %s"%self.__interpretToStr__(res))
+            self.debug_stream("c = a * b = %s * %s = %s"
+                              %(self.__interpretToStr__(a),
+                                self.__interpretToStr__(b),
+                                self.__interpretToStr__(res)))
             return BinaryPolynomialModuloConstructor(res)
         def __imul__(self,other):# => a*=b
             bar = self * other
@@ -257,25 +260,24 @@ def BinaryPolynomialModulo(modulo,variable='x',loglevel=Logger.info):
         def xtimes(self):
             return BinaryPolynomialModuloConstructor(self._coefficients << 1)
         def __multiply__(self,a,b):
-            aOnes = "{0:b}".format(a).count('1')
-            bOnes = "{0:b}".format(b).count('1')
-            self.info_stream("a has %d ones and b has %d ones"%(aOnes,bOnes))
-            if aOnes < bOnes:
-                # a <-> b
-                a,b = b,a
-                self.info_stream("a and b swapped to have on b the minimum"\
-                                 "number of 1s.")
-            self.info_stream("a %s"%self.__interpretToStr__(a))
-            self.info_stream("b %s"%self.__interpretToStr__(b))
+            '''
+            '''
+#            aOnes = "{0:b}".format(a).count('1')
+#            bOnes = "{0:b}".format(b).count('1')
+#            self.info_stream("a has %d ones and b has %d ones"%(aOnes,bOnes))
+#            if aOnes < bOnes:
+#                # a <-> b
+#                a,b = b,a
+#                self.info_stream("a and b swapped to have on b the minimum"\
+#                                 "number of 1s.")
+            self.debug_stream("a %s"%self.__interpretToStr__(a))
+            self.debug_stream("b %s"%self.__interpretToStr__(b))
             result = 0
             mask = 1
             i = 0
-            while mask < b:
+            while mask < self._modulo:
                 bit = b & mask
                 result = self.__multiplicationStep__(a,bit,i,result)
-                if bit:
-                    self.info_stream("aShifted: %s"%
-                                      self.__interpretToStr__(a<<i))
                 mask <<= 1
                 i += 1
             return result
@@ -289,8 +291,17 @@ def BinaryPolynomialModulo(modulo,variable='x',loglevel=Logger.info):
                Output: <integer> (the accumulated result of the product)
             '''
             aShifted = a << i
+            #j = 0
+            #aShifted = a
+            #while j < i:#aShifted = a << i modulo m
+            #    aShifted <<= 1
+            #    if aShifted > self._modulo:
+            #        aShifted ^= self._modulo
+            #    j += 1
             newerAccum = accum ^ aShifted
             if bit:
+                self.debug_stream("aShifted: %s"%
+                                 self.__interpretToStr__(aShifted))
                 return newerAccum
             else:
                 return accum
@@ -748,9 +759,24 @@ def testTableC5():
             failed+=1
             pass
         else:
-            ok+=1
-    print("\n\t%d ok %s\n"%(ok,"but failed %s"%(failed) if failed >0 else ""))
+            
+            if p.isZero or p * calc == field(1):
+                ok+=1
+            else:
+                print("Alert %s * %s != %r"%(p,calc,field(1)))
+    return "%d ok %s"%(ok,"but failed %s"%(failed) if failed >0 else "")
 
+def testPolynomialInverse(degree):
+    field = BinaryPolynomialModulo(getBinaryPolynomialFieldModulo(degree))
+    ok,failed = 0,0
+    for i in range(2**degree):
+        p = field(i)
+        calc = ~p
+        if p.isZero or p * calc == field(1):
+            ok += 1
+        else:
+            print("Alert %s * %s != %r"%(p,calc,field(1)))
+    return "%d ok %s"%(ok,"but failed %s"%(failed) if failed >0 else "")
 def main():
     '''Test the correct functionality of the Polynomial Field and Ring classes.
     '''
@@ -760,17 +786,34 @@ def main():
     parser.add_option('',"--table-c5",action="store_true",
                       help="Test the table C5 from the 'Design of "\
                            "Rijndael' book ")
+    parser.add_option('',"--test-field",type='int',
+                      help="Test all the elements in a field if their product"\
+                      "with the inverse returns the neutral element z^0")
+    parser.add_option('',"--test-all-fields",action="store_true",
+                      help="Loops over all available fields doing "\
+                      "--test-field on it.")
     (options, args) = parser.parse_args()
     degree=8
     #print("options: %s"%(options))
 
     #This test the multiplicative inverse, 
     #the first part of the two SBox transformations
-    print("\n")
     if options.binary_polynomial:
         testBinaryPolynomialField(options.binary_polynomial,degree)
     elif options.table_c5:
-        testTableC5()
+        print("Check with the Rijndael's table c5: %s\n"%(testTableC5()))
+    elif options.test_all_fields:
+        import time
+        for i in range(16,1,-1):
+            start_t = time.time()
+            res = testPolynomialInverse(i)
+            end_t = time.time()
+            print("For F_{2^%d}, test elements:\t%s\t(%gseconds)"
+                  %(i,res,end_t-start_t))
+        print("\n")
+    elif options.test_field:
+        print("For F_{2^%d}, test elements: %s\n"
+              %(options.test_field,testPolynomialInverse(options.test_field)))
     else:
         #TODO: loop with a bigger sample set.
         values = range(6)
