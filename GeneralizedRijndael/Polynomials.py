@@ -585,6 +585,7 @@ def getNu(wordSize):
     '''
     Mu = {
         8:0xC4,#z^7+z^6+z^2
+        #8:0x63,#Z^6+z^5+z+1
     }[wordSize]
     return Mu
 
@@ -693,28 +694,32 @@ def testBinaryPolynomialField(value,degree):
                                     loglevel=level)
     sample = modulo(value)
     
-    print("Testing: %s = %s (%s) as polynomial %r"
+    print("\nTesting: %s = %s (%s) as polynomial %r"
           %(value,hex(value),bin(value),sample))
     xtime = sample.xtimes()
-    print("\txtime(%s) =\t(%s) = %s = %s "%(sample,xtime,
-                                                bin(xtime._coefficients),
-                                                hex(xtime._coefficients)))
-    product2 = sample*sample
-    print("\t(%s) * (%s) =\t(%s) = %s = %s "%(sample,sample,product2,
-                                                bin(product2._coefficients),
-                                                hex(product2._coefficients)))
-    product3 = product2*sample
-    print("\t3 * (%s) =\t(%s) = %s = %s "%(sample,product3,
-                                                bin(product3._coefficients),
-                                                hex(product3._coefficients)))
+    print("\txtime(%27s) =\t(%27s) = %s = %s "%(sample,xtime,
+                                            bin(xtime._coefficients),
+                                            hex(xtime._coefficients)))
+    i = 1
+    product = sample
+    while i <= degree*2:
+        product = sample*product
+        print("\t     (%27s)^%d =\t(%27s) = %s = %s "%(sample,i,product,
+                                         bin(product._coefficients),
+                                         hex(product._coefficients)))
+        xtime = product.xtimes()
+        print("\txtime(%27s) =\t(%27s) = %s = %s "%(product,xtime,
+                                            bin(xtime._coefficients),
+                                            hex(xtime._coefficients)))
+        i += 1
     inverse = ~sample
-    print("\t(%s)^-1 =\t(%s) = %s = %s "%(sample,inverse,
-                                                bin(inverse._coefficients),
-                                                hex(inverse._coefficients)))
+    print("\t     (%27s)^-1 =\t(%27s) = %s = %s "%(sample,inverse,
+                                          bin(inverse._coefficients),
+                                          hex(inverse._coefficients)))
     print("\n")
 
 def getBinaryPolinomialFieldInverse(value):
-    '''From the table C.5 in the 'Design of Rijndael' book. 
+    '''From the table C.5 of the 'Design of Rijndael' book. 
        For testing purposes.
     '''
     table_C5 = [
@@ -742,7 +747,6 @@ def getBinaryPolinomialFieldInverse(value):
     return table_C5[r][c]
 
 def testTableC5():
-    loglevel=Logger.debug
     degree = 8
     field = BinaryPolynomialModulo(getBinaryPolynomialFieldModulo(degree))
     ok,failed = 0,0
@@ -764,7 +768,8 @@ def testTableC5():
                 ok+=1
             else:
                 print("Alert %s * %s != %r"%(p,calc,field(1)))
-    return "%d ok %s"%(ok,"but failed %s"%(failed) if failed >0 else "")
+    return (ok,failed)
+    #return "%d ok %s"%(ok,"but failed %s"%(failed) if failed >0 else "")
 
 def testPolynomialInverse(degree):
     field = BinaryPolynomialModulo(getBinaryPolynomialFieldModulo(degree))
@@ -776,13 +781,135 @@ def testPolynomialInverse(degree):
             ok += 1
         else:
             print("Alert %s * %s != %r"%(p,calc,field(1)))
-    return "%d ok %s"%(ok,"but failed %s"%(failed) if failed >0 else "")
+    return (ok,failed)
+    #return "%d ok %s"%(ok,"but failed %s"%(failed) if failed >0 else "")
+
+def getRijndaelsAffineMapping(value,inverse=False):
+    '''From the table C.3 and its invers C.4 of the 'Design of Rijndael' book.
+       For testing purposes.
+    '''
+    table_C3 = [
+# 0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xA, 0xB, 0xC, 0xD, 0xE, 0xF
+[0x63,0x7C,0x5D,0x42,0x1F,0x00,0x21,0x3E,0x9B,0x84,0xA5,0xBA,0xE7,0xF8,0xD9,0xC6],#0x0
+[0x92,0x8D,0xAC,0xB3,0xEE,0xF1,0xD0,0xCF,0x6A,0x75,0x54,0x4B,0x16,0x09,0x28,0x37],#0x1
+[0x80,0x9F,0xBE,0xA1,0xFC,0xE3,0xC2,0xDD,0x78,0x67,0x46,0x59,0x04,0x1B,0x3A,0x25],#0x2
+[0x71,0x6E,0x4F,0x50,0x0D,0x12,0x33,0x2C,0x89,0x96,0xB7,0xA8,0xF5,0xEA,0xCB,0xD4],#0x3
+[0xA4,0xBB,0x9A,0x85,0xD8,0xC7,0xE6,0xF9,0x5C,0x43,0x62,0x7D,0x20,0x3F,0x1E,0x01],#0x4
+[0x55,0x4A,0x6B,0x74,0x29,0x36,0x17,0x08,0xAD,0xB2,0x93,0x8C,0xD1,0xCE,0xEF,0xF0],#0x5
+[0x47,0x58,0x79,0x66,0x3B,0x24,0x05,0x1A,0xBF,0xA0,0x81,0x9E,0xC3,0xDC,0xFD,0xE2],#0x6
+[0xB6,0xA9,0x88,0x97,0xCA,0xD5,0xF4,0xEB,0x4E,0x51,0x70,0x6F,0x32,0x2D,0x0C,0x13],#0x7
+[0xEC,0xF3,0xD2,0xCD,0x90,0x8F,0xAE,0xB1,0x14,0x0B,0x2A,0x35,0x68,0x77,0x56,0x49],#0x8
+[0x1D,0x02,0x23,0x3C,0x61,0x7E,0x5F,0x40,0xE5,0xFA,0xDB,0xC4,0X99,0x86,0xA7,0xB8],#0x9
+[0x0F,0x10,0x31,0x2E,0x73,0x6C,0x4D,0x52,0xF7,0xE8,0xC9,0xD6,0x8B,0x94,0xB5,0xAA],#0xA
+[0xFE,0xE1,0xC0,0xDF,0x82,0x9D,0xBC,0xA3,0x06,0x19,0x38,0x27,0x7A,0x65,0x44,0x5B],#0xB
+[0x2B,0x34,0x15,0x0A,0x57,0x48,0x69,0x76,0xD3,0xCC,0xED,0xF2,0xAF,0xB0,0x91,0x8E],#0xC
+[0xDA,0xC5,0xE4,0xFB,0xA6,0xB9,0x98,0x87,0x22,0x3D,0x1C,0x03,0x5E,0x41,0x60,0x7F],#0xD
+[0xC8,0xD7,0xF6,0xE9,0xB4,0xAB,0x8A,0x95,0x30,0x2F,0x0E,0x11,0x4C,0x53,0x72,0x6D],#0xE
+[0X39,0x26,0x07,0x18,0x45,0x5A,0x7B,0x64,0xC1,0xDE,0xFF,0xE0,0xBD,0xA2,0x83,0x9C],#0xF
+]
+    table_C4 = [
+# 0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xA, 0xB, 0xC, 0xD, 0xE, 0xF
+[0x05,0x4F,0x91,0xDB,0x2C,0x66,0xB8,0xF2,0x57,0x1D,0xC3,0x89,0x7E,0x34,0xEA,0xA0],#0x0
+[0xA1,0xEB,0x35,0x7F,0x88,0xC2,0x1C,0x56,0xF3,0xB9,0x67,0x2D,0xDA,0x90,0x4E,0x04],#0x1
+[0x4C,0x06,0xD8,0x92,0x65,0x2F,0xF1,0xBB,0x1E,0x54,0x8A,0xC0,0x37,0x7D,0xA3,0xE9],#0x2
+[0xE8,0xA2,0x7C,0x36,0xC1,0x8B,0x55,0x1F,0xBA,0xF0,0x2E,0x64,0x93,0xD9,0x07,0x4D],#0x3
+[0x97,0xDD,0x03,0x49,0xBE,0xF4,0x2A,0x60,0xC5,0x8F,0x51,0x1B,0xEC,0xA6,0x78,0x32],#0x4
+[0x33,0x79,0xA7,0xED,0x1A,0x50,0x8E,0xC4,0x61,0x2B,0xF5,0xBF,0x48,0x02,0xDC,0x96],#0x5
+[0xDE,0x94,0x4A,0x00,0xF7,0xBD,0x63,0x29,0x8C,0xC6,0x18,0x52,0xA5,0xEF,0x31,0x7B],#0x6
+[0x7A,0x30,0xEE,0xA4,0x53,0x19,0xC7,0x8D,0x28,0x62,0xBC,0xF6,0x01,0x4B,0x95,0xDF],#0x7
+[0x20,0x6A,0xB4,0xFE,0x09,0x43,0x9D,0xD7,0x72,0x38,0xE6,0xAC,0x5B,0x11,0xCF,0x85],#0x8
+[0x84,0xCE,0x10,0x5A,0xAD,0xE7,0x39,0x73,0xD6,0x9C,0x42,0x08,0xFF,0xB5,0x6B,0x21],#0x9
+[0x69,0x23,0xFD,0xB7,0x40,0x0A,0xD4,0x9E,0x3B,0x71,0xAF,0xE5,0x12,0x58,0x86,0xCC],#0xA
+[0xCD,0x87,0x59,0x13,0xE4,0xAE,0x70,0x3A,0x9F,0xD5,0x0B,0x41,0xB6,0xFC,0x22,0x68],#0xB
+[0xB2,0xF8,0x26,0x6C,0x9B,0xD1,0x0F,0x45,0xE0,0xAA,0x74,0x3E,0xC9,0x83,0x5D,0x17],#0xC
+[0x16,0x5C,0x82,0xC8,0x3F,0x75,0xAB,0xE1,0x44,0x0E,0xD0,0x9A,0x6D,0x27,0xF9,0xB3],#0xD
+[0xFB,0xB1,0x6F,0x25,0xD2,0x98,0x46,0x0C,0xA9,0xE3,0x3D,0x77,0x80,0xCA,0x14,0x5E],#0xE
+[0x5F,0x15,0xCB,0x81,0x76,0x3C,0xE2,0xA8,0x0D,0x47,0x99,0xD3,0x24,0x6E,0xB0,0xFA],#0xF
+]
+    c = value&0x0f
+    r = (value&0xf0)>>4
+    #print("%s => (%s,%s)"%(hex(value),hex(r),hex(c)))
+    if inverse:
+        table = table_C4
+    else:
+        table = table_C3
+    return table[r][c]
+
+def testTablesC3and4():
+    ok,failed = 0,0
+    for a in range(256):
+        b = getRijndaelsAffineMapping(a)
+        c = getRijndaelsAffineMapping(b,inverse=True)
+        if a != c:
+            print("Alert for %4s (%27s):\n"\
+                  "\ttable C3 say                %4s (%27s) and\n"\
+                  "\tinverting with table C4 say %4s (%27s)"
+                  %(hex(a),printAsPolynomial(a),
+                    hex(b),printAsPolynomial(b),
+                    hex(c),printAsPolynomial(c)))
+            failed+=1
+        else:
+            ok+=1
+    #TODO: test that C3 transformation corresponds with the affine mapping
+    #      and the C4 transformation with the inversion of the affine mapping
+    return (ok,failed)
+    #return "%d ok %s"%(ok,"but failed %s"%(failed) if failed >0 else "")
+
+def testAffineMapping(degree=8):
+    if degree == 8:
+        ok,failed = testTablesC3and4()
+        msg = "%d ok %s"%(ok,"but failed %s"%(failed) if failed >0 else "")
+        print("Check with the Rijndael's table c3 and c4: %s\n"%(msg))
+        if failed != 0:
+            return
+    ring = BinaryPolynomialModulo(getBinaryPolynomialRingModulo(degree),
+                                  variable='z')
+    mu = ring(getMu(degree))
+    inv_mu = ~mu
+    nu = ring(getNu(degree))
+    inv_nu = ~nu
+    ok,failed = 0,0
+    for i in range(256):
+        a = ring(i)
+        b = (mu * a) + nu
+        if degree == 8:
+            b_ = getRijndaelsAffineMapping(a._coefficients)
+        c = (inv_mu * b) + inv_nu
+        if degree == 8:
+            c_ = getRijndaelsAffineMapping(b._coefficients,inverse=True)
+        if a != c:
+            if degree == 8 and b._coefficients != b_:
+                about_b = "table c3 say %s = %s"%(b_,printAsPolynomial(b_))
+            else:
+                about_b = ""
+            if degree == 8 and c._coefficients != c_:
+                about_c = "table c4 say %s = %s"%(c_,printAsPolynomial(c_))
+            else:
+                about_c = ""
+            print("Alert for a = %s =\t  %r:\n"\
+                  "\tb = (mu*a)+nu =\t  %27s = %s\t(%s)\n"\
+                  "\tc = (~mu*b)+~nu = %27s = %s\t(%s)"
+                  %(a._coefficients,a,b,b._coefficients,about_b,
+                    c,c._coefficients,about_c))
+            failed+=1
+        else:
+            ok+=1
+    print("\nFor degree %d, the affine transfomation has been "\
+          "b(z) = %s * a(z) + %s. (mu=%s,nu=%s)\n"\
+          "And the inverse operation "\
+          "a(z) = %s * b(z)+ %s. (~mu=%s,~nu=%s)\n"
+          %(degree,mu,nu,hex(mu._coefficients),hex(nu._coefficients),
+            inv_mu,inv_nu,hex(inv_mu._coefficients),hex(inv_nu._coefficients)))
+    return (ok,failed)
+    #return "%d ok %s"%(ok,"but failed %s"%(failed) if failed >0 else "")
+
+
 def main():
     '''Test the correct functionality of the Polynomial Field and Ring classes.
     '''
     parser = OptionParser()
     parser.add_option('',"--binary-polynomial",type="int",
-                     help="numerical representation of the polynomial to test")
+                     help="Numerical representation of the polynomial to test")
     parser.add_option('',"--table-c5",action="store_true",
                       help="Test the table C5 from the 'Design of "\
                            "Rijndael' book ")
@@ -792,6 +919,11 @@ def main():
     parser.add_option('',"--test-all-fields",action="store_true",
                       help="Loops over all available fields doing "\
                       "--test-field on it.")
+#    parser.add_option('',"--test-c3-c4",action="store_true",
+#                      help="Test the tables C3 and C4 from the 'Design of "\
+#                           "Rijndael' book ")
+    parser.add_option('',"--test-affine-mapping",action="store_true",
+                      help="Test the finite binary polynomial ring")
     (options, args) = parser.parse_args()
     degree=8
     #print("options: %s"%(options))
@@ -801,7 +933,9 @@ def main():
     if options.binary_polynomial:
         testBinaryPolynomialField(options.binary_polynomial,degree)
     elif options.table_c5:
-        print("Check with the Rijndael's table c5: %s\n"%(testTableC5()))
+        ok,failed = testTableC5()
+        msg = "%d ok %s"%(ok,"but failed %s"%(failed) if failed >0 else "")
+        print("Check with the Rijndael's table c5: %s\n"%(msg))
     elif options.test_all_fields:
         import time
         for i in range(16,1,-1):
@@ -812,8 +946,19 @@ def main():
                   %(i,res,end_t-start_t))
         print("\n")
     elif options.test_field:
+        ok,failed = testPolynomialInverse(options.test_field)
+        msg = "%d ok %s"%(ok,"but failed %s"%(failed) if failed >0 else "")
         print("For F_{2^%d}, test elements: %s\n"
-              %(options.test_field,testPolynomialInverse(options.test_field)))
+              %(options.test_field,msg))
+#    elif options.test_c3_c4:
+#        ok,failed = testTablesC3and4()
+#        msg = "%d ok %s"%(ok,"but failed %s"%(failed) if failed >0 else "")
+#        print("Check with the Rijndael's table c3 and c4: %s\n"
+#              %(msg))
+    elif options.test_affine_mapping:
+        ok,failed = testAffineMapping()
+        msg = "%d ok %s"%(ok,"but failed %s"%(failed) if failed >0 else "")
+        print("Check the binary polynomial ring: %s"%(msg))
     else:
         #TODO: loop with a bigger sample set.
         values = range(6)
