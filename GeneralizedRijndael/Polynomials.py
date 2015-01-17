@@ -688,34 +688,64 @@ def printAsPolynomial(value,vble='z'):
 from optparse import OptionParser
 from random import randint
 
-def testBinaryPolynomialField(value,degree):
+def testBinaryPolynomial(value,degree,field=True):
     level=Logger.info#debug
-    modulo = BinaryPolynomialModulo(getBinaryPolynomialFieldModulo(degree),
+    if field:
+        getModulo = getBinaryPolynomialFieldModulo
+    else:
+        getModulo = getBinaryPolynomialRingModulo
+    modulo = BinaryPolynomialModulo(getModulo(degree),
                                     loglevel=level)
     sample = modulo(value)
-    
+    zero = modulo(0)
     print("\nTesting: %s = %s (%s) as polynomial %r"
           %(value,hex(value),bin(value),sample))
-    xtime = sample.xtimes()
-    print("\txtime(%27s) =\t(%27s) = %s = %s "%(sample,xtime,
-                                            bin(xtime._coefficients),
-                                            hex(xtime._coefficients)))
+    product = sample*sample
+    print("\t(%27s)^2 =\t(%27s) = %s = %s "%(sample,product,
+                                             bin(product._coefficients),
+                                             hex(product._coefficients)))
+    i = 3
+    while product != sample:#i <= degree*52:
+        product = sample*product
+        print("\t(%27s)^%d =\t(%27s) = %s = %s "%(sample,i,product,
+                                                  bin(product._coefficients),
+                                                  hex(product._coefficients)))
+        if i == 2**degree:
+            print("\tat %d break!"%(i))
+            break
+        if product == zero:
+            print("\tat %d it decays to zero!"%(i))
+            break
+        i += 1
+    print("\n")
     i = 1
     product = sample
-    while i <= degree*2:
-        product = sample*product
-        print("\t     (%27s)^%d =\t(%27s) = %s = %s "%(sample,i,product,
-                                         bin(product._coefficients),
-                                         hex(product._coefficients)))
+    xtime = sample + modulo(1)
+    while (i <= 1 and i > 2**degree) or xtime != sample:#i <= degree*10:
         xtime = product.xtimes()
-        print("\txtime(%27s) =\t(%27s) = %s = %s "%(product,xtime,
-                                            bin(xtime._coefficients),
-                                            hex(xtime._coefficients)))
+        print("\t%2d xtime(%27s) =\t(%27s) = %s = %s "%(i,product,xtime,
+                                                      bin(xtime._coefficients),
+                                                     hex(xtime._coefficients)))
+        product = xtime
+        if i == 2**degree:
+            print("\tat %d break!"%(i))
+            break
+        if product == zero:
+            print("\tat %d it decays to zero!"%(i))
+            break
         i += 1
-    inverse = ~sample
-    print("\t     (%27s)^-1 =\t(%27s) = %s = %s "%(sample,inverse,
-                                          bin(inverse._coefficients),
-                                          hex(inverse._coefficients)))
+    print("\n")
+    try:
+        inverse = ~sample
+        print("\t(%27s)^-1 =\t(%27s) = %s = %s "%(sample,inverse,
+                                                  bin(inverse._coefficients),
+                                                  hex(inverse._coefficients)))
+        resample = ~inverse
+        print("\t(%27s)^-1 =\t(%27s) = %s = %s "%(inverse,resample,
+                                                  bin(resample._coefficients),
+                                                  hex(resample._coefficients)))
+    except Exception,e:
+        print(e)
     print("\n")
 
 def getBinaryPolinomialFieldInverse(value):
@@ -896,7 +926,7 @@ def testAffineMapping(degree=8):
             ok+=1
     print("\nFor degree %d, the affine transfomation has been "\
           "b(z) = %s * a(z) + %s. (mu=%s,nu=%s)\n"\
-          "And the inverse operation "\
+          "And the inverse operation                       "\
           "a(z) = %s * b(z)+ %s. (~mu=%s,~nu=%s)\n"
           %(degree,mu,nu,hex(mu._coefficients),hex(nu._coefficients),
             inv_mu,inv_nu,hex(inv_mu._coefficients),hex(inv_nu._coefficients)))
@@ -908,7 +938,9 @@ def main():
     '''Test the correct functionality of the Polynomial Field and Ring classes.
     '''
     parser = OptionParser()
-    parser.add_option('',"--binary-polynomial",type="int",
+    parser.add_option('',"--binary-polynomial-field",type="int",
+                     help="Numerical representation of the polynomial to test")
+    parser.add_option('',"--binary-polynomial-ring",type="int",
                      help="Numerical representation of the polynomial to test")
     parser.add_option('',"--table-c5",action="store_true",
                       help="Test the table C5 from the 'Design of "\
@@ -930,8 +962,10 @@ def main():
 
     #This test the multiplicative inverse, 
     #the first part of the two SBox transformations
-    if options.binary_polynomial:
-        testBinaryPolynomialField(options.binary_polynomial,degree)
+    if options.binary_polynomial_field:
+        testBinaryPolynomial(options.binary_polynomial_field,degree)
+    if options.binary_polynomial_ring:
+        testBinaryPolynomial(options.binary_polynomial_ring,degree,field=False)
     elif options.table_c5:
         ok,failed = testTableC5()
         msg = "%d ok %s"%(ok,"but failed %s"%(failed) if failed >0 else "")
@@ -961,12 +995,13 @@ def main():
         print("Check the binary polynomial ring: %s"%(msg))
     else:
         #TODO: loop with a bigger sample set.
-        values = range(6)
-        for i in range(3):
-            values.append(randint(1,2**degree))
-        values.sort()
-        for value in values:
-            testBinaryPolynomialField(value,degree)
+#        values = range(6)
+#        for i in range(3):
+#            values.append(randint(1,2**degree))
+#        values.sort()
+#        for value in values:
+#            testBinaryPolynomial(value,degree)
+        pass
     #TODO: test the affine transformation,
     #the second part of the two SBox transformations
     #...
