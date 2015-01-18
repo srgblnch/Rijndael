@@ -585,7 +585,8 @@ def getNu(wordSize):
     '''
     Mu = {
         8:0xC4,#z^7+z^6+z^2
-        #8:0x63,#Z^6+z^5+z+1
+        #8:0x63,#Z^6+z^5+z+1#doesn't have inverse
+        #8:0xC6,#z^7+z^6+z^2+z#doesn't have inverse
     }[wordSize]
     return Mu
 
@@ -745,7 +746,7 @@ def testBinaryPolynomial(value,degree,field=True):
                                                   bin(resample._coefficients),
                                                   hex(resample._coefficients)))
     except Exception,e:
-        print(e)
+        print("\t%s"%(e))
     print("\n")
 
 def getBinaryPolinomialFieldInverse(value):
