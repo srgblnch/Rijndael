@@ -131,6 +131,12 @@ def BinaryPolynomialModulo(modulo,variable='x',loglevel=Logger.info):
             return iter("{0:b}".format(self._coefficients))
         def iter(self):
             return self.__iter__()
+        def __getitem__(self,n):
+            mask = 1 << n
+            if self._coefficients & mask:
+                return 1
+            else:
+                return 0
         def __type__(self):
             return self.__class__
         def checkTypes(function):
@@ -157,6 +163,15 @@ def BinaryPolynomialModulo(modulo,variable='x',loglevel=Logger.info):
             '''
             return "%s (mod %s)"%(self.__interpretToStr__(self._coefficients),
                                   self.__interpretToStr__(self._modulo))
+        def __bin__(self):
+            '''
+            '''
+            #TODO: doesn't work, check it
+            return bin(self._coefficients)
+        def __oct__(self):
+            '''
+            '''
+            return oct(self._coefficients)
         def __hex__(self):
             '''
             '''
@@ -211,17 +226,23 @@ def BinaryPolynomialModulo(modulo,variable='x',loglevel=Logger.info):
                 return True
             return False
         @checkTypes
+        def is_(self,other):# => a == b
+            return self == other
+        @checkTypes
         def __ne__(self,other):# => a!=b
             if self.__eq__(other):
                 return False
             return True
+        @checkTypes
+        def is_not(self,other):# => a != b
+            return self != other
         #Meaningless operators in polynomials:
         # operator.__lt__(a,b) => a<b
         # operator.__le__(a,b) => a<=b
         # operator.__gt__(a,b) => a>b
         # operator.__ge__(a,b) => a>=b
         #---- #Operations
-        #---- Addition
+        #---- + Addition
         @checkTypes
         def __add__(self,other):# => a+b
             a = copy(self.coefficients)
@@ -230,7 +251,9 @@ def BinaryPolynomialModulo(modulo,variable='x',loglevel=Logger.info):
         def __iadd__(self,other):# => a+=b
             bar = self + other
             return BinaryPolynomialModuloConstructor(bar._coefficients)
-        #---- Substraction
+        def __pos__(self):# => +a
+            return self
+        #---- - Substraction
         def __neg__(self):# => -a
             return self
         def __sub__(self, other):# => a-b
@@ -241,7 +264,7 @@ def BinaryPolynomialModulo(modulo,variable='x',loglevel=Logger.info):
         def __isub__(self,other):# => a-=b
             bar = self - other
             return BinaryPolynomialModuloConstructor(bar._coefficients)
-        #---- Product
+        #---- * Product
         @checkTypes
         def __mul__(self,other):# => a*b
             '''
@@ -258,18 +281,21 @@ def BinaryPolynomialModulo(modulo,variable='x',loglevel=Logger.info):
             bar = self * other
             return BinaryPolynomialModuloConstructor(bar._coefficients)
         def xtimes(self):
-            return BinaryPolynomialModuloConstructor(self._coefficients << 1)
+            return self << 1
         def __multiply__(self,a,b):
+            '''Given the coefficients of two valid polynomials, interpret the 
+               integers as bit strings to proceed with a polynomial product
+               (without reduction).
+               With the goal of a constant time operation, the number of loops
+               to manage each of the coefficients in b(x) will be always the 
+               maximum (that is, the based on the reduction polynomio. Also 
+               there will be performed the same operations even the coefficient
+               in the loop to process is 0 or 1 (and the distinction is on the
+               value returned from the submethod __multiplicationStep__().
+               Input: <integer> a (multiplicand)
+                      <integer> b (multiplier)
+               Output: <integer> (result of the polynomial product).
             '''
-            '''
-#            aOnes = "{0:b}".format(a).count('1')
-#            bOnes = "{0:b}".format(b).count('1')
-#            self.info_stream("a has %d ones and b has %d ones"%(aOnes,bOnes))
-#            if aOnes < bOnes:
-#                # a <-> b
-#                a,b = b,a
-#                self.info_stream("a and b swapped to have on b the minimum"\
-#                                 "number of 1s.")
             self.debug_stream("a %s"%self.__interpretToStr__(a))
             self.debug_stream("b %s"%self.__interpretToStr__(b))
             result = 0
@@ -305,7 +331,9 @@ def BinaryPolynomialModulo(modulo,variable='x',loglevel=Logger.info):
                 return newerAccum
             else:
                 return accum
-        #---- Division
+        def __matrix_product__(self,other):
+            pass
+        #---- /% Division
         def __division__(self,a,b):
             '''
             '''
@@ -361,7 +389,7 @@ def BinaryPolynomialModulo(modulo,variable='x',loglevel=Logger.info):
         def _imod__(self,other):# => a%=b
             q,r = self.__division__(self._coefficients,other._coefficients)
             return BinaryPolynomialModuloConstructor(r)
-        #---- TODO: Multiplicative inverse 
+        #---- ~ Multiplicative inverse 
         #      - operator.__inv__(a) => ~a
         def __egcd__(self,a,b):
             '''Extended Euclidean gcd (Greatest Common Divisor) Algorithm
@@ -433,12 +461,15 @@ def BinaryPolynomialModulo(modulo,variable='x',loglevel=Logger.info):
         def __invert__(self):# => ~a, that means like a^-1
             res = self.__multiplicativeInverse__()
             return BinaryPolynomialModuloConstructor(res)
-        #---- Shifts
-    #    #TODO: shift operations (
-    #    #      - operator.__lshift__ => <<
-    #    #      - operator.__rshift__ => >>
-    #    #      - operator.__ilshift__ => <<=
-    #    #      - operator.__irshift__ => >>=
+        #---- <<>> Shifts
+        def __lshift__(self,n):# => <<
+            return BinaryPolynomialModuloConstructor(self._coefficients<<n)
+        def __rshift__(self,n):# => >>
+            return BinaryPolynomialModuloConstructor(self._coefficients>>n)
+        def __ilshift__(self,n):# => <<=
+            return BinaryPolynomialModuloConstructor(self._coefficients<<n)
+        def __irshift__(self,n):# => >>=
+            return BinaryPolynomialModuloConstructor(self._coefficients>>n)
     return BinaryPolynomialModuloConstructor
 
 def getBinaryPolynomialFieldModulo(wordSize):
