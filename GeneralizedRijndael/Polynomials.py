@@ -929,7 +929,7 @@ def testAffineMapping(degree=8):
     mu = ring(getMu(degree))
     inv_mu = ~mu
     nu = ring(getNu(degree))
-    inv_nu = ~nu
+    inv_nu = -nu
     ok,failed = 0,0
     for i in range(256):
         a = ring(i)
@@ -941,18 +941,20 @@ def testAffineMapping(degree=8):
             c_ = getRijndaelsAffineMapping(b._coefficients,inverse=True)
         if a != c:
             if degree == 8 and b._coefficients != b_:
-                about_b = "table c3 say %s = %s"%(b_,printAsPolynomial(b_))
+                about_b = "table c3 say %s = %s"\
+                          %(hex(b_),printAsPolynomial(b_))
             else:
                 about_b = ""
             if degree == 8 and c._coefficients != c_:
-                about_c = "table c4 say %s = %s"%(c_,printAsPolynomial(c_))
+                about_c = "table c4 say %s = %s"\
+                          %(hex(c_),printAsPolynomial(c_))
             else:
                 about_c = ""
             print("Alert for a = %s =\t  %r:\n"\
                   "\tb = (mu*a)+nu =\t  %27s = %s\t(%s)\n"\
-                  "\tc = (~mu*b)+~nu = %27s = %s\t(%s)"
-                  %(a._coefficients,a,b,b._coefficients,about_b,
-                    c,c._coefficients,about_c))
+                  "\tc = (~mu*b)-nu = %27s = %s\t(%s)"
+                  %(hex(a._coefficients),a,b,hex(b._coefficients),about_b,
+                    c,hex(c._coefficients),about_c))
             failed+=1
         else:
             ok+=1
