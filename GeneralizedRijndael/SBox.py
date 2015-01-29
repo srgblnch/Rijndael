@@ -27,6 +27,7 @@
 from Logger import Logger
 from Polynomials import getBinaryPolynomialFieldModulo,\
                         getBinaryPolynomialRingModulo,\
+                        getMu,getNu,\
                         BinaryPolynomialModulo
 
 class SBox(Logger):
@@ -40,12 +41,14 @@ class SBox(Logger):
         #---- TODO: this must be able to be modified to use a sbox as a table 
         #           or as the pure calculations
         self._useCalc = useCalc
+        self.__wordSize=wordSize
         if self._useCalc:
-#            self._field_modulo = getBinaryPolynomialFieldModulo(wordSize)
-#            self._ring_modulo = getBinaryPolynomialRingModulo(wordSize)
-            raise Exception("Not implemented")
+            field_modulo = getBinaryPolynomialFieldModulo(wordSize)
+            self._field = BinaryPolynomialModulo(field_modulo)
+            ring_modulo = getBinaryPolynomialRingModulo(wordSize)
+            self._ring = BinaryPolynomialModulo(ring_modulo)
+            #raise Exception("Not implemented")
         else:
-            self.__wordSize=wordSize
             if wordSize==8:
                 self._sbox=sbox_word8b
                 self._sbox_inverted=sbox_word8b_inverted
@@ -69,16 +72,16 @@ class SBox(Logger):
            Output:
         '''
         if self._useCalc:
-            raise Exception("SBox transformation with calculations "\
-                            "not supported yet!")
-#            if invert: sbox=self._invertsbox_call_
-#            else: sbox=self._sbox_call_
-#            for i in range(len(state)):
-#                if type(state[i])==list:
-#                    for j in range(len(state[i])):
-#                        state[i][j] = sbox(state[i][j])
-#                else:
-#                    state[i] = sbox(state[i])
+#            raise Exception("SBox transformation with calculations "\
+#                            "not supported yet!")
+            if invert: sbox=self._invertsbox_call_
+            else: sbox=self._sbox_call_
+            for i in range(len(state)):
+                if type(state[i])==list:
+                    for j in range(len(state[i])):
+                        state[i][j] = sbox(state[i][j])
+                else:
+                    state[i] = sbox(state[i])
         else:
             if invert: sbox=self._sbox_inverted
             else: sbox=self._sbox
@@ -108,13 +111,19 @@ class SBox(Logger):
         r=(value&int(rmask,2))>>(self.__wordSize/2)
         return r,c
     def _sbox_call_(self,value):
-        g = self._field.multiplicativeInverse(value)
-        f = self._field.affineTransformation(g)
-        return f
+        g = ~self._field(value)
+        ax = self._ring(g._coefficients)
+        mu = self._ring(getMu(self.__wordSize))
+        nu = self._ring(getNu(self.__wordSize))
+        bx = (mu.__matrix_product__(ax))+nu
+        return bx._coefficients
     def _invertsbox_call_(self,value):
-        g = self._field.multiplicativeInverse(value)
-        f = self._field.invertAffineTransformation(g)
-        return f
+        bx = self._ring(value)
+        inv_mu = ~self._ring(getMu(self.__wordSize))
+        nu = self._ring(getNu(self.__wordSize))
+        ax = inv_mu.__matrix_product__(bx-nu)
+        element = ~self._field(ax._coefficients)
+        return element._coefficients
 
 
 sbox_word8b = [#the sbox, with wordsize = 8

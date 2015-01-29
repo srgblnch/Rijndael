@@ -30,8 +30,10 @@ def levelFromMeaning(value):
                 'warning':Logger.warning,
                 'info':Logger.info,
                 'debug':Logger.debug,
-                'trace':Logger.trace}[value]
+                'trace':Logger.trace}[value.lower()]
     except:
+        print("Not recognized log level '%s', using default 'info' level."
+                  %(value))
         return Logger.info
 
 #TODO: document the methods

@@ -25,7 +25,8 @@
 ##############################################################################
 
 from Logger import Logger
-from Polynomials import PolynomialRing,getBinaryPolynomialFieldModulo
+from Polynomials import PolynomialRing,getBinaryPolynomialFieldModulo,\
+                        BinaryPolynomialModulo
 
 class MixColumns(Logger):
     def __init__(self,nRows,nColumns,wordSize,loglevel=Logger.info):

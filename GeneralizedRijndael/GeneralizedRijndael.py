@@ -39,7 +39,7 @@ from version import *
 class GeneralizedRijndael(Logger):
     def __init__(self,key,
                  nRounds=10,nRows=4,nColumns=4,wordSize=8,#stardard aes
-                 nKeyWords=None,
+                 nKeyWords=None,sboxCalc=False,
                  loglevel=Logger.info):
         Logger.__init__(self,loglevel)
         self.__nRounds=nRounds#Num of encryption rounds {10,12,14}
@@ -58,8 +58,9 @@ class GeneralizedRijndael(Logger):
                             self.__nKeyWords*self.__nRows*self.__wordSize))
         self._keyExpander = KeyExpansion(key,self.__nRounds,self.__nRows,
                                                self.__nColumns,self.__wordSize,
-                                                     self.__nKeyWords,loglevel)
-        self._subBytes = SubBytes(wordSize,loglevel)
+                                                     self.__nKeyWords,
+                                                     sboxCalc,loglevel)
+        self._subBytes = SubBytes(wordSize,sboxCalc,loglevel)
         self._shiftRows = ShiftRows(nRows,loglevel)
         self._mixColumns = MixColumns(nRows,nColumns,wordSize,loglevel)
         self._addRoundKey = AddRoundKey(nRows,nColumns,wordSize,loglevel)
@@ -204,6 +205,9 @@ def main():
                       default=False,
                       help="No [de]cipher operations. Made to test the PRG "\
                       "with the key as seed to generate each round subkeys.")
+    parser.add_option('',"--calculate-sbox",default=False,action="store_true",
+                      help="Instead of use the given Rijndael tables, do the "\
+                      "polynomial calculations.")
     #TODO: add options to only [de]cipher 
     #      (the will be also need a --cipherText)
     (options, args) = parser.parse_args()
@@ -218,6 +222,7 @@ def main():
                              nColumns=options.columns,
                              wordSize=options.wordsize,
                              nKeyWords=options.kolumns,
+                             sboxCalc=options.calculate_sbox,
                              loglevel=levelFromMeaning(options.log_level))
     if not options.only_keyexpansion:
         plainText = understandInteger(options.plainText)

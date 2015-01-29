@@ -37,7 +37,7 @@ class KeyExpansion(Logger):
     '''
     def __init__(self,key,
                  nRounds=10,nRows=4,nColumns=4,wordSize=8,#stardard aes
-                 nKeyWords=None,
+                 nKeyWords=None,sboxCalc=False,
                  loglevel=Logger.info):
         Logger.__init__(self,loglevel)
         self.__key=key
@@ -46,7 +46,7 @@ class KeyExpansion(Logger):
         self.__nColumns=nColumns
         self.__wordSize=wordSize
         self.__nKeyWords=nKeyWords
-        self.__sbox=SBox(wordSize,loglevel=loglevel)
+        self.__sbox=SBox(wordSize,sboxCalc,loglevel=loglevel)
                          #,useCalc=True)
         self.__word=Word(nRows,wordSize)
         self.__keyExpanded=[None]*self.__nKeyWords

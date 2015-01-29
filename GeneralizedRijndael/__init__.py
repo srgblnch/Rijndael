@@ -3,7 +3,7 @@
 #---- licence header
 ##############################################################################
 ##
-## file: SubBytes.py
+## file: __init__.py
 ##
 ## developers history & copyleft: Sergi Blanch-Torne
 ##
@@ -24,23 +24,4 @@
 ##
 ##############################################################################
 
-from Logger import Logger
-from SBox import SBox
-
-class SubBytes(Logger):
-    '''This class is made to do the subBytes Rijndael's non-linear 
-       substitution to provide confusion to the ciphertext, and its inverse.
-       It uses a secondary object SBox as a builder pattern to allow the 
-       transformation from this operation.
-       FIXME: The precalculated SBoxes shall be replaced by the calculations
-       themselves specially to allow arbitrary word sizes and not only the
-       original 8 bits and the two included here for 2 and 4 bits.
-    '''
-    def __init__(self,wordSize,sboxCalc=False,loglevel=Logger.info):
-        Logger.__init__(self,loglevel)
-        self.__sbox=SBox(wordSize,useCalc=sboxCalc,loglevel=loglevel)
-    def do(self,input):
-        return self.__sbox.transform(input)
-    def invert(self,input):
-        return self.__sbox.transform(input,invert=True)
-        #It's the same but different sbox
+import version
