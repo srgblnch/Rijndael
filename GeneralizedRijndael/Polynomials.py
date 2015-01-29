@@ -24,7 +24,7 @@
 ##
 ##############################################################################
 
-from Logger import Logger
+from Logger import Logger,levelFromMeaning
 from ThirdLevel import shift,binlen
 from copy import copy,deepcopy
 
@@ -48,6 +48,9 @@ def BinaryPolynomialModulo(modulo,variable='x',loglevel=Logger.info):
        >>> import Polynomials
        >>> field = Polynomials.BinaryPolynomialModulo('x^8+x^4+x^3+x+1')
     '''
+    if type(modulo) == str and modulo.count(variable) == 0:
+        raise Exception("modulo %s is not defined over %s variable"
+                        %(modulo,variable))
     #This help is shown when
     #>>> Polynomials.BinaryPolynomialModulo?
     class BinaryPolynomialModuloConstructor(Logger):
@@ -90,6 +93,8 @@ def BinaryPolynomialModulo(modulo,variable='x',loglevel=Logger.info):
                 except Exception,e:
                     raise AssertionError("The given coefficients type '%s'"\
                                          "is not interpretable"%(type(value)))
+            self._gcd = None
+            self._multinv = None
             self.debug_stream("coefficients", self._coefficients)
             if type(modulo) == int:
                 self._modulo = modulo
@@ -120,6 +125,9 @@ def BinaryPolynomialModulo(modulo,variable='x',loglevel=Logger.info):
         def degree(self):
             return len("{0:b}".format(self._coefficients))
         @property
+        def modulodegree(self):
+            return len("{0:b}".format(self._modulo))
+        @property
         def isZero(self):
             '''Neutral element of the first operation, addition.'''
             return self._coefficients == 0
@@ -127,6 +135,17 @@ def BinaryPolynomialModulo(modulo,variable='x',loglevel=Logger.info):
         def isOne(self):
             '''Neutral element of the second operation, product.'''
             return self._coefficients == 1
+        @property
+        def isInvertible(self):
+            '''Show if the element is invertible modulo for the product 
+               operation.
+            '''
+            if self._gcd == None:
+                self._gcd,self._multinv,y = \
+                                 self.__egcd__(self._coefficients,self._modulo)
+            if self._gcd == 1:
+                return True
+            return False
         def __iter__(self):
             return iter("{0:b}".format(self._coefficients))
         def iter(self):
@@ -332,7 +351,63 @@ def BinaryPolynomialModulo(modulo,variable='x',loglevel=Logger.info):
             else:
                 return accum
         def __matrix_product__(self,other):
-            pass
+            '''In equivalence to the product operation, there is another way 
+               to do this operation by interpret the polynomials in GF(2^w)
+               or a ring of this grade, as bit arrays in GF(2)^w.
+               Then proceed with a matrix product converting the first term in
+               a MDS (Maximum Distance Separable) matrix using the bit 
+               rotation.
+               Self is converted like:
+               [[ 0   w  w-1 w-2 ... 1],
+                [ 1   0   w  w-1 ... 2],
+                [          ...        ],
+                [w-1 w-2 w-3 w-4 ... w],
+                [ w  w-1 w-2 w-3 ... 0]]
+                and other like:
+                [0,1,...,w-1,w]
+                Having a matrix wxw and a vector wx1, the result is a matrix
+                mx1 that can be back interpreted each bit as the coeffiecient
+                in a polynomial GF(2^w) if it was irreducible modulo or a ring.
+            '''
+            self.debug_stream("self * other: %r * %r = %s * %s"%(self,other,
+                  bin(self._coefficients),bin(other._coefficients)))
+            #self._coefficients in binary corresponds to last row
+            #1 shift to the left is row0
+            row = self._cyclic_rshift_(1)
+            res = 0
+            self.debug_stream("input: %s %r"%(bin(other._coefficients),other))
+            input = self.__mirrorbits__(other._coefficients)
+            for i in range(self.modulodegree-1):
+                res = res << 1
+                self.debug_stream("row[%d]: %s %r"%(i,bin(row._coefficients),row))
+                bitProduct = row._coefficients & input
+                parity = self.__parity__(bitProduct)
+                row = row._cyclic_rshift_(1)
+                res |= parity
+            self.debug_stream("result: %s"%bin(res))
+            return BinaryPolynomialModuloConstructor(self.__mirrorbits__(res))
+        def __parity__(self,bits):
+            '''Given a number, use a bit representation to proceed with an xor 
+               (addition in GF(2)) of each of its elements.
+            '''
+            msg = "parity = %s"%(bin(bits))
+            while bits > 1:
+                bits = (bits >> 1) ^ (bits & 1)
+            self.debug_stream("%s = %d"%(msg,bits))
+            return bits
+        def __mirrorbits__(self,bits):
+            '''Exchange the bit significance by placing the LSB first and the
+               MSB at the end.
+            '''
+            maxbits = self.modulodegree-1
+            origin = bits
+            mirror = 0
+            for i in range(maxbits):#while bits > 0:
+                mirror <<= 1
+                mirror |= origin & 1
+                origin >>= 1
+            self.debug_stream("mirrored %s to %s"%(bin(bits),bin(mirror)))
+            return mirror
         #---- /% Division
         def __division__(self,a,b):
             '''
@@ -447,17 +522,18 @@ def BinaryPolynomialModulo(modulo,variable='x',loglevel=Logger.info):
             '''
             if self._coefficients == 0:#FIXME: is this true?
                 return self
-            gcd,x,y = self.__egcd__(self._coefficients,self._modulo)
-            self.debug_stream("gcd",gcd)
-            self.debug_stream("x",x)
-            self.debug_stream("y",y)
-            if gcd != 1:
+            if self._gcd == None:
+                self._gcd,self._multinv,y = \
+                                 self.__egcd__(self._coefficients,self._modulo)
+            self.debug_stream("gcd",self._gcd)
+            self.debug_stream("x",self._multinv)
+            if self._gcd != 1:
                 raise ArithmeticError("The inverse of %s modulo %s "\
                                       "doens't exist!"
                                  %(self.__interpretToStr__(self._coefficients),
                                         self.__interpretToStr__(self._modulo)))
             else:
-                return x#%self._modulo
+                return self._multinv#%self._modulo
         def __invert__(self):# => ~a, that means like a^-1
             res = self.__multiplicativeInverse__()
             return BinaryPolynomialModuloConstructor(res)
@@ -470,6 +546,34 @@ def BinaryPolynomialModulo(modulo,variable='x',loglevel=Logger.info):
             return BinaryPolynomialModuloConstructor(self._coefficients<<n)
         def __irshift__(self,n):# => >>=
             return BinaryPolynomialModuloConstructor(self._coefficients>>n)
+        def _cyclic_lshift_(self,n):
+            '''
+            '''
+            return BinaryPolynomialModuloConstructor(self._bit_lshift_(n))
+        def _bit_lshift_(self,n):
+            '''Using the polynomial coefficients as a bit string, return a bit 
+               string with a left side cyclic shift. It uses the modulo degree 
+               to do this shift within this length.
+            '''
+            maxbits = self.modulodegree-1
+            first = (self._coefficients << n%maxbits) & 2**maxbits-1
+            second = (self._coefficients >> (maxbits-(n%maxbits))\
+                                                      & 2**maxbits-1)
+            return first|second
+        def _cyclic_rshift_(self,n):
+            '''
+            '''
+            return BinaryPolynomialModuloConstructor(self._bit_rshift_(n))
+        def _bit_rshift_(self,n):
+            '''Using the polynomial coefficients as a bit string, return a bit 
+               string with a right side cyclic shift. It uses the modulo 
+               degree to do this shift within this length.
+            '''
+            maxbits = self.modulodegree-1
+            first = (self._coefficients >> n%maxbits) & 2**maxbits-1
+            second = (self._coefficients << (maxbits-(n%maxbits))\
+                                                      & 2**maxbits-1)
+            return first|second
     return BinaryPolynomialModuloConstructor
 
 def getBinaryPolynomialFieldModulo(wordSize):
@@ -603,20 +707,24 @@ def getMu(wordSize):
     '''Invertible element in the binary polynomial ring used in the second 
        transformation 'f' of the SBoxes.
        b(z) = mu(z) \cdot a(z) + nu(z)
+       When undo the transformation:
+       a(z) = mu^{-1}(z) \cdot [b(z) - nu(z)]
     '''
     Mu = {
-        8:0xF1,#z^7+z^6+z^5+z^4+1
+        8:0x1F,#z^4+z^3+z^2+z+1
     }[wordSize]
     return Mu
 
 def getNu(wordSize):
-    '''Invertible element in the binary polynomial ring used in the second 
-       transformation 'f' of the SBoxes.
+    '''Element of the binary polynomial ring used in the second transformation 
+       'f' of the SBoxes:
        b(z) = mu(z) \cdot a(z) + nu(z)
+       When undo the transformation:
+       a(z) = mu^{-1}(z) \cdot [b(z) - nu(z)]
     '''
     Mu = {
-        8:0xC4,#z^7+z^6+z^2
-        #8:0x63,#Z^6+z^5+z+1#doesn't have inverse
+        #8:0xC4,#z^7+z^6+z^2
+        8:0x63,#z^6+z^5+z+1
         #8:0xC6,#z^7+z^6+z^2+z#doesn't have inverse
     }[wordSize]
     return Mu
@@ -648,9 +756,9 @@ class PolynomialRing:
     def __init__(self,nRows,nColumns,wordSize):
         self.__nRows=nRows
         self.__nColumns=nColumns
-        self.__polynomialsubfield=BinaryPolynomialField(wordSize)
-        #self._field_modulo = BinaryPolynomialModulo(\
-        #                             getBinaryPolynomialFieldModulo(wordSize))
+        #self.__polynomialsubfield=BinaryPolynomialField(wordSize)
+        field_modulo = getBinaryPolynomialFieldModulo(wordSize)
+        self._field = BinaryPolynomialModulo(field_modulo)
     def product(self,ax,sx):
         '''Given two polynomials over F_{2^8} multiplie them modulo x^{4}+1
            s'(x) = a(x) \otimes s(x)
@@ -677,11 +785,11 @@ class PolynomialRing:
             for r in range(self.__nRows):
                 res[r][c]=0
                 for rbis in range(self.__nRows):
-                    res[r][c]^=self.__polynomialsubfield.\
-                                          product(shifted_ax[rbis],sx[rbis][c])
-#                    a = self._field_modulo(shifted_ax[rbis])
-#                    b = self._field_modulo(sx[rbis][c])
-#                    res[r][c]^=(a*b)._coefficients
+#                    res[r][c]^=self.__polynomialsubfield.\
+#                                          product(shifted_ax[rbis],sx[rbis][c])
+                    a = self._field(shifted_ax[rbis])
+                    b = self._field(sx[rbis][c])
+                    res[r][c]^=(a*b)._coefficients
                 shifted_ax=shift(shifted_ax,-1)
         return res
 
@@ -721,13 +829,12 @@ from optparse import OptionParser
 from random import randint
 
 def testBinaryPolynomial(value,degree,field=True):
-    level=Logger.info#debug
     if field:
         getModulo = getBinaryPolynomialFieldModulo
     else:
         getModulo = getBinaryPolynomialRingModulo
     modulo = BinaryPolynomialModulo(getModulo(degree),
-                                    loglevel=level)
+                                    loglevel=logs)
     sample = modulo(value)
     zero = modulo(0)
     print("\nTesting: %s = %s (%s) as polynomial %r"
@@ -810,7 +917,8 @@ def getBinaryPolinomialFieldInverse(value):
 
 def testTableC5():
     degree = 8
-    field = BinaryPolynomialModulo(getBinaryPolynomialFieldModulo(degree))
+    field = BinaryPolynomialModulo(getBinaryPolynomialFieldModulo(degree),
+                                   loglevel=logs)
     ok,failed = 0,0
     for i in range(256):
         p = field(i)
@@ -834,7 +942,8 @@ def testTableC5():
     #return "%d ok %s"%(ok,"but failed %s"%(failed) if failed >0 else "")
 
 def testPolynomialInverse(degree):
-    field = BinaryPolynomialModulo(getBinaryPolynomialFieldModulo(degree))
+    field = BinaryPolynomialModulo(getBinaryPolynomialFieldModulo(degree),
+                                   loglevel=logs)
     ok,failed = 0,0
     for i in range(2**degree):
         p = field(i)
@@ -925,7 +1034,7 @@ def testAffineMapping(degree=8):
         if failed != 0:
             return
     ring = BinaryPolynomialModulo(getBinaryPolynomialRingModulo(degree),
-                                  variable='z')
+                                  variable='z',loglevel=logs)
     mu = ring(getMu(degree))
     inv_mu = ~mu
     nu = ring(getNu(degree))
@@ -933,28 +1042,65 @@ def testAffineMapping(degree=8):
     ok,failed = 0,0
     for i in range(256):
         a = ring(i)
+        #b = mu * (a + nu)
         b = (mu * a) + nu
+        bm = (mu.__matrix_product__(a))+nu
         if degree == 8:
             b_ = getRijndaelsAffineMapping(a._coefficients)
-        c = (inv_mu * b) + inv_nu
+        #c = (inv_mu * b) + inv_nu
+        c = inv_mu * (b + inv_nu)
+        cm = inv_mu.__matrix_product__(bm-nu)
         if degree == 8:
             c_ = getRijndaelsAffineMapping(b._coefficients,inverse=True)
-        if a != c:
-            if degree == 8 and b._coefficients != b_:
-                about_b = "table c3 say %s = %s"\
+        if a != c or b._coefficients != b_:
+            if degree == 8:
+                about_b = "(table c3 say %4s = %27s)"\
                           %(hex(b_),printAsPolynomial(b_))
+                if b._coefficients != b_:
+                    about_b += " NOK"
+                else:
+                    about_b += " OK"
             else:
                 about_b = ""
-            if degree == 8 and c._coefficients != c_:
-                about_c = "table c4 say %s = %s"\
+            if degree == 8:
+                about_c = "(table c4 say %4s = %27s)"\
                           %(hex(c_),printAsPolynomial(c_))
+                if c._coefficients != c_:
+                    about_c += " NOK"
+                else:
+                    about_c += " OK"
             else:
                 about_c = ""
-            print("Alert for a = %s =\t  %r:\n"\
-                  "\tb = (mu*a)+nu =\t  %27s = %s\t(%s)\n"\
-                  "\tc = (~mu*b)-nu = %27s = %s\t(%s)"
+            print("Alert for a = %s =     %r:\n"\
+                  "\tb = (mu*a)+nu =  %27s = %s\t%s\n"\
+                  "\tc = (~mu*b)-nu = %27s = %s\t%s"
                   %(hex(a._coefficients),a,b,hex(b._coefficients),about_b,
                     c,hex(c._coefficients),about_c))
+            failed+=1
+        elif a != cm or bm._coefficients != b_:
+            if degree == 8:
+                about_b = "(table c3 say %4s = %27s)"\
+                          %(hex(b_),printAsPolynomial(b_))
+                if bm._coefficients != b_:
+                    about_b += " NOK"
+                else:
+                    about_b += " OK"
+            else:
+                about_b = ""
+            if degree == 8:
+                about_c = "(table c4 say %4s = %27s)"\
+                          %(hex(c_),printAsPolynomial(c_))
+                if cm._coefficients != c_:
+                    about_c += " NOK"
+                else:
+                    about_c += " OK"
+            else:
+                about_c = ""
+            print("Matrix alert for a = %s =     %r:\n"\
+                  "\tb = (mu*a)+nu =  %27s = %s\t%s\n"\
+                  "\tc = (~mu*b)-nu = %27s = %s\t%s"
+                  %(hex(a._coefficients),a,bm,hex(bm._coefficients),about_b,
+                    cm,hex(cm._coefficients),about_c))
             failed+=1
         else:
             ok+=1
@@ -972,6 +1118,9 @@ def main():
     '''Test the correct functionality of the Polynomial Field and Ring classes.
     '''
     parser = OptionParser()
+    parser.add_option('',"--loglevel",type="str",
+                      help="output prints log level: "\
+                                            "{error,warning,info,debug,trace}")
     parser.add_option('',"--binary-polynomial-field",type="int",
                      help="Numerical representation of the polynomial to test")
     parser.add_option('',"--binary-polynomial-ring",type="int",
@@ -993,7 +1142,11 @@ def main():
     (options, args) = parser.parse_args()
     degree=8
     #print("options: %s"%(options))
-
+    global logs
+    if options.loglevel != None:
+        logs = levelFromMeaning(options.loglevel)
+    else:
+        logs = levelFromMeaning('info')
     #This test the multiplicative inverse, 
     #the first part of the two SBox transformations
     if options.binary_polynomial_field:
