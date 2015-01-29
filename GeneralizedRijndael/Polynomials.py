@@ -601,81 +601,6 @@ def getBinaryPolynomialFieldModulo(wordSize):
         16:0x1002B,#z^16+z^5+z^3+z+1
     }[wordSize]
     return BinaryPolynomialFieldModulo
-#
-class BinaryPolynomialField(Logger):
-    '''This represents a polynomial over (GF(2^n) with a degree at most 2^{n}-1
-       Because the polynomial modulo is prime (it is a root) this 
-       describes an algebraic field.
-       This is used for the multiplicative inverse of the SBoxes and from the 
-       Polynomial Ring with coefficients in a polynomial field (MixColumns).
-    '''
-    def __init__(self,degree,loglevel=Logger.info):
-        Logger.__init__(self,loglevel)
-        self._degree = degree
-        self._modulo = getBinaryPolynomialFieldModulo(degree)
-
-    def product(self,a,b):
-        '''multiplication of two polynomials reduced modulo m(z).
-           Input: <integer> a,b (polynomial bit representations)
-                  <integer> m (modulo polynomial)
-           Output: <integer> r = a*b (mod m)
-        '''
-        b_=b
-        xor=[]
-        a_i=[a]
-        for i in range(binlen(b)):
-            if b_&1:
-                xor.append(a_i[len(a_i)-1])
-            b_>>=1
-            a_i.append(self.xtime(a_i[len(a_i)-1]))
-        r=0
-        for x in xor:
-            r^=x
-        return r
-
-    def xtime(self,a):
-        '''polynomial product by x reduced modulo m.
-           Input: <integer> a (polynomial bit representation)
-                  <integer> m (modulo polynomial)
-           Output: <integer> a*x (mod m)
-        '''
-        a<<=1
-        if a&(1<<binlen(self._modulo)-1): a^=self._modulo
-        return a
-
-    def multiplicativeInverse(self,value):
-        '''Multiplicative inverse based on ...
-           Input: <integer> a (polynomial bit representation)
-                  <integer> m (modulo polynomial)
-           Output: <integer> a^-1: a*a^-1 = 1 (mod m)
-           This it the first of the two transformations for the SBoxes in the 
-           subBytes operation, the one called called g.
-        '''
-        if value == 0:#FIXME: is this true?
-            return value
-        gcd,x,y = self._egcd(value, self._modulo)
-        if gcd != 1:
-            raise Exception("The inverse of %s modulo %s doens't exist!"
-                            %(value,self._modulo))
-        else:
-            return x#%self._modulo
-
-    def _egcd(self,a,b):
-        '''Extended Euclidean gcd (Greatest Common Divisor) Algorithm
-           Input: <integer> a (polynomial bit representation)
-                  <integer> b (polynomial bit representation)
-           Output: <integer> gcd
-                   <integer> x (polynomial bit representation)
-                   <integer> y (polynomial bit representation)
-        '''
-        x,y,u,v = 0,1,1,0
-        while a != 0:
-            q,r = b/a,b%a
-            m,n = x-u*q,y-v*q
-            b,a,x,y,u,v=a,r,u,v,m,n
-        gcd = b
-        return gcd,x,y
-        
 
 def getBinaryPolynomialRingModulo(wordSize):
     '''Who is chosen m'(z)? z^8+1 is the first that those the job
@@ -729,24 +654,6 @@ def getNu(wordSize):
     }[wordSize]
     return Mu
 
-#class BinaryPolynomialRing(Logger):
-#    '''This represents a binary polynomial non-prime modulo to compute the 
-#       affine transformation needed for the Sboxes.
-#    '''
-#    def __init__(self,modulo,loglevel=Logger.info):
-#        Logger.__init__(self,loglevel)
-#        self._modulo = modulo
-#        self._degree = len(bin(degree)-2)
-#    
-#    def affineTransformation(self,value):
-#        '''Second of the transformation, called f.
-#           Input: <integer> a (polynomial bit representation)
-#           Output: <integer> b (polynomial bit representation)
-#           b(z) = u(z) \cdot a(z) + v(z)
-#        '''
-#        pass
-#        #TODO: this is returning None by now
-
 class PolynomialRing:
     '''This represents a polynomial over (GF(2^n))^l, with a modulo polynomial 
        composed (decomposable in roots) this becomes a algebraic ring.
@@ -793,37 +700,37 @@ class PolynomialRing:
                 shifted_ax=shift(shifted_ax,-1)
         return res
 
-def printAsPolynomial(value,vble='z'):
-    if value == 0:
-        return '0'
-    else:
-        cR = [] #coefficients representations list
-        degree = len(bin(value))-2
-        #print("\t\t%s"%(bin(value)))
-        for idx,bit in enumerate(bin(value)[2:]):
-            exp = degree-idx-1
-            #print("\t\t(%s,%s)"%(exp,bit))
-            if bit == '0':
-                pass
-            elif bit == '1':
-                if exp > 1:
-                    cR.append("%s^%d"%(vble,exp))
-                elif exp == 1:
-                    cR.append("%s"%(vble))
-                elif exp == 0:
-                    cR.append("1")
-                else:
-                    cR.append("?")#This should never happen
-            else:
-                cR.append("?")#This should never happen
-        joining = ''
-        for e in cR:
-            if len(joining) == 0:
-                joining = "%s"%(e)
-            else:
-                joining = ''.join("%s+%s"%(joining,e))
-        #print("\t\tpolynomial %s"%(joining))
-        return joining
+#def printAsPolynomial(value,vble='z'):
+#    if value == 0:
+#        return '0'
+#    else:
+#        cR = [] #coefficients representations list
+#        degree = len(bin(value))-2
+#        #print("\t\t%s"%(bin(value)))
+#        for idx,bit in enumerate(bin(value)[2:]):
+#            exp = degree-idx-1
+#            #print("\t\t(%s,%s)"%(exp,bit))
+#            if bit == '0':
+#                pass
+#            elif bit == '1':
+#                if exp > 1:
+#                    cR.append("%s^%d"%(vble,exp))
+#                elif exp == 1:
+#                    cR.append("%s"%(vble))
+#                elif exp == 0:
+#                    cR.append("1")
+#                else:
+#                    cR.append("?")#This should never happen
+#            else:
+#                cR.append("?")#This should never happen
+#        joining = ''
+#        for e in cR:
+#            if len(joining) == 0:
+#                joining = "%s"%(e)
+#            else:
+#                joining = ''.join("%s+%s"%(joining,e))
+#        #print("\t\tpolynomial %s"%(joining))
+#        return joining
 
 from optparse import OptionParser
 from random import randint
@@ -927,9 +834,7 @@ def testTableC5():
         if calc._coefficients != table:
             print("Alert for %4s (%27s):\ttable say %4s (%27s) and "\
                   "calculation %5s (%27r)"
-                  %(hex(i),printAsPolynomial(i),
-                    hex(table),printAsPolynomial(table),
-                    hex(calc),calc))
+                  %(hex(i),field(i),hex(table),field(table),hex(calc),calc))
             failed+=1
             pass
         else:
@@ -1008,6 +913,8 @@ def getRijndaelsAffineMapping(value,inverse=False):
 
 def testTablesC3and4():
     ok,failed = 0,0
+    ring = BinaryPolynomialModulo(getBinaryPolynomialRingModulo(8),
+                                  variable='z',loglevel=logs)
     for a in range(256):
         b = getRijndaelsAffineMapping(a)
         c = getRijndaelsAffineMapping(b,inverse=True)
@@ -1015,9 +922,7 @@ def testTablesC3and4():
             print("Alert for %4s (%27s):\n"\
                   "\ttable C3 say                %4s (%27s) and\n"\
                   "\tinverting with table C4 say %4s (%27s)"
-                  %(hex(a),printAsPolynomial(a),
-                    hex(b),printAsPolynomial(b),
-                    hex(c),printAsPolynomial(c)))
+                  %(hex(a),ring(a),hex(b),ring(b),hex(c),ring(c)))
             failed+=1
         else:
             ok+=1
@@ -1055,7 +960,7 @@ def testAffineMapping(degree=8):
         if a != c or b._coefficients != b_:
             if degree == 8:
                 about_b = "(table c3 say %4s = %27s)"\
-                          %(hex(b_),printAsPolynomial(b_))
+                          %(hex(b_),ring(b_))
                 if b._coefficients != b_:
                     about_b += " NOK"
                 else:
@@ -1064,7 +969,7 @@ def testAffineMapping(degree=8):
                 about_b = ""
             if degree == 8:
                 about_c = "(table c4 say %4s = %27s)"\
-                          %(hex(c_),printAsPolynomial(c_))
+                          %(hex(c_),ring(c_))
                 if c._coefficients != c_:
                     about_c += " NOK"
                 else:
@@ -1080,7 +985,7 @@ def testAffineMapping(degree=8):
         elif a != cm or bm._coefficients != b_:
             if degree == 8:
                 about_b = "(table c3 say %4s = %27s)"\
-                          %(hex(b_),printAsPolynomial(b_))
+                          %(hex(b_),ring(b_))
                 if bm._coefficients != b_:
                     about_b += " NOK"
                 else:
@@ -1089,7 +994,7 @@ def testAffineMapping(degree=8):
                 about_b = ""
             if degree == 8:
                 about_c = "(table c4 say %4s = %27s)"\
-                          %(hex(c_),printAsPolynomial(c_))
+                          %(hex(c_),ring(c_))
                 if cm._coefficients != c_:
                     about_c += " NOK"
                 else:
