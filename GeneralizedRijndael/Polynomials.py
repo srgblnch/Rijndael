@@ -165,7 +165,8 @@ def BinaryPolynomialModulo(modulo,variable='x',loglevel=Logger.info):
             def comparator(self,other):
                 if other.__class__ != BinaryPolynomialModuloConstructor:
                     raise EnvironmentError("Cannot compare with non "\
-                                           "polynomials (%s)"%(type(other)))
+                                           "polynomials (%s,%s)"
+                                           %(type(other),other.__class__))
                 if not self.variable == other.variable:
                     raise EnvironmentError("Uncompatible polynomials")
                 if not self._modulo == other._modulo:
@@ -183,17 +184,11 @@ def BinaryPolynomialModulo(modulo,variable='x',loglevel=Logger.info):
             return "%s (mod %s)"%(self.__interpretToStr__(self._coefficients),
                                   self.__interpretToStr__(self._modulo))
         def __bin__(self):
-            '''
-            '''
             #TODO: doesn't work, check it
             return bin(self._coefficients)
         def __oct__(self):
-            '''
-            '''
             return oct(self._coefficients)
         def __hex__(self):
-            '''
-            '''
             return hex(self._coefficients)
         def __interpretToStr__(self,value):
             if value == 0:
@@ -336,13 +331,6 @@ def BinaryPolynomialModulo(modulo,variable='x',loglevel=Logger.info):
                Output: <integer> (the accumulated result of the product)
             '''
             aShifted = a << i
-            #j = 0
-            #aShifted = a
-            #while j < i:#aShifted = a << i modulo m
-            #    aShifted <<= 1
-            #    if aShifted > self._modulo:
-            #        aShifted ^= self._modulo
-            #    j += 1
             newerAccum = accum ^ aShifted
             if bit:
                 self.debug_stream("aShifted: %s"%
@@ -410,7 +398,7 @@ def BinaryPolynomialModulo(modulo,variable='x',loglevel=Logger.info):
             return mirror
         #---- /% Division
         def __division__(self,a,b):
-            '''
+            '''TODO
             '''
             #FIXME: check division by 0 => ZeroDivisionError
             self.debug_stream("\n<division>")
@@ -663,7 +651,6 @@ class PolynomialRing:
     def __init__(self,nRows,nColumns,wordSize):
         self.__nRows=nRows
         self.__nColumns=nColumns
-        #self.__polynomialsubfield=BinaryPolynomialField(wordSize)
         field_modulo = getBinaryPolynomialFieldModulo(wordSize)
         self._field = BinaryPolynomialModulo(field_modulo)
     def product(self,ax,sx):
@@ -692,47 +679,12 @@ class PolynomialRing:
             for r in range(self.__nRows):
                 res[r][c]=0
                 for rbis in range(self.__nRows):
-#                    res[r][c]^=self.__polynomialsubfield.\
-#                                          product(shifted_ax[rbis],sx[rbis][c])
                     a = self._field(shifted_ax[rbis])
                     b = self._field(sx[rbis][c])
                     res[r][c]^=(a*b)._coefficients
                 shifted_ax=shift(shifted_ax,-1)
         return res
 
-#def printAsPolynomial(value,vble='z'):
-#    if value == 0:
-#        return '0'
-#    else:
-#        cR = [] #coefficients representations list
-#        degree = len(bin(value))-2
-#        #print("\t\t%s"%(bin(value)))
-#        for idx,bit in enumerate(bin(value)[2:]):
-#            exp = degree-idx-1
-#            #print("\t\t(%s,%s)"%(exp,bit))
-#            if bit == '0':
-#                pass
-#            elif bit == '1':
-#                if exp > 1:
-#                    cR.append("%s^%d"%(vble,exp))
-#                elif exp == 1:
-#                    cR.append("%s"%(vble))
-#                elif exp == 0:
-#                    cR.append("1")
-#                else:
-#                    cR.append("?")#This should never happen
-#            else:
-#                cR.append("?")#This should never happen
-#        joining = ''
-#        for e in cR:
-#            if len(joining) == 0:
-#                joining = "%s"%(e)
-#            else:
-#                joining = ''.join("%s+%s"%(joining,e))
-#        #print("\t\tpolynomial %s"%(joining))
-#        return joining
-
-from optparse import OptionParser
 from random import randint
 
 def testBinaryPolynomial(value,degree,field=True):
@@ -819,7 +771,6 @@ def getBinaryPolinomialFieldInverse(value):
 ]
     c = value&0x0f
     r = (value&0xf0)>>4
-    #print("%s => (%s,%s)"%(hex(value),hex(r),hex(c)))
     return table_C5[r][c]
 
 def testTableC5():
@@ -844,7 +795,6 @@ def testTableC5():
             else:
                 print("Alert %s * %s != %r"%(p,calc,field(1)))
     return (ok,failed)
-    #return "%d ok %s"%(ok,"but failed %s"%(failed) if failed >0 else "")
 
 def testPolynomialInverse(degree):
     field = BinaryPolynomialModulo(getBinaryPolynomialFieldModulo(degree),
@@ -858,7 +808,6 @@ def testPolynomialInverse(degree):
         else:
             print("Alert %s * %s != %r"%(p,calc,field(1)))
     return (ok,failed)
-    #return "%d ok %s"%(ok,"but failed %s"%(failed) if failed >0 else "")
 
 def getRijndaelsAffineMapping(value,inverse=False):
     '''From the table C.3 and its invers C.4 of the 'Design of Rijndael' book.
@@ -904,7 +853,6 @@ def getRijndaelsAffineMapping(value,inverse=False):
 ]
     c = value&0x0f
     r = (value&0xf0)>>4
-    #print("%s => (%s,%s)"%(hex(value),hex(r),hex(c)))
     if inverse:
         table = table_C4
     else:
@@ -926,10 +874,7 @@ def testTablesC3and4():
             failed+=1
         else:
             ok+=1
-    #TODO: test that C3 transformation corresponds with the affine mapping
-    #      and the C4 transformation with the inversion of the affine mapping
     return (ok,failed)
-    #return "%d ok %s"%(ok,"but failed %s"%(failed) if failed >0 else "")
 
 def testAffineMapping(degree=8):
     if degree == 8:
@@ -947,12 +892,10 @@ def testAffineMapping(degree=8):
     ok,failed = 0,0
     for i in range(256):
         a = ring(i)
-        #b = mu * (a + nu)
         b = (mu * a) + nu
         bm = (mu.__matrix_product__(a))+nu
         if degree == 8:
             b_ = getRijndaelsAffineMapping(a._coefficients)
-        #c = (inv_mu * b) + inv_nu
         c = inv_mu * (b + inv_nu)
         cm = inv_mu.__matrix_product__(bm-nu)
         if degree == 8:
@@ -1016,8 +959,131 @@ def testAffineMapping(degree=8):
           %(degree,mu,nu,hex(mu._coefficients),hex(nu._coefficients),
             inv_mu,inv_nu,hex(inv_mu._coefficients),hex(inv_nu._coefficients)))
     return (ok,failed)
-    #return "%d ok %s"%(ok,"but failed %s"%(failed) if failed >0 else "")
 
+def FindRingMus(degree):
+    '''
+    '''
+    modulo = getBinaryPolynomialRingModulo(degree)
+    ring = BinaryPolynomialModulo(modulo)
+    idx = 0
+    found = 0
+    mus = []
+    try:
+        mu = ring(getMu(degree))
+        print("mu=%r"%(mu))
+    except:
+        print("No mu selected for default")
+        mu = None
+    while idx < 2**degree:
+        sample = ring(idx)
+        try:
+            inv_sample = ~sample
+            print("\tFound %27s with inverse %27r (%d - %d 1s)"
+                  %(sample,inv_sample,bin(sample._coefficients).count('1'),
+                                  bin(inv_sample._coefficients).count('1')))
+            #TODO: collect a dictionary with #ones as key and item a list of 
+            #      the polynomials.
+            if sample == mu:
+                print("\t\t**That is the one in use!**")
+            mus.append(sample)
+            found += 1
+        except:
+            pass #nothing to do with non invertible polynomials
+        idx += 1
+    #FIXME: discard 0 and 1 event they have inverse (usualy themselves).
+    #TODO: From all the mus, take the "simplest"
+    #What simplest would mean?
+    
+    #TODO: From all the nus (all have additive inverse that is itself), 
+    #   check that doesn't produces fixed points neither opposite fixed points.
+    return found,mus,ring(idx).modulo
+
+def testMusAndNus(degree,mus):
+    '''Given a ring size and a list of invertible elements in the ring, check
+       which of them (combined with nu candidates) complain the conditions 
+       to be good pairs of polynomials.
+    '''
+    import numpy
+    modulo = getBinaryPolynomialRingModulo(degree)
+    ring = BinaryPolynomialModulo(modulo,variable='z')
+    found = 0
+    i = 0
+    stats = {}
+    print("Start the test of mu(z) and nu(z) candidates for the binary "\
+          "polynomial ring %s"%ring(modulo).modulo)
+    while i < len(mus):#for mu in mus:
+        mu = ring(mus[i]._coefficients)
+        if mu != ring(0) or mu != ring(1):#mu == 0 or 1, directly discarted
+            for j in range(2,2**degree):
+                nu = ring(j)
+                testPass,t,tm = testMuAndNu(mu,nu,ring)
+                if testPass:
+                    found += 1
+                    data_t = numpy.array(t)
+                    data_tm = numpy.array(tm)
+                    if not stats.has_key(mu.coefficients):
+                        stats[mu.coefficients] = {}
+                    if not stats[mu.coefficients].has_key(nu.coefficients):
+                        stats[mu._coefficients][nu._coefficients] = {}
+                    else:
+                        raise("The pair (%s,%s) has been already checked!"
+                              %(mu,nu))
+                    stats[mu.coefficients][nu.coefficients]['muz'] = "%s"%mu
+                    stats[mu.coefficients][nu.coefficients]['nuz'] = "%s"%nu
+                    stats[mu.coefficients][nu.coefficients]['product'] = \
+                                                   (data_t.mean(),data_t.std())
+                    stats[mu._coefficients][nu.coefficients]['matrix'] = \
+                                                 (data_tm.mean(),data_tm.std())
+                    print("Found     (%27s,%27s) pair\tproduct (%6.6f,%1.6g)"\
+                          "\tmatrix (%6.6f,%1.6g)"
+                          %(mu,nu,
+                       stats[mu.coefficients][nu.coefficients]['product'][0],
+                       stats[mu.coefficients][nu.coefficients]['product'][1],
+                       stats[mu.coefficients][nu.coefficients]['matrix'][0],
+                       stats[mu.coefficients][nu.coefficients]['matrix'][1]))
+                else:
+                    pass#print("Discarted (%27s,%27s) pair"%(mu,nu))
+        i += 1
+    return found,stats
+
+def testMuAndNu(mu,nu,ring):
+    '''In section 7.2 
+    
+    Given a polynomial pair of a mu and a nu, check if they complain with 
+       the conditions:
+       - mu: simple description (?)
+       - nu: no fixed points neither opposite fixed points
+    '''
+    import time
+    t = []
+    tm = []
+#    if nu == ring(0) or nu == ring(1):#nu == 0 or 1, directly discarted
+#        return False,None
+    #print("Testing conditions for mu(z) = %s and nu(z) = %r"%(mu,nu))
+    for i in range(2**mu.modulodegree):
+        a = ring(i)
+        t_0 = time.time()
+        b = (mu * a) + nu
+        t.append(time.time()-t_0)
+        t_0 = time.time()
+        bm = (mu.__matrix_product__(a))+nu
+        tm.append(time.time()-t_0)
+        #print("b(z) = mu(z)*a(z)+nu(z) =\n%s*%s+%s=%r"%(mu,a,nu,b))
+        #check if this three complain the conditions
+        if a == b or a == -b:
+            return False,None,None
+#        inv_mu = ~mu
+#        c = inv_mu * (b + nu)
+#        if a != c:
+#            print("Alert! a != c -> %s != %s"%(a,c))
+#            return False,None,None
+#        cm = inv_mu.__matrix_product__(bm-nu)
+#        if a != cm:
+#            print("Alert! a != cm -> %s != %s"%(a,cm))
+#            return False,None,None
+    return True,t,tm
+
+from optparse import OptionParser
 
 def main():
     '''Test the correct functionality of the Polynomial Field and Ring classes.
@@ -1044,6 +1110,9 @@ def main():
 #                           "Rijndael' book ")
     parser.add_option('',"--test-affine-mapping",action="store_true",
                       help="Test the finite binary polynomial ring")
+    parser.add_option('',"--test-ring",type='int',
+                      help="Given the size of the ring (in bits) proceed "\
+                      "with a search of good parameters for it.")
     (options, args) = parser.parse_args()
     degree=8
     #print("options: %s"%(options))
@@ -1085,6 +1154,30 @@ def main():
         ok,failed = testAffineMapping()
         msg = "%d ok %s"%(ok,"but failed %s"%(failed) if failed >0 else "")
         print("Check the binary polynomial ring: %s"%(msg))
+    elif options.test_ring != None:
+        found,mus,modulo = FindRingMus(options.test_ring)
+        msg = "found %d invertible polynomials on the ring %s (from a total of "\
+              "%d)"%(found,modulo,2**options.test_ring)
+        print(msg)
+        import time
+        t_0 = time.time()
+        found,stats = testMusAndNus(options.test_ring,mus)
+        msg = "found %s pairs of valid mus and nus (%d seconds)"\
+              %(found,time.time()-t_0)
+        print(msg)
+        when = time.strftime("%Y%m%d_%H%M%S")
+        with open("%s_ring_degree_%d.csv"%(when,options.test_ring),'w') as f:
+            f.write("mu\tnu\tmuz\tnuz\t"\
+                    "product_mean\tproduct_std\tmatrix_mean\tmatrix_std\n")
+            for i in stats.keys():
+                for j in stats[i].keys():
+                    stats[i][j]['muz']
+                    stats[i][j]['nuz']
+                    line = "%d\t%d\t%s\t%s\t%g\t%g\t%g\t%g\n"\
+                           %(i,j,stats[i][j]['muz'],stats[i][j]['nuz'],
+                           stats[i][j]['product'][0],stats[i][j]['product'][1],
+                           stats[i][j]['matrix'][0],stats[i][j]['matrix'][1])
+                    f.write(line)
     else:
         #TODO: loop with a bigger sample set.
 #        values = range(6)
