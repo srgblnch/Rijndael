@@ -359,101 +359,11 @@ def FindRingMus(degree):
                     print("\tFound %27s with inverse %40r\t(%d - %d 1s) %s"
                       %(sample,inv_sample,bin(sample._coefficients).count('1'),
                                  bin(inv_sample._coefficients).count('1'),tag))
-                    #TODO: collect a dictionary with #ones as key and item a 
-                    #      list of the polynomials.
                 except Exception,e:
                     print("\tAGH! for %s exception: %s"%(sample,e))
                     
         idx += 1
-    #FIXME: discard 0 and 1 event they have inverse (usualy themselves).
-    #TODO: From all the mus, take the "simplest"
-    #What simplest would mean?
-#    print("\t- Total of %d, with %d paired and %d their inverse is itself"
-#          %(found,len(invertibles),len(inverse_itself)))
-    #TODO: From all the nus (all have additive inverse that is itself), 
-    #   check that doesn't produces fixed points neither opposite fixed points.
     return found,invertibles,inverse_itself,ring(idx).modulo
-
-def findGoodMu(degree):
-    '''Do an exhaustive search in the set of elements of the ring that complain
-       with the restrictions:
-       - the element is invertible in the ring
-       - the hamming weight of mu(z) is $\lceil w/2 \rceil +1$
-       - the hamming weight if mu^{-1}(z) is $\lfloor w/2 \rfloor -1$
-       The first element (sorting the polynomials by interpreting the binary 
-       stream of its coefficients as an integer in base 2) that complain the 
-       restrictions is returned.
-       
-    '''
-    modulo = getBinaryPolynomialRingModulo(degree)
-    ring = BinaryPolynomialModulo(modulo)
-    idx = 2
-    hamming_mu = (degree//2)+1
-    hamming_inv_mu = (degree//2)-1
-    musWeights = {}
-    musFound = []
-    while idx < 2**degree:
-        sample = ring(idx)
-        try:
-            inv_sample = ~sample
-        except:
-            pass#discart
-        else:
-            if not inv_sample in musFound:
-                weight = '%d,%d'%(bin(sample._coefficients).count('1'),
-                                  bin(inv_sample._coefficients).count('1'))
-                if not musWeights.has_key(weight):
-                    musWeights[weight] = []
-                musWeights[weight].append([sample,inv_sample])
-                musFound.append(sample)
-        idx += 1
-    print("There are %d candidates."%(len(musFound)))
-    for key in musWeights.keys():
-        print("\t%s:%s (%d)"%(key,musWeights[key],len(musWeights[key])))
-    return None
-
-def findGoodNu(degree,mu):
-    '''Having a fixed mu(z) and assuming it as a valid element with in its 
-       restrictions, do an exhaustive search in the set of elements of the 
-       ring that complain with the restrictions:
-       - do not produce any fixed point $f(a) = a$
-       - do not produce any opppsite fixed point $f(a) = ~a$
-       The first element (sorting the polynomials by interpreting the binary 
-       stream of its coefficients as an integer in base 2) that complain the 
-       restrictions is returned.
-    '''
-    modulo = getBinaryPolynomialRingModulo(degree)
-    ring = BinaryPolynomialModulo(modulo)
-    mu = ring(mu._coefficients)
-    hamming_nu = degree//2
-    nus = []
-    for j in range(2,2**degree):
-        nu = ring(j)
-        if bin(nu._coefficients).count('1') == hamming_nu:
-            for i in range(2**degree):
-                a = ring(i)
-                b = (mu * a) + nu
-                bm = (mu.__matrix_product__(a))+nu
-                #print("b(z) = mu(z)*a(z)+nu(z) =\n%s*%s+%s=%r"%(mu,a,nu,b))
-                #check if this three complain the conditions
-                if a == b and a == -b:
-                    break
-                inv_mu = ~mu
-                c = inv_mu * (b + nu)
-                if a != c:
-                    break
-                cm = inv_mu.__matrix_product__(bm-nu)
-                if a != cm:
-                    break
-            nus.append(nu)#return nu
-            #print("Nu candicate %s (%s)"%(nu,hex(nu._coefficients)))
-    #in case of degree 8, the choosen one is the 25th of the 70 valid ones.
-    if degree == 8:
-        print("%d/%d"%(nus.index(ring(getNu(8))),len(nus)))
-        #in for other degrees we will take the 25 mod (len(nus))
-    if len(nus) > 0:
-        return nus[25%len(nus)]
-    return None
 
 def testMusAndNus(degree,mus):
     '''Given a ring size and a list of invertible elements in the ring, check
@@ -513,9 +423,6 @@ def testMuAndNu(mu,nu,ring):
     import time
     t = []
     tm = []
-#    if nu == ring(0) or nu == ring(1):#nu == 0 or 1, directly discarted
-#        return False,None
-    #print("Testing conditions for mu(z) = %s and nu(z) = %r"%(mu,nu))
     for i in range(2**mu.modulodegree):
         a = ring(i)
         t_0 = time.time()
@@ -524,7 +431,6 @@ def testMuAndNu(mu,nu,ring):
         t_0 = time.time()
         bm = (mu.__matrix_product__(a))+nu
         tm.append(time.time()-t_0)
-        #print("b(z) = mu(z)*a(z)+nu(z) =\n%s*%s+%s=%r"%(mu,a,nu,b))
         #check if this three complain the conditions
         if a == b or a == -b:
             return False,None,None
@@ -573,9 +479,9 @@ def cmdArgs(parser):
     parser.add_option('',"--test-all-fields",action="store_true",
                       help="Loops over all available fields doing "\
                       "--test-field on it.")
-#    parser.add_option('',"--test-c3-c4",action="store_true",
-#                      help="Test the tables C3 and C4 from the 'Design of "\
-#                           "Rijndael' book ")
+    parser.add_option('',"--test-c3-c4",action="store_true",
+                      help="Test the tables C3 and C4 from the 'Design of "\
+                           "Rijndael' book ")
     parser.add_option('',"--test-affine-mapping",action="store_true",
                       help="Test the finite binary polynomial ring")
     parser.add_option('',"--test-ring",type='int',
@@ -584,9 +490,6 @@ def cmdArgs(parser):
     parser.add_option('',"--find-ring-inverses",type='int',
                       help="Given the size of a ring (in bits) find all the"\
                       "invertible elements.")
-    parser.add_option('',"--find-mu-nu-candidates",type='int',
-                      help="Given a size of a ring (in bits) return the pair"\
-                      "of mu(z) and nu(z) that satisfies the restrictions.")
 
 def setupLogging(loglevel):
     '''Setup a global variable to know the logging level for all the objects.
@@ -626,30 +529,17 @@ def main():
         msg = "%d ok %s"%(ok,"but failed %s"%(failed) if failed >0 else "")
         print("For F_{2^%d}, test elements: %s\n"
               %(options.test_field,msg))
-#    elif options.test_c3_c4:
-#        ok,failed = testTablesC3and4()
-#        msg = "%d ok %s"%(ok,"but failed %s"%(failed) if failed >0 else "")
-#        print("Check with the Rijndael's table c3 and c4: %s\n"
-#              %(msg))
+    elif options.test_c3_c4:
+        ok,failed = testTablesC3and4()
+        msg = "%d ok %s"%(ok,"but failed %s"%(failed) if failed >0 else "")
+        print("Check with the Rijndael's table c3 and c4: %s\n"
+              %(msg))
     elif options.test_affine_mapping:
         ok,failed = testAffineMapping()
         msg = "%d ok %s"%(ok,"but failed %s"%(failed) if failed >0 else "")
         print("Check the binary polynomial ring: %s"%(msg))
     elif options.find_ring_inverses != None:
         findRingInverses(options.find_ring_inverses)
-    elif options.find_mu_nu_candidates != None:
-        mu = findGoodMu(options.find_mu_nu_candidates)
-        if mu == None:
-            return
-        print("Found mu=%r candicate (%s)"%(mu,hex(mu._coefficients)))
-        nu = findGoodNu(options.find_mu_nu_candidates,mu)
-        if nu == None:
-            return
-        print("Found nu=%r candicate (%s)"%(nu,hex(nu._coefficients)))
-        if options.find_mu_nu_candidates == 8:
-            print("officials: mu = %s, nu = %s"
-                  %(hex(getMu(options.find_mu_nu_candidates)),
-                    hex(getNu(options.find_mu_nu_candidates))))
     elif options.test_ring != None:
         found,mus,invmu_itself,modulo = findRingInverses(options.test_ring)
         
@@ -660,9 +550,6 @@ def main():
               "This is a long process that will provide as an output a"\
               "csv file called: %s"%(fileName))
         t_0 = time.time()
-        #TODO: we shall correlate the candidates with their inverses
-        # to not only know the timing of the affine transformation but 
-        # also its inversion.
         found,stats = testMusAndNus(options.test_ring,mus+invmu_itself)
         msg = "Search compleated. Found %d pairs of valid mus and nus "\
               "(%d seconds)"%(found,time.time()-t_0)
@@ -682,20 +569,7 @@ def main():
                              stats[i][j]['matrix'][1])
                     f.write(line)
     else:
-        #TODO: loop with a bigger sample set.
-#        values = range(6)
-#        for i in range(3):
-#            values.append(randint(1,2**degree))
-#        values.sort()
-#        for value in values:
-#            testBinaryPolynomial(value,degree)
         print("\n\tNo option specified, please check with -h or --help\n")
-    #TODO: test the affine transformation,
-    #the second part of the two SBox transformations
-    #...
-    
-    #TODO: test the polynomial ring 
-    #with coefficients elements as polynomial field
 
 if __name__ == "__main__":
     main()

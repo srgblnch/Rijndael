@@ -125,6 +125,9 @@ def BinaryPolynomialModulo(modulo,variable='x',loglevel=Logger.info):
         def degree(self):
             return len("{0:b}".format(self._coefficients))
         @property
+        def hammingWeight(self):
+            return bin(self._coefficients).count('1')
+        @property
         def modulodegree(self):
             return len("{0:b}".format(self._modulo))
         @property
@@ -620,29 +623,41 @@ def getBinaryPolynomialRingModulo(wordSize):
     }[wordSize]
     return BinaryPolynomialRingModulo
 
-def getMu(wordSize):
+def getMu(wordSize,official=False):
     '''Invertible element in the binary polynomial ring used in the second 
        transformation 'f' of the SBoxes.
        b(z) = mu(z) \cdot a(z) + nu(z)
        When undo the transformation:
        a(z) = mu^{-1}(z) \cdot [b(z) - nu(z)]
     '''
+    if official and wordSize==8:
+        return 0x1F
     Mu = {
-        8:0x1F,#z^4+z^3+z^2+z+1
+        3:0x02,#z
+        4:0x07,#z^2+z+1
+        5:0x19,#z^4+z^3+1
+        6:0x26,#z^5+z^2+z
+        7:0x4C,#z^6+z^3+z^2
+        8:0xB5,#z^7+z^5+z^4+z^2+1#0x1F,#z^4+z^3+z^2+z+1
     }[wordSize]
     return Mu
 
-def getNu(wordSize):
+def getNu(wordSize,official=False):
     '''Element of the binary polynomial ring used in the second transformation 
        'f' of the SBoxes:
        b(z) = mu(z) \cdot a(z) + nu(z)
        When undo the transformation:
        a(z) = mu^{-1}(z) \cdot [b(z) - nu(z)]
     '''
+    if official and wordSize==8:
+        return 0x63
     Mu = {
-        #8:0xC4,#z^7+z^6+z^2
-        8:0x63,#z^6+z^5+z+1
-        #8:0xC6,#z^7+z^6+z^2+z#doesn't have inverse
+        3:0x02,#z
+        4:0x08,#z^3
+        5:0x08,#z^3
+        6:0x2C,#z^5+z^3+z^2
+        7:0x08,#z^3
+        8:0x6A,#z^6+z^5+z^3+z#0x63,#z^6+z^5+z+1
     }[wordSize]
     return Mu
 
