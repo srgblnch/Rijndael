@@ -57,7 +57,9 @@ class PolynomialSearch(Logger):
         self._degree = degree
         if self._degree < 3:
             raise ValueError("Out of search range")
-        modulo = getBinaryPolynomialRingModulo(degree)
+        self._file_suffix = "PolynomialSearch_%d"%degree
+        self._log2file = True
+        modulo = getBinaryPolynomialRingModulo(self._degree)
         self._ring = BinaryPolynomialModulo(modulo,variable='z')
         self._candidates = []
         self._nonInvertibles = 0
@@ -225,10 +227,9 @@ class PolynomialSearch(Logger):
            transformation and its inversion) and select the triplet with the
            best timming results.
         '''
-        self.debug_stream("R3: Find nu(z) candidates and select triplets with"\
-                          " closer hamming weight to (w/2)*3.\n"\
-                          "    And from here, the winner is the one with "\
-                          "timming results.")
+        self.debug_stream("R3: Find nu(z) candidates and select triplets "\
+                          "with closer hamming weight to (w/2)*3. And from "\
+                          "here, the winner is the one with timming results.")
         goalweight = (self._degree/2)*3
         for mu,inv_mu in self._candidates:
             self.debug_stream("\tSearch for nu with (mu(z)=%s,mu^{-1}(z)=%s)"
@@ -242,8 +243,8 @@ class PolynomialSearch(Logger):
                     classified[h] = {}
                 average = self._fullTestAffineTransformation(mu,nu)
                 if average:
-                    print("\t\tCandidate (%s,%s,%s) = %f"
-                          %(mu,inv_mu,nu,average))
+                    self.debug_stream("\t\tCandidate (%s,%s,%s) = %f"
+                                      %(mu,inv_mu,nu,average))
                     if not classified[h].has_key(average):
                         classified[h][average] = []
                     classified[h][average].append([mu,inv_mu,nu])
@@ -262,7 +263,7 @@ class PolynomialSearch(Logger):
                         self.info_stream("\tFound finalists with weight "\
                                          "%d: %s"%(idx,finalists))
                 i+=1
-        print("\tFinalists times: %s"%(finalists.keys()))
+        self.info_stream("\tFinalists times: %s"%(finalists.keys()))
         averages = finalists.keys(); averages.sort()
         winner = finalists[averages[0]]
         if len(winner) != 1:
@@ -279,11 +280,16 @@ class PolynomialSearch(Logger):
                              "is *****\n"\
                              "\tmu(z) = %s = %s\n"\
                              "\tmu^{-1}(z) = %s = %s\n"\
-                             "\tnu(z) = %s = %s\n"
+                             "\tnu(z) = %s = %s\n"\
+                             "\tw=%d,h=%d+%d+%d"
                              %(averages[0],
                                self._mu,hex(self._mu),
                                self._inv_mu,hex(self._inv_mu),
-                               self._nu,hex(self._nu)))
+                               self._nu,hex(self._nu),
+                               self._degree,
+                               self._mu.hammingWeight,
+                               self._inv_mu.hammingWeight,
+                               self._nu.hammingWeight))
         
 
     def _fullTestAffineTransformation(self,mu,nu):
@@ -336,20 +342,16 @@ def cmdArgs(parser):
                       help="Loops over all expected rings to find mus and nus")
 
 def doSearch(degree):
-    searcher = PolynomialSearch(degree)
-    searcher.search()
-    when = datetime.now().strftime("%Y%m%d_%H%M%S")
-    fileName = "ring_%d_mu_nu_polynomials_%s.dat"\
-                                      %(degree,when)
-    with open(fileName,'w') as f:
-        f.write("average    = %6.3f us\n"\
-                "mu(z)      = %s =\t%s\n"\
-                "mu^{-1}(z) = %s =\t%s\n"\
-                "nu(z)      = %s =\t%s\n"
-                %(searcher._average,
-                  searcher._mu,    hex(searcher._mu._coefficients),
-                  searcher._inv_mu,hex(searcher._inv_mu),
-                  searcher._nu,    hex(searcher._nu)))
+    try:
+        searcher = PolynomialSearch(degree)
+        searcher.search()
+    except Exception,e:
+        try:
+            searcher.error_stream("Fatal error during search: %s"%(e))
+        except:
+            fName = datetime.now().strftime("%Y%m%d_%H%M%S")+".log"
+            with open(fName,"a") as f:
+                f.write("fatal (%d): %s"%(degree,e))
 
 def main():
     parser = OptionParser()

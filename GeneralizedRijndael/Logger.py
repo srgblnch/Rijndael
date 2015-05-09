@@ -24,6 +24,8 @@
 ##
 ##############################################################################
 
+from datetime import datetime
+
 def levelFromMeaning(value):
     try:
         return {'error':Logger.error,
@@ -49,9 +51,45 @@ class Logger:
         '''
         '''
         self._logLevel = loglevel
+        self._when_build = datetime.now()
+        self._log2file = False
+        self._file_suffix = ""
+        self._file_extension = "log"
 
     def setLogLevel(self,level):
+        self.warning_stream("deprecated call to setLogLevel, use logLevel property")
         self._logLevel = level
+
+    @property
+    def logLevel(self):
+        return self._logLevel
+
+    @logLevel.setter
+    def logLevel(self,level):
+        if type(level) == str:
+            self._logLevel = levelFromMeaning(level)
+        if type(level) == int and 1 >= level >= 5:
+            self._logLevel = level
+        else:
+            self._logLevel = self.info
+
+    @property
+    def log2file(self):
+        return self._log2file
+
+    @log2file.setter
+    def log2file(self,boolean):
+        self._log2file = bool(boolean)
+        self.debug_stream("Logger to file = %s"%self._log2file)
+
+    @property
+    def fileSuffix(self):
+        return self._file_suffix
+
+    @fileSuffix.setter
+    def fileSuffix(self,suffix):
+        self._file_suffix = "%s"%(suffix)
+        self.debug_stream("New log file name suffix: %s"%self._file_suffix)
 
     def _arePolynomials(self,data):
         '''
@@ -110,6 +148,13 @@ class Logger:
                 msg += self._printPolynomials(data)
             else:
                 msg+="%s"%(data)
+        if self._log2file:
+            fileName = self._when_build.strftime("%Y%m%d_%H%M%S")
+            if self._file_suffix:
+                fileName = "%s_%s"%(fileName,self._file_suffix)
+            fileName = "%s.%s"%(fileName,self._file_extension)
+            with open(fileName,'a') as logfile:
+                logfile.write(msg+"\n")
         print msg
 
     def print_stream(self,logtext,loglevel,
@@ -117,29 +162,30 @@ class Logger:
         '''
         '''
         if self._logLevel >= loglevel:
-            self.print_line(logtext, data, round, operation)
+            now = "%s "%datetime.now().isoformat()
+            self.print_line(now+logtext, data, round, operation)
 
     def error_stream(self,logtext,data=None,round=None,operation=None):
         '''
         '''
-        self.print_stream(logtext,Logger.error,data,round,operation)
+        self.print_stream("ERROR  :"+logtext,Logger.error,data,round,operation)
 
     def warning_stream(self,logtext,data=None,round=None,operation=None):
         '''
         '''
-        self.print_stream(logtext,Logger.warning,data,round,operation)
+        self.print_stream("WARNING:"+logtext,Logger.warning,data,round,operation)
 
     def info_stream(self,logtext,data=None,round=None,operation=None):
         '''
         '''
-        self.print_stream(logtext,Logger.info,data,round,operation)
+        self.print_stream("INFO   :"+logtext,Logger.info,data,round,operation)
 
     def debug_stream(self,logtext,data=None,round=None,operation=None):
         '''
         '''
-        self.print_stream(logtext,Logger.debug,data,round,operation)
+        self.print_stream("DEBUG  :"+logtext,Logger.debug,data,round,operation)
 
     def trace_stream(self,logtext,data=None,round=None,operation=None):
         '''
         '''
-        self.print_stream(logtext,Logger.trace,data,round,operation)
+        self.print_stream("TRACE  :"+logtext,Logger.trace,data,round,operation)
