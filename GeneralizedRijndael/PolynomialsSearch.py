@@ -310,10 +310,10 @@ class PolynomialSearch(Logger):
         self.info_stream("\tAnd from here, the winner is the one with timming "\
                          "results.")
         goalWeight = (self._degree/2)*3
+        classified = {}
         for mu,inv_mu in goodWeight:
-            self.debug_stream("\tSearch for nu with (mu(z)=%s,mu^{-1}(z)=%s)"
+            self.info_stream("\tSearch for nu with (mu(z)=%s,mu^{-1}(z)=%s)"
                               %(mu,inv_mu))
-            classified = {}
             for idx in range(2,2**self._degree):
                 nu = self._ring(idx)
                 #self.debug_stream("\t\ttesting nu(z)=%s"%(nu))
@@ -403,11 +403,10 @@ class PolynomialSearch(Logger):
             t_ring = array(t_ring)
             t_matrix = array(t_matrix)
             
-            results = t_ring
-            #results = t_matrix
-        #        self.info_stream("\t\t\tCandidate (%s,%s,%s) with mean time %f"
-        #                         %(mu,inv_mu,ni,mean))
-            #return (t_ring.mean(),t_ring.std()),(t_matrix.mean(),t_matrix.std())
+            #Usually is smallest the time using ring view
+            #results = t_ring
+            results = t_matrix
+            
             return results.mean(),results.std()
         except Exception,e:
             self.error_stream("Exception in full test of affine "\
