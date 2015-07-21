@@ -307,8 +307,8 @@ class PolynomialSearch(Logger):
         '''
         self.info_stream("R3: Find nu(z) candidates and select triplets "\
                           "with closer hamming weight to (w/2)*3.")
-        self.info_stream("\tAnd from here, the winner is the one with timming "\
-                         "results.")
+        self.info_stream("\tAnd from here, the winner is the one with "\
+                         "timming results.")
         goalWeight = (self._degree/2)*3
         classified = {}
         for mu,inv_mu in goodWeight:
@@ -404,8 +404,8 @@ class PolynomialSearch(Logger):
             t_matrix = array(t_matrix)
             
             #Usually is smallest the time using ring view
-            #results = t_ring
-            results = t_matrix
+            results = t_ring
+            #results = t_matrix
             
             return results.mean(),results.std()
         except Exception,e:
