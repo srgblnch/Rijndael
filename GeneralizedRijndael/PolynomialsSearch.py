@@ -158,11 +158,14 @@ class PolynomialSearch(Logger):
     
     def search(self):
         invertibles = self._restriction0()
-        OutputFile("restriction0_invertibles").write(invertibles)
+        OutputFile("ring%d_restriction0_invertibles"
+                   %self._degree).write(invertibles)
         differentInverse = self._restriction1(invertibles)
-        OutputFile("restriction1_differentInverse").write(differentInverse)
+        OutputFile("ring%d_restriction1_differentInverse"
+                   %self._degree).write(differentInverse)
         goodWeight = self._restriction2(differentInverse)
-        OutputFile("restriction2_goodWeight").write(goodWeight)
+        OutputFile("ring%d_restriction2_goodWeight"
+                   %self._degree).write(goodWeight)
         self._restriction3(goodWeight)
     
     def _restriction0(self):
@@ -360,7 +363,8 @@ class PolynomialSearch(Logger):
                     if not classified[h].has_key((std,average)):
                         classified[h][(std,average)] = []
                     classified[h][(std,average)].append([mu,inv_mu,nu])
-        OutputFile("restriction3_classified").write(classified)
+        OutputFile("ring%d_restriction3_classified"
+                   %self._degree).write(classified)
         finalists = {}
         if classified.has_key(goalWeight) and len(classified[goalWeight]) > 0:
             finalists = classified[goalWeight]
@@ -386,7 +390,8 @@ class PolynomialSearch(Logger):
                                               %(k[1],k[0],finalists[k]))
                 i+=1
         std_average = finalists.keys(); std_average.sort()
-        OutputFile("restriction3_finalists").write(finalists)
+        OutputFile("ring%d_restriction3_finalists"
+                   %self._degree).write(finalists)
         winner = finalists[std_average[0]]
         if len(winner) != 1:
             l = ""
@@ -412,7 +417,8 @@ class PolynomialSearch(Logger):
                                self._mu.hammingWeight,
                                self._inv_mu.hammingWeight,
                                self._nu.hammingWeight))
-        OutputFile("restriction3_winner").write(winner)
+        OutputFile("ring%d_restriction3_winner"
+                   %self._degree).write(winner)
 
     def _fullTestAffineTransformation(self,mu,nu):
         """
