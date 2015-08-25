@@ -30,14 +30,16 @@
    reproducibility and algorithm review.
 '''
 
-from copy import copy
+from copy import copy,deepcopy
+import csv
 from datetime import datetime
 from Logger import Logger
 import multiprocessing
-from numpy import array
+from numpy import array,float64
 from optparse import OptionParser
 from Polynomials import *
 from PolynomialsTest import setupLogging
+from sys import getrecursionlimit,setrecursionlimit
 import traceback
 from time import clock,time
 
@@ -91,6 +93,34 @@ class TimeFromClock(TimeMeasurer):
         return "s"
 
 
+# class PolynomialEncoder(JSONEncoder):
+#     def default(self, o):
+#         return o.__str__
+
+
+class OutputFile(Logger):
+    def __init__(self,name,logLevel=Logger.info):
+        Logger.__init__(self,logLevel)
+        self._file_suffix = name
+        self._file_extension = "csv"
+        
+    def write(self,incommingdata):
+        data = deepcopy(incommingdata)
+        fileName = self._when_build.strftime("%Y%m%d_%H%M%S")
+        fileName = "%s_%s.%s"%(fileName,self._file_suffix,self._file_extension)
+        with open(fileName,'a') as outputfile:
+            w = csv.writer(outputfile)
+            if type(data) == dict:
+                for key,val in data.items():
+                    w.writerow([key,val])
+            elif type(data) == list:
+                for e in data:
+                    w.writerow(e)
+            else:
+                print type(data)
+                outputfile.write(data)
+
+
 class PolynomialSearch(Logger):
     '''
        Do an exhaustive search in the set of elements of the ring that complain
@@ -128,8 +158,11 @@ class PolynomialSearch(Logger):
     
     def search(self):
         invertibles = self._restriction0()
+        OutputFile("restriction0_invertibles").write(invertibles)
         differentInverse = self._restriction1(invertibles)
+        OutputFile("restriction1_differentInverse").write(differentInverse)
         goodWeight = self._restriction2(differentInverse)
+        OutputFile("restriction2_goodWeight").write(goodWeight)
         self._restriction3(goodWeight)
     
     def _restriction0(self):
@@ -327,6 +360,7 @@ class PolynomialSearch(Logger):
                     if not classified[h].has_key((std,average)):
                         classified[h][(std,average)] = []
                     classified[h][(std,average)].append([mu,inv_mu,nu])
+        OutputFile("restriction3_classified").write(classified)
         finalists = {}
         if classified.has_key(goalWeight) and len(classified[goalWeight]) > 0:
             finalists = classified[goalWeight]
@@ -352,6 +386,7 @@ class PolynomialSearch(Logger):
                                               %(k[1],k[0],finalists[k]))
                 i+=1
         std_average = finalists.keys(); std_average.sort()
+        OutputFile("restriction3_finalists").write(finalists)
         winner = finalists[std_average[0]]
         if len(winner) != 1:
             l = ""
@@ -377,7 +412,7 @@ class PolynomialSearch(Logger):
                                self._mu.hammingWeight,
                                self._inv_mu.hammingWeight,
                                self._nu.hammingWeight))
-        
+        OutputFile("restriction3_winner").write(winner)
 
     def _fullTestAffineTransformation(self,mu,nu):
         """
