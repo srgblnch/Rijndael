@@ -109,11 +109,41 @@ class OutputFile(Logger):
         fileName = self._when_build.strftime("%Y%m%d_%H%M%S")
         fileName = "%s_%s.%s"%(fileName,self._file_suffix,self._file_extension)
         with open(fileName,'a') as outputfile:
-            w = csv.writer(outputfile)
             if type(data) == dict:
+                w = csv.writer(outputfile)
+                row = []
                 for key,val in data.items():
-                    w.writerow([key,val])
+                    row.append(key)
+                    if type(val) == dict:
+                        for subkey,subval in val.items():
+                            if type(subkey) == tuple:
+                                for e in subkey:
+                                    row.append(e)
+                            else:
+                                row.append(subkey)
+                            if type(subval) == list:
+                                for triple in subval:
+                                    row.append(triple)
+                            else:
+                                row.append(subval)
+                            w.writerow(row)
+                            if type(subval) == list:
+                                for triple in subval:
+                                    row.pop()
+                            else:
+                                row.pop()
+                            if type(subkey) == tuple:
+                                for e in subkey:
+                                    row.pop()
+                            else:
+                                row.pop()
+                    else:
+                        row.append(val)
+                        w.writerow([key,val])
+                        row.pop()
+                    row.pop()
             elif type(data) == list:
+                w = csv.writer(outputfile)
                 for e in data:
                     w.writerow(e)
             else:
@@ -347,17 +377,24 @@ class PolynomialSearch(Logger):
                          "timming results.")
         goalWeight = (self._degree/2)*3
         classified = {}
+        ct = 0
         for mu,inv_mu in goodWeight:
-            self.info_stream("\tSearch for nu with (mu(z)=%s,mu^{-1}(z)=%s)"
-                              %(mu,inv_mu))
+            ct += 1
+            outer_percentage = int(float(ct)/len(goodWeight)*100)
+            self.info_stream("\t[%d%%]Search for nu with "\
+                             "(mu(z)=%s,mu^{-1}(z)=%s)"
+                              %(outer_percentage,mu,inv_mu))
             for idx in range(2,2**self._degree):
                 nu = self._ring(idx)
                 #self.debug_stream("\t\ttesting nu(z)=%s"%(nu))
                 h = mu.hammingWeight+inv_mu.hammingWeight+nu.hammingWeight
                 average,std = self._fullTestAffineTransformation(mu,nu)
                 if average:
-                    self.info_stream("\t\tCandidate (%s,%s,%s) = %f (std %g)"
-                                      %(mu,inv_mu,nu,average,std))
+                    inner_percentage = int(float(idx)/2**self._degree*100)
+                    self.info_stream("\t\t[%d%%-%d%%] Candidate (%s,%s,%s)"\
+                                     " = %f (std %g)"
+                                      %(outer_percentage,inner_percentage,
+                                        mu,inv_mu,nu,average,std))
                     if not classified.has_key(h):
                         classified[h] = {}
                     if not classified[h].has_key((std,average)):
