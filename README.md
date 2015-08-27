@@ -10,7 +10,9 @@ The code has been made to academic cryptographic purposes and its cryptoanalysis
 Usage
 -----
 
-To compile it uses the [cython](http://cython.org)'s *Distutils* module, the [setuptools](http://en.wikipedia.org/wiki/Setuptools) and the build from cython. Then just call:
+Cython compilation has been temporally removed until the development is completed. Then it will be when cython comes to the scene to introduce compilation to improve execution time and measure if there are differences between 32 and 64 architectures.
+
+<!--To compile it uses the [cython](http://cython.org)'s *Distutils* module, the [setuptools](http://en.wikipedia.org/wiki/Setuptools) and the build from cython. Then just call:
 ```
 $ python setup.py build
 ```
@@ -29,12 +31,12 @@ And if it has been compiled and there is a '*GeneralizedRijndael.so*' available;
 $ python grijndael.py
 ```
 
-Check with the '--help' parameter to know more how to use it's parametering.
+Check with the '--help' parameter to know more how to use it's parametering.-->
 
 Testing
 -------
 
-Many of the modules inside have their own testing. They shall work simply by calling the file from python because they have a 'main' defined.
+Many of the modules inside have their own testing. They shall work simply by calling the file from python because they have a 'main' defined. Testing will require a refactoring to split what shall be a unit test and what's a simple check.
 
 Extras
 ------
