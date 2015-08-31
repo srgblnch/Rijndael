@@ -1,0 +1,18 @@
+2015-08-31T14:37:18.085838 INFO   :R0: fins invertible elements:
+2015-08-31T14:37:18.086307 INFO   :	candidate found: (z,z^2)
+2015-08-31T14:37:18.086716 INFO   :R0: Found 1 candidates and 4 non invertible (8 total elements)
+2015-08-31T14:37:18.087313 INFO   :R1: invertible elements shall not have itself as inverse
+2015-08-31T14:37:18.087520 INFO   :R1: left 1 candidates
+2015-08-31T14:37:18.088048 INFO   :R2: balanced hamming weights
+2015-08-31T14:37:18.088240 INFO   :	R2a: weights in the classification: [2]
+2015-08-31T14:37:18.088409 WARNING:		No candidates with 3
+2015-08-31T14:37:18.088578 INFO   :		found 1 candidates with weight 2
+2015-08-31T14:37:18.088747 WARNING:		No candidates with 4
+2015-08-31T14:37:18.088919 INFO   :	R2a: left 1 candidates
+2015-08-31T14:37:18.089096 INFO   :	R2b: weights classification: [(1, 1)]
+2015-08-31T14:37:18.089274 INFO   :	R2b: left 1 candidates
+2015-08-31T14:37:18.089448 INFO   :R2: left 1 candidates
+2015-08-31T14:37:18.090027 INFO   :R3: Find nu(z) candidates and select triplets with closer hamming weight to (w/2)*3.
+2015-08-31T14:37:18.090247 INFO   :	And from here, the winner is the one with timming results.
+2015-08-31T14:37:18.090420 INFO   :	[100%]Search for nu with (mu(z)=z,mu^{-1}(z)=z^2)
+2015-08-31T14:37:18.105201 ERROR  :Fatal error during search: list index out of range

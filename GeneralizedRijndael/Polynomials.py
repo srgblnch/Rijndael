@@ -635,10 +635,12 @@ def getMu(wordSize,official=False):
     Mu = {
         3:0x02,#z
         4:0x07,#z^2+z+1
-        5:0x19,#z^4+z^3+1
+        5:0x0B,#z^3+z+1
         6:0x26,#z^5+z^2+z
-        7:0x4C,#z^6+z^3+z^2
-        8:0xB5,#z^7+z^5+z^4+z^2+1#0x1F,#z^4+z^3+z^2+z+1
+        7:0x26,#z^5+z^2+z
+        8:0x3D,#z^5+z^4+z^3+z^2+1#0x1F,#z^4+z^3+z^2+z+1
+        9:0x52,#z^6+z^4+z
+        10:0x15C,#z^8+z^6+z^4+z^3+z^2
     }[wordSize]
     return Mu
 
@@ -654,10 +656,12 @@ def getNu(wordSize,official=False):
     Mu = {
         3:0x02,#z
         4:0x08,#z^3
-        5:0x08,#z^3
-        6:0x2C,#z^5+z^3+z^2
-        7:0x08,#z^3
-        8:0x6A,#z^6+z^5+z^3+z#0x63,#z^6+z^5+z+1
+        5:0x02,#z
+        6:0x25,#z^5+z^2+1
+        7:0x10,#z^4
+        8:0x47,#z^6+z^2+z+1#0x63,#z^6+z^5+z+1
+        9:0x38,#z^5+z^4+z^3+z
+        10:0x236,#z^9+z^5+z^4+z^2+z
     }[wordSize]
     return Mu
 
