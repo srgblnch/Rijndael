@@ -3,7 +3,7 @@
 #---- licence header
 ##############################################################################
 ##
-## file: Logger.pyx
+## file: Logger.py
 ##
 ## developers history & copyleft: Sergi Blanch-Torne
 ##
@@ -25,6 +25,10 @@
 ##############################################################################
 
 from datetime import datetime
+from threading import Lock as _Lock
+
+global lock
+lock  = _Lock()
 
 def levelFromMeaning(value):
     try:
@@ -162,8 +166,9 @@ class Logger:
         '''
         '''
         if self._logLevel >= loglevel:
-            now = "%s "%datetime.now().isoformat()
-            self.print_line(now+logtext, data, round, operation)
+            with lock:
+                now = "%s "%datetime.now().isoformat()
+                self.print_line(now+logtext, data, round, operation)
 
     def error_stream(self,logtext,data=None,round=None,operation=None):
         '''
