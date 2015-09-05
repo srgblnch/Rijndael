@@ -173,7 +173,7 @@ class PolynomialSearch(Logger):
        polynomials.
     '''
     def __init__(self,degree,tmeasDateTime=False,logLevel=Logger.info,
-                 inParallel=False):
+                 inParallel=None):
         Logger.__init__(self,logLevel)
         self._degree = degree
         if self._degree < 3:
@@ -384,84 +384,57 @@ class PolynomialSearch(Logger):
         self.info_stream("\tAnd from here, the winner is the one with "\
                          "timming results.")
         goalWeight = (self._degree/2)*3
-        if self._inParallel:
-            classified = self._manager.dict()
-        else:
-            classified = {}
-        ct = 0
+        candidates = {}
         for mu,inv_mu in goodWeight:
-            ct += 1
-            outer_percentage = int(float(ct)/len(goodWeight)*100)
-            self.info_stream("\t[%d%%]Search for nu with "\
-                             "(mu(z)=%s,mu^{-1}(z)=%s)"
-                              %(outer_percentage,mu,inv_mu))
-            if self._inParallel:
-                if not self._useDateTime:
-                    raise EnvironmentError("Parallel calculation only "\
-                                           "available with --datetime")
-                self._makeItParallel(mu,inv_mu,outer_percentage,classified)
+            for idx in range(2,2**self._degree):
+                nu = self._ring(idx)
+                h = mu.hammingWeight+inv_mu.hammingWeight+nu.hammingWeight
+                if not candidates.has_key(h):
+                    candidates[h] = []
+                candidates[h].append([mu,inv_mu,nu])
+        if candidates.has_key(goalWeight):
+            classified = candidates[goalWeight]
+        else:
+            i = 1
+            classified = []
+            while i<self._degree/2 and not classified:
+                for idx in [goalWeight-i,goalWeight+i]:
+                    classified.append(candidates[idx])
+                    self.info_stream("added %d classified with combined "
+                                     "hamming weight of %d"
+                                     %(len(candidates[idx]),idx))
+        self.info_stream("There are %d classified to check their timming"
+                         %(len(classified)))
+        OutputFile("ring%d_restriction3_classified"
+                   %self._degree).write(classified)
+        if self._inParallel:
+            finalists = self._manager.list()
+        else:
+            finalists = {}
+        if self._inParallel:
+            if not self._useDateTime:
+                raise EnvironmentError("Parallel calculation only "\
+                                       "available with --datetime")
+            self._makeItParallel(classified,finalists)
+        else:
+            if self._useDateTime:
+                tmeasurer = TimeFromDatetime()
             else:
-                if self._useDateTime:
-                    tmeasurer = TimeFromDatetime()
-                else:
-                    tmeasurer = TimeFromClock()
-                for idx in range(2,2**self._degree):
-                    self._testNuCandidate(idx,mu,inv_mu,outer_percentage,
-                                          classified,tmeasurer)
-        bar = {}
-        for weight in classified.keys():
-            if not bar.has_key(weight):
-                bar[weight] = {}
-            for element in classified[weight]:
+                tmeasurer = TimeFromClock()
+            for mu,inv_mu,nu in classified:
+                self._testNuCandidate(mu,inv_mu,nu,finalists,tmeasurer)
+        if self._inParallel:
+            bar = {}
+            for element in finalists:
                 std = element[0]
                 average = element[1]
                 mu = self._ring(element[2])
                 inv_mu = self._ring(element[3])
                 nu = self._ring(element[4])
-                if not bar[weight].has_key((std,average)):
-                    bar[weight][(std,average)] = []
-                bar[weight][(std,average)].append([mu,inv_mu,nu])
-        classified = bar
-        self.info_stream("classified: %s"%(classified.keys()))
-        OutputFile("ring%d_restriction3_classified"
-                   %self._degree).write(classified)
-        finalists = {}
-        if classified.has_key(goalWeight) and len(classified[goalWeight]) > 0:
-            finalists = classified[goalWeight]
-#            for element in classified[goalWeight]:
-#                std = element[0]
-#                average = element[1]
-#                if not finalists.has_key((std,average)):
-#                    finalists[(std,average)] = []
-#                finalists[(std,average)].append(element[2:])
-            self.info_stream("\tFound %d finalists with the goal weight (%d)"
-                             %(len(finalists.keys()),goalWeight))
-            #TODO: output file with the finalist information
-            for k in finalists.keys():
-                self.info_stream("\t\tavg:%g, std:%g:\t%s"
-                                %(k[1],k[0],finalists[k]))
-        else:
-            i = 1
-            while i<self._degree/2 and not finalists:
-                for idx in [goalWeight-i,goalWeight+i]:
-                    if classified.has_key(idx):
-                        for std,average in classified[idx].keys():
-                            if not finalists.has_key((std,average)):
-                                finalists[(std,average)] = []
-                            finalists[(std,average)] += classified[idx][(std,average)]
-#                        for element in classified[idx]:
-#                            std = element[0]
-#                            average = element[1]
-#                            if not finalists.has_key((std,average)):
-#                                finalists[(std,average)] = []
-#                            finalists[(std,average)].append(element[2:])
-#                        self.info_stream("\tFound %d finalists with weight "\
-#                                         "%d"%(len(finalists.keys()),idx))
-                        #TODO: output file with the finalist information
-                        for k in finalists.keys():
-                            self.info_stream("\t\tavg:%g, std:%g:\t%s"
-                                              %(k[1],k[0],finalists[k]))
-                i+=1
+                if not bar.has_key((std,average)):
+                    bar[(std,average)] = []
+                bar[(std,average)].append([mu,inv_mu,nu])
+            finalists = bar
         std_average = finalists.keys(); std_average.sort()
         OutputFile("ring%d_restriction3_finalists"
                    %self._degree).write(finalists)
@@ -492,23 +465,26 @@ class PolynomialSearch(Logger):
         OutputFile("ring%d_restriction3_winner"
                    %self._degree).write(winner)
 
-    def _makeItParallel(self,mu,inv_mu,outer_percentage,classified):
+    def _makeItParallel(self,goodCandidates,finalists):
         pool = ActivePool()
-        maxParallelprocesses = multiprocessing.cpu_count()-1 or 1
-        semaphore = multiprocessing.Semaphore(maxParallelprocesses)
+        maxParallelprocesses = multiprocessing.cpu_count()
+        if self._inParallel > maxParallelprocesses:
+            self.warning_stream("Cannot prepare more slots that the available"\
+                                "number of cores. Cutting to the maximum.")
+            self._inParallel = maxParallelprocesses
+        semaphore = multiprocessing.Semaphore(self._inParallel)
         fLocker = multiprocessing.Lock()
         results = {}
         jobs = [
                 multiprocessing.Process(target=self.worker, 
-                                        name=str(idx), 
-                                        args=(semaphore, pool, idx,
-                                              mu,inv_mu,outer_percentage,
-                                              classified,))
-                for idx in range(2,2**self._degree)
+                                        name=str(nu.coefficients), 
+                                        args=(semaphore,pool,mu,inv_mu,nu,
+                                              finalists,))
+                for mu,inv_mu,nu in goodCandidates
                 ]
         self.info_stream("Parallel testing of sboxes candidates. "\
                   "%d tasks with %d parallel slots"
-                  %(len(jobs),maxParallelprocesses))
+                  %(len(jobs),self._inParallel))
         for j in jobs:
             #self.info_stream('On start, running: %s'%str(pool))
             j.start()
@@ -518,48 +494,31 @@ class PolynomialSearch(Logger):
             #self.info_stream('Finish, running: %s'%str(pool))
         #self.info_stream("At the end: %s"%str(pool))
 
-    def worker(self,flow,pool,idx,mu,inv_mu,outer_percentage,classified):
+    def worker(self,flow,pool,mu,inv_mu,nu,finalists):
         tmeasurer = TimeFromDatetime()
         with flow:
             pid = int(multiprocessing.current_process().name)
             pool.makeActive("%s"%pid)
-            #self.info_stream("Worker %d running. Total Now running: %s"
-            #                 %(pid,str(pool)))
-            self._testNuCandidate(idx,mu,inv_mu,outer_percentage,
-                                  classified,tmeasurer)
-#            with self._classifiedLock:
-#                self.info_stream("classified: %s"%(classified.keys()))
-            #self.info_stream("Worker %d done"%(pid))
+            self._testNuCandidate(mu,inv_mu,nu,finalists,tmeasurer)
             pool.makeInactive("%s"%pid)
 
-    def _testNuCandidate(self,idx,mu,inv_mu,outer_percentage,classified,
-                         tmeasurer):
-        nu = self._ring(idx)
-        h = mu.hammingWeight+inv_mu.hammingWeight+nu.hammingWeight
+    def _testNuCandidate(self,mu,inv_mu,nu,finalists,tmeasurer):
         average,std = self._fullTestAffineTransformation(mu,nu,tmeasurer)
         if average:
-            inner_percentage = int(float(idx)/2**self._degree*100)
-            self.info_stream("\t\t[%d%%-%d%%] Candidate (%s,%s,%s)"\
+            self.info_stream("\t\tCandidate (%s,%s,%s)"\
                              " = %f (std %g)"
-                              %(outer_percentage,inner_percentage,
-                                mu,inv_mu,nu,average,std))
+                              %(mu,inv_mu,nu,average,std))
             with self._classifiedLock:
                 candidate = [mu.coefficients,
                              inv_mu.coefficients,
                              nu.coefficients]
                 if self._inParallel:
                     element = [std,average]+candidate
-                    l = self._manager.list()
-                    l.append(element)
-                    if not classified.has_key(h):
-                        classified[h] = l
-                    else:
-                        l += classified[h]
-                        classified[h] = l
+                    finalists.append(element)
                 else:
-                    if not classified.has_key(h):
-                        classified[h] = []
-                    classified[h].append([std,average]+candidate)
+                    if not finalists.has_key((std,average)):
+                        finalists[(std,average)] = []
+                    finalists[(std,average)].append([mu,inv_mu,nu])
 
     def _fullTestAffineTransformation(self,mu,nu,tmeasurer):
         """
@@ -635,11 +594,14 @@ def cmdArgs(parser):
     parser.add_option('',"--parallel-processing",action="store_true",
                       help="When find candidates for many rings, "\
                       "do it in parallel")
+    parser.add_option('',"--parallel-sboxes",type='int',
+                      help="How many parallel processes used to check the "\
+                           "sboxes restrictions with in a ring search"\
+                      "do it in parallel")
 
 def doSearch(degree,tmeasDateTime,loglevel=Logger.info,
-             res=None,inParallel=False):
+             res=None,inParallel=None):
     try:
-        print("in parallel: %s"%(inParallel))
         searcher = PolynomialSearch(degree,tmeasDateTime,loglevel,inParallel)
         searcher.search()
         if type(res) == dict:
@@ -738,7 +700,7 @@ def main():
     if options.find_mu_nu_candidates != None:
         print("in parallel: %s"%(options.parallel_processing))
         doSearch(options.find_mu_nu_candidates,options.datetime,
-                 logLevel,inParallel=options.parallel_processing)
+                 logLevel,inParallel=options.parallel_sboxes)
     elif options.find_all_mu_nu_candidates != None:
         results = {}
         now = datetime.now().strftime("%Y%m%d_%H%M%S")
