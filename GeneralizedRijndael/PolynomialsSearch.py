@@ -73,7 +73,7 @@ class TimeFromDatetime(TimeMeasurer):
         #seconds their diff can be a negative number or, if it takes more than
         #a seconds it will be false.
         now = datetime.now()
-        return now.second*1e6 + now.microsecond
+        return ((now.hour*60+now.minute)*60+now.second)*1e6 + now.microsecond
 
     @property
     def unit(self):
@@ -435,13 +435,6 @@ class PolynomialSearch(Logger):
                          "check their computation time."
                          %(len(goodWeight),len(classified)))
         del candidates
-#         bar = []
-#         for element in classified:
-#             mu = self._ring(element[0])
-#             mu = self._ring(element[1])
-#             inv_nu = self._ring(element[2])
-#             bar.append([mu,inv_mu,nu])
-#         classified = bar
         OutputFile("ring%d_restriction3_classified"
                    %self._degree).write(classified)
         if len(classified) == 1:
@@ -469,9 +462,9 @@ class PolynomialSearch(Logger):
             for element in finalists:
                 std = element[0]
                 average = element[1]
-                mu = self._ring(element[2])
-                inv_mu = self._ring(element[3])
-                nu = self._ring(element[4])
+                #mu = self._ring(element[2])
+                #inv_mu = self._ring(element[3])
+                #nu = self._ring(element[4])
                 if not bar.has_key((std,average)):
                     bar[(std,average)] = []
                 bar[(std,average)].append([mu,inv_mu,nu])
@@ -487,9 +480,9 @@ class PolynomialSearch(Logger):
             self.error_stream("***** Found a non unique winner! *****\n%s"%(l))
         else:
             self._std_average = std_average[0]
-            self._mu = winner[0][0]
-            self._inv_mu = winner[0][1]
-            self._nu = winner[0][2]
+            self._mu = self._ring(winner[0][0])
+            self._inv_mu = self._ring(winner[0][1])
+            self._nu = self._ring(winner[0][2])
             self.info_stream("***** The chosen triplet, with mean time "\
                              "(avg:%s,std:%s) is *****"
                              %(std_average[0][1],std_average[0][0]))
@@ -518,6 +511,8 @@ class PolynomialSearch(Logger):
                                    "calculation. Use --datetime")
         semaphore = multiprocessing.Semaphore(self._inParallel)
         fLocker = multiprocessing.Lock()
+        finish = multiprocessing.Event()
+        finish.clear()
         results = {}
         totalElements = len(goodCandidates)
         jobs = []
@@ -528,26 +523,33 @@ class PolynomialSearch(Logger):
                                                 name=str(idx),
                                                 args=(semaphore,pool,
                                                       mu,inv_mu,nu,finalists,
-                                                      progress)))
+                                                      progress,finish)))
         self.info_stream("Parallel testing of sboxes candidates. "\
-                  "%d tasks with %d parallel slots"
-                  %(len(jobs),self._inParallel))
-        #FIXME: start very many jobs consumes a huge portion of memory
-        for j in jobs:
-            #self.info_stream('On start, running: %s'%str(pool))
-            j.start()
+                         "%d tasks with %d parallel slots"
+                         %(len(jobs),self._inParallel))
+        #start very many jobs consumes a huge portion of memory
+        #then use an event to report that a new job can be launched
+        self.info_stream("Starting %d parallel tasks"%(self._inParallel))
+        for i in range(self._inParallel+1):
+            jobs[i].start()
+        lastTask = len(jobs)
+        for i in range(self._inParallel+1,lastTask+1):
+            finish.clear()
+            if i < lastTask:
+                self.debug_stream("A task has finished, launching next %d"%(i))
+                jobs[i].start()
+            finish.wait()
         for j in jobs:
             j.join()
-            #self.info_stream('Finish, running: %s'%str(pool))
-        #self.info_stream("At the end: %s"%str(pool))
 
-    def worker(self,flow,pool,mu,inv_mu,nu,finalists,progress):
+    def worker(self,flow,pool,mu,inv_mu,nu,finalists,progress,hasFinish):
         tmeasurer = TimeFromDatetime()
         with flow:
             pid = int(multiprocessing.current_process().name)
             pool.makeActive("%s"%pid)
             self._testNuCandidate(mu,inv_mu,nu,finalists,tmeasurer,progress)
             pool.makeInactive("%s"%pid)
+            hasFinish.set()
 
     def _testNuCandidate(self,mu,inv_mu,nu,finalists,tmeasurer,progress):
         mu = self._ring(mu)
@@ -573,7 +575,7 @@ class PolynomialSearch(Logger):
                 else:
                     if not finalists.has_key((std,average)):
                         finalists[(std,average)] = []
-                    finalists[(std,average)].append([mu,inv_mu,nu])
+                    finalists[(std,average)].append(candidate)
 
     def _fullTestAffineTransformation(self,mu,nu,tmeasurer):
         """
