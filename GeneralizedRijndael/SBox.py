@@ -24,20 +24,20 @@
 ##
 ##############################################################################
 
-from Logger import Logger
+from Logger import Logger as _Logger
 from Polynomials import getBinaryPolynomialFieldModulo,\
                         getBinaryPolynomialRingModulo,\
                         getMu,getNu,\
                         BinaryPolynomialModulo
 
-class SBox(Logger):
+class SBox(_Logger):
     '''This class is used from the subBytes rijndael's transformation. But it 
        is using an auxiliar python source file who have stored the original 
        sbox and its inverse, for 8 bits word size, as well as it have two 
        other pairs of sboxes for word size 2 and 4 made on this development.
     '''
-    def __init__(self,wordSize,useCalc=False,loglevel=Logger.info):
-        Logger.__init__(self,loglevel)
+    def __init__(self,wordSize,useCalc=False,loglevel=_Logger._info):
+        _Logger.__init__(self,loglevel)
         #---- TODO: this must be able to be modified to use a sbox as a table 
         #           or as the pure calculations
         self._useCalc = useCalc
@@ -201,7 +201,7 @@ def main():
     '''Test the correct functionality of SBox transformations.
     '''
     wordSize = 8
-    loglevel=Logger.debug
+    loglevel=Logger._debug
     
     SBoxUsingTables = SBox(wordSize,loglevel=loglevel)
     SBoxUsingCalculation = SBox(wordSize,loglevel=loglevel,useCalc=True)

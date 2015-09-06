@@ -26,22 +26,27 @@
 
 import sys
 
-from Logger import Logger,levelFromMeaning
-from KeyExpansion import KeyExpansion
-from SubBytes import SubBytes
-from ShiftRows import ShiftRows
-from MixColumns import MixColumns
-from AddRoundKey import AddRoundKey
-from ThirdLevel import Long,State
+from Logger import Logger as _Logger
+from Logger import levelFromMeaning as _levelFromMeaning
+from KeyExpansion import KeyExpansion as _KeyExpansion
+from SubBytes import SubBytes as _SubBytes
+from ShiftRows import ShiftRows as _ShiftRows
+from MixColumns import MixColumns as _MixColumns
+from AddRoundKey import AddRoundKey as _AddRoundKey
+from ThirdLevel import Long as _Long
+from ThirdLevel import State as _State
 
 from version import *
 
-class GeneralizedRijndael(Logger):
+class GeneralizedRijndael(_Logger):
+    '''
+        TODO: describe & little howto
+    '''
     def __init__(self,key,
                  nRounds=10,nRows=4,nColumns=4,wordSize=8,#stardard aes
                  nKeyWords=None,sboxCalc=False,
-                 loglevel=Logger.info):
-        Logger.__init__(self,loglevel)
+                 loglevel=_Logger._info):
+        _Logger.__init__(self,loglevel)
         self.__nRounds=nRounds#Num of encryption rounds {10,12,14}
         self.__nRows=nRows#Num of rows in the rectangular arrangement
         self.__nColumns=nColumns#Num of cols in the rectangular arrangement
@@ -50,20 +55,20 @@ class GeneralizedRijndael(Logger):
             self.__nKeyWords=nColumns
         else:
             self.__nKeyWords=nKeyWords#Usually {4,6,8}
-        self.debug_stream("Initialising GeneralizedRijndael (%d,%d,%d,%d,%d):"\
+        self._debug_stream("Initialising GeneralizedRijndael (%d,%d,%d,%d,%d):"\
                           " block=%dbits key=%dbits"
                           %(self.__nRounds,self.__nRows,self.__nColumns,
                             self.__wordSize,self.__nKeyWords,
                             self.__nColumns*self.__nRows*self.__wordSize,
                             self.__nKeyWords*self.__nRows*self.__wordSize))
-        self._keyExpander = KeyExpansion(key,self.__nRounds,self.__nRows,
+        self._keyExpander = _KeyExpansion(key,self.__nRounds,self.__nRows,
                                                self.__nColumns,self.__wordSize,
                                                      self.__nKeyWords,
                                                      sboxCalc,loglevel)
-        self._subBytes = SubBytes(wordSize,sboxCalc,loglevel)
-        self._shiftRows = ShiftRows(nRows,loglevel)
-        self._mixColumns = MixColumns(nRows,nColumns,wordSize,loglevel)
-        self._addRoundKey = AddRoundKey(nRows,nColumns,wordSize,loglevel)
+        self._subBytes = _SubBytes(wordSize,sboxCalc,loglevel)
+        self._shiftRows = _ShiftRows(nRows,loglevel)
+        self._mixColumns = _MixColumns(nRows,nColumns,wordSize,loglevel)
+        self._addRoundKey = _AddRoundKey(nRows,nColumns,wordSize,loglevel)
 
     def cipher(self,plain):
         '''plain (1d array) is copied to state matrix.
@@ -73,46 +78,46 @@ class GeneralizedRijndael(Logger):
            Input: <integer> plainText
            Output: <integer> cipherText
         '''
-        self.debug_stream("plaintext",plain)
-        plain=Long(self.__wordSize).toArray(plain,self.__nColumns*self.__nRows*\
+        self._debug_stream("plaintext",plain)
+        plain=_Long(self.__wordSize).toArray(plain,self.__nColumns*self.__nRows*\
                                             self.__wordSize)
         #---- TODO: check the plain have the size to be ciphered
-        self.debug_stream("plaintext array",plain)
+        self._debug_stream("plaintext array",plain)
         #---- FIXME: State should be protected in memory 
         #            to avoid side channel attacks
-        state=State(self.__nRows,self.__nColumns,
+        state=_State(self.__nRows,self.__nColumns,
                     self._logLevel).fromArray(plain)
-        self.debug_stream("state",state)
+        self._debug_stream("state",state)
         state=self._addRoundKey.do(state,\
                 self._keyExpander.getSubKey(0,self.__nColumns))#w[0,Nb-1]
-        self.debug_stream("state",state,0,"cipher->addRoundKey()\t")
+        self._debug_stream("state",state,0,"cipher->addRoundKey()\t")
         for r in range(1,self.__nRounds):#[1..Nr-1] step 1
             state=self._subBytes.do(state)
-            self.debug_stream("state",state,r,"cipher->subBytes()\t")
+            self._debug_stream("state",state,r,"cipher->subBytes()\t")
             state=self._shiftRows.do(state)
-            self.debug_stream("state",state,r,"cipher->shiftRows()\t")
+            self._debug_stream("state",state,r,"cipher->shiftRows()\t")
             state=self._mixColumns.do(state)
-            self.debug_stream("state",state,r,"cipher->mixColumns()\t")
+            self._debug_stream("state",state,r,"cipher->mixColumns()\t")
             state=self._addRoundKey.do(state,\
                     self._keyExpander.getSubKey((r*self.__nColumns),
                                                 (r+1)*(self.__nColumns)))
-            self.debug_stream("state",state,r,"cipher->addRoundKey()\t")
+            self._debug_stream("state",state,r,"cipher->addRoundKey()\t")
         state=self._subBytes.do(state)
-        self.debug_stream("state",state,self.__nRounds,"cipher->subBytes()\t")
+        self._debug_stream("state",state,self.__nRounds,"cipher->subBytes()\t")
         state=self._shiftRows.do(state)
-        self.debug_stream("state",state,self.__nRounds,"cipher->shiftRows()\t")
+        self._debug_stream("state",state,self.__nRounds,"cipher->shiftRows()\t")
         state=self._addRoundKey.do(state,\
                 self._keyExpander.getSubKey((self.__nRounds*self.__nColumns),
                                             (self.__nRounds+1)*\
                                             (self.__nColumns)))
-        self.debug_stream("state",state,
+        self._debug_stream("state",state,
                           self.__nRounds,"cipher->addRoundKey()\t")
-        cipher=State(self.__nRows,self.__nColumns,
+        cipher=_State(self.__nRows,self.__nColumns,
                      self._logLevel).toArray(state)
-        self.debug_stream("ciphertext array",cipher)
-        cipher=Long(self.__wordSize).fromArray(cipher,self.__nColumns*\
+        self._debug_stream("ciphertext array",cipher)
+        cipher=_Long(self.__wordSize).fromArray(cipher,self.__nColumns*\
                                                self.__nRows*self.__wordSize)
-        self.debug_stream("ciphertext",cipher)
+        self._debug_stream("ciphertext",cipher)
         return cipher
 
     def decipher(self,cipher):
@@ -122,47 +127,47 @@ class GeneralizedRijndael(Logger):
            Input: <integer> cipherText
            Output: <integer> plainText
         '''
-        self.debug_stream("ciphered",cipher)
-        cipher=Long(self.__wordSize).toArray(cipher,self.__nColumns*\
+        self._debug_stream("ciphered",cipher)
+        cipher=_Long(self.__wordSize).toArray(cipher,self.__nColumns*\
                                              self.__nRows*self.__wordSize)
         #---- TODO: check the cipher have the size to be deciphered
-        self.debug_stream("ciphered array",cipher)
+        self._debug_stream("ciphered array",cipher)
         #---- FIXME: State should be protected in memory 
         #            to avoid side channel attacks
-        state=State(self.__nRows,self.__nColumns,
+        state=_State(self.__nRows,self.__nColumns,
                     self._logLevel).fromArray(cipher)
-        self.debug_stream("state",state)
+        self._debug_stream("state",state)
         state=self._addRoundKey.do(state,\
                 self._keyExpander.getSubKey((self.__nRounds*self.__nColumns),
                                             (self.__nRounds+1)*\
                                             (self.__nColumns)))
-        self.debug_stream("state",state,self.__nRounds,
+        self._debug_stream("state",state,self.__nRounds,
                           "decipher->addRoundKey()\t")
         for r in range(self.__nRounds-1,0,-1):#[Nr-1..1] step -1
             state=self._shiftRows.invert(state)
-            self.debug_stream("state",state,r,"decipher->invShiftRows()\t")
+            self._debug_stream("state",state,r,"decipher->invShiftRows()\t")
             state=self._subBytes.invert(state)
-            self.debug_stream("state",state,r,"decipher->invSubBytes()\t")
+            self._debug_stream("state",state,r,"decipher->invSubBytes()\t")
             state=self._addRoundKey.do(state,
                     self._keyExpander.getSubKey((r*self.__nColumns),
                                                 (r+1)*(self.__nColumns)))
-            self.debug_stream("state",state,r,"decipher->addRoundKey()\t")
+            self._debug_stream("state",state,r,"decipher->addRoundKey()\t")
             state=self._mixColumns.invert(state)
-            self.debug_stream("state",state,r,"decipher->invMixColumns()\t")
+            self._debug_stream("state",state,r,"decipher->invMixColumns()\t")
         state=self._shiftRows.invert(state)
-        self.debug_stream("state",state,0,"decipher->invShiftRows()\t")
+        self._debug_stream("state",state,0,"decipher->invShiftRows()\t")
         state=self._subBytes.invert(state)
-        self.debug_stream("state",state,0,"decipher->invSubBytes()\t")
+        self._debug_stream("state",state,0,"decipher->invSubBytes()\t")
         state=self._addRoundKey.do(state,
                                    self._keyExpander.getSubKey(0,
                                                                self.__nColumns))
-        self.debug_stream("state",state,0,"decipher->addRoundKey()\t")
-        plain=State(self.__nRows,self.__nColumns,
+        self._debug_stream("state",state,0,"decipher->addRoundKey()\t")
+        plain=_State(self.__nRows,self.__nColumns,
                     self._logLevel).toArray(state)
-        self.debug_stream("deciphered array",plain)
-        plain=Long(self.__wordSize).fromArray(plain,self.__nColumns*\
+        self._debug_stream("deciphered array",plain)
+        plain=_Long(self.__wordSize).fromArray(plain,self.__nColumns*\
                                               self.__nRows*self.__wordSize)
-        self.debug_stream("deciphered",plain)
+        self._debug_stream("deciphered",plain)
         return plain
 
 from optparse import OptionParser
@@ -223,7 +228,7 @@ def main():
                              wordSize=options.wordsize,
                              nKeyWords=options.kolumns,
                              sboxCalc=options.calculate_sbox,
-                             loglevel=levelFromMeaning(options.log_level))
+                             loglevel=_levelFromMeaning(options.log_level))
     if not options.only_keyexpansion:
         plainText = understandInteger(options.plainText)
         if plainText == None:

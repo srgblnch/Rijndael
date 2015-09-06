@@ -24,7 +24,7 @@
 ##
 ##############################################################################
 
-from datetime import datetime
+from datetime import datetime as _datetime
 from threading import Lock as _Lock
 
 global lock
@@ -32,36 +32,36 @@ lock  = _Lock()
 
 def levelFromMeaning(value):
     try:
-        return {'error':Logger.error,
-                'warning':Logger.warning,
-                'info':Logger.info,
-                'debug':Logger.debug,
-                'trace':Logger.trace}[value.lower()]
+        return {'error':Logger._error,
+                'warning':Logger._warning,
+                'info':Logger._info,
+                'debug':Logger._debug,
+                'trace':Logger._trace}[value.lower()]
     except:
         print("Not recognized log level '%s', using default 'info' level."
                   %(value))
-        return Logger.info
+        return Logger._info
 
 #TODO: document the methods
 class Logger:
     '''
     '''
-    error   = 1
-    warning = 2
-    info    = 3
-    debug   = 4
-    trace   = 5
+    _error   = 1
+    _warning = 2
+    _info    = 3
+    _debug   = 4
+    _trace   = 5
     def __init__(self,loglevel):
         '''
         '''
         self._logLevel = loglevel
-        self._when_build = datetime.now()
+        self._when_build = _datetime.now()
         self._log2file = False
         self._file_suffix = ""
         self._file_extension = "log"
 
     def setLogLevel(self,level):
-        self.warning_stream("deprecated call to setLogLevel, use logLevel property")
+        self._warning_stream("deprecated call to setLogLevel, use logLevel property")
         self._logLevel = level
 
     @property
@@ -75,7 +75,7 @@ class Logger:
         if type(level) == int and 1 >= level >= 5:
             self._logLevel = level
         else:
-            self._logLevel = self.info
+            self._logLevel = self._info
 
     @property
     def log2file(self):
@@ -84,7 +84,7 @@ class Logger:
     @log2file.setter
     def log2file(self,boolean):
         self._log2file = bool(boolean)
-        self.debug_stream("Logger to file = %s"%self._log2file)
+        self._debug_stream("Logger to file = %s"%self._log2file)
 
     @property
     def fileSuffix(self):
@@ -93,7 +93,7 @@ class Logger:
     @fileSuffix.setter
     def fileSuffix(self,suffix):
         self._file_suffix = "%s"%(suffix)
-        self.debug_stream("New log file name suffix: %s"%self._file_suffix)
+        self._debug_stream("New log file name suffix: %s"%self._file_suffix)
 
     def _arePolynomials(self,data):
         '''
@@ -131,12 +131,12 @@ class Logger:
         msg += " ]"
         return msg
 
-    def printPolynomials(self,data):
+    def _printPolynomials(self,data):
         '''
         '''
         return "%s = %s"%("{0:b}".format(data),self.__interpretToStr__(data))
 
-    def print_line(self,logtext,data=None,round=None,operation=None):
+    def _print_line(self,logtext,data=None,round=None,operation=None):
         '''
         '''
         msg=""
@@ -161,36 +161,36 @@ class Logger:
                 logfile.write(msg+"\n")
         print msg
 
-    def print_stream(self,logtext,loglevel,
+    def _print_stream(self,logtext,loglevel,
                      data=None,round=None,operation=None):
         '''
         '''
         if self._logLevel >= loglevel:
             with lock:
-                now = "%s "%datetime.now().isoformat()
-                self.print_line(now+logtext, data, round, operation)
+                now = "%s "%_datetime.now().isoformat()
+                self._print_line(now+logtext, data, round, operation)
 
-    def error_stream(self,logtext,data=None,round=None,operation=None):
+    def _error_stream(self,logtext,data=None,round=None,operation=None):
         '''
         '''
-        self.print_stream("ERROR  :"+logtext,Logger.error,data,round,operation)
+        self._print_stream("ERROR  :"+logtext,Logger._error,data,round,operation)
 
-    def warning_stream(self,logtext,data=None,round=None,operation=None):
+    def _warning_stream(self,logtext,data=None,round=None,operation=None):
         '''
         '''
-        self.print_stream("WARNING:"+logtext,Logger.warning,data,round,operation)
+        self._print_stream("WARNING:"+logtext,Logger._warning,data,round,operation)
 
-    def info_stream(self,logtext,data=None,round=None,operation=None):
+    def _info_stream(self,logtext,data=None,round=None,operation=None):
         '''
         '''
-        self.print_stream("INFO   :"+logtext,Logger.info,data,round,operation)
+        self._print_stream("INFO   :"+logtext,Logger._info,data,round,operation)
 
-    def debug_stream(self,logtext,data=None,round=None,operation=None):
+    def _debug_stream(self,logtext,data=None,round=None,operation=None):
         '''
         '''
-        self.print_stream("DEBUG  :"+logtext,Logger.debug,data,round,operation)
+        self._print_stream("DEBUG  :"+logtext,Logger._debug,data,round,operation)
 
-    def trace_stream(self,logtext,data=None,round=None,operation=None):
+    def _trace_stream(self,logtext,data=None,round=None,operation=None):
         '''
         '''
-        self.print_stream("TRACE  :"+logtext,Logger.trace,data,round,operation)
+        self._print_stream("TRACE  :"+logtext,Logger._trace,data,round,operation)

@@ -28,7 +28,7 @@
    concentrate every thing related with development and testing apart.
 '''
 
-from Polynomials import *
+from GeneralizedRijndael.Polynomials import *
 
 #---- ## Begin testing area
 

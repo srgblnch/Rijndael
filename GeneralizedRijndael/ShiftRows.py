@@ -24,12 +24,12 @@
 ##
 ##############################################################################
 
-from Logger import Logger
-from ThirdLevel import shift
+from Logger import Logger as _Logger
+from ThirdLevel import shift as _shift
 
-class ShiftRows(Logger):
-    def __init__(self,nRows,loglevel=Logger.info):
-        Logger.__init__(self,loglevel)
+class ShiftRows(_Logger):
+    def __init__(self,nRows,loglevel=_Logger._info):
+        _Logger.__init__(self,loglevel)
         self.__nRows=nRows
     def do(self,input):
         '''One of the round transformation methods.
@@ -41,7 +41,7 @@ class ShiftRows(Logger):
         '''
         output=[]
         for i in range(self.__nRows):
-            output.append(shift(input[i],i))
+            output.append(_shift(input[i],i))
         return output
     def invert(self,input):
         '''Inverse of the shiftRows() method.
@@ -50,5 +50,5 @@ class ShiftRows(Logger):
         '''
         output=[]
         for i in range(self.__nRows):
-            output.append(shift(input[i],-i))
+            output.append(_shift(input[i],-i))
         return output

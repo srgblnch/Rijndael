@@ -29,11 +29,11 @@ from setuptools import setup, find_packages
 from GeneralizedRijndael import version
 
 
-setup(name = 'Rijndael',
+setup(name = 'GeneralizedRijndael',
       license = "GPLv3+",
       description = "Python prove of concept to generalize the rijndael's "\
                     "parameters.",
-      version = version.version(),
+      version = version(),
       author = "Sergi Blanch-Torn\'e",
       author_email = "sblanch@cells.es",
       classifiers = ['Development Status :: 1 - Planning',

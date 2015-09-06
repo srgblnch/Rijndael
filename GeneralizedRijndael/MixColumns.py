@@ -24,13 +24,15 @@
 ##
 ##############################################################################
 
-from Logger import Logger
-from Polynomials import PolynomialRing,getBinaryPolynomialFieldModulo,\
-                        BinaryPolynomialModulo
+from Logger import Logger as _Logger
+from Polynomials import PolynomialRing as _PolynomialRing
+from Polynomials import getBinaryPolynomialFieldModulo \
+                    as _getBinaryPolynomialFieldModulo
+#from Polynomials import BinaryPolynomialModulo as _BinaryPolynomialModulo
 
-class MixColumns(Logger):
-    def __init__(self,nRows,nColumns,wordSize,loglevel=Logger.info):
-        Logger.__init__(self,loglevel)
+class MixColumns(_Logger):
+    def __init__(self,nRows,nColumns,wordSize,loglevel=_Logger._info):
+        _Logger.__init__(self,loglevel)
         #---- FIXME: refactor this horrible if
         if wordSize==8:
             if nRows==4:
@@ -43,7 +45,7 @@ class MixColumns(Logger):
             elif nRows==2:
                 self.__cx=[0x2,0x3]#---- FIXME: unknown
                 self.__dx=[0x2,0x3]#---- FIXME: unknown
-            polynomialModule=getBinaryPolynomialFieldModulo(wordSize)#0b100011011
+            polynomialModule=_getBinaryPolynomialFieldModulo(wordSize)#0b100011011
 #        elif  wordSize==4:
 #            if nRows==4:
 #                self.__cx=self.__dx=[0,0,0,0]#---- FIXME: unknown
@@ -63,7 +65,7 @@ class MixColumns(Logger):
         else:
             raise Exception("(__init__)","There is no MixColumns for %d "\
                             "wordsize"%(self.__wordSize))
-        self.__polynomialRing=PolynomialRing(nRows,nColumns,wordSize)
+        self.__polynomialRing=_PolynomialRing(nRows,nColumns,wordSize)
     def do(self,input):
         return self.__polynomialRing.product(self.__cx,input)
     def invert(self,input):

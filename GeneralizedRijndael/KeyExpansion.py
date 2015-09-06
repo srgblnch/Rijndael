@@ -24,12 +24,13 @@
 ##
 ##############################################################################
 
-from Logger import Logger
-from SBox import SBox
-from RoundConstant import RC
-from ThirdLevel import Word,Long
+from Logger import Logger as _Logger
+from SBox import SBox as _SBox
+from RoundConstant import RC as _RC
+from ThirdLevel import Word as _Word
+from ThirdLevel import Long as _Long
 
-class KeyExpansion(Logger):
+class KeyExpansion(_Logger):
     '''a Pseudo Random Generator that takes the key as a seed to expand
        it to generate all the subkeys need for each round of the Rijndael.
        Input: <integer> seed
@@ -38,61 +39,61 @@ class KeyExpansion(Logger):
     def __init__(self,key,
                  nRounds=10,nRows=4,nColumns=4,wordSize=8,#stardard aes
                  nKeyWords=None,sboxCalc=False,
-                 loglevel=Logger.info):
-        Logger.__init__(self,loglevel)
+                 loglevel=_Logger._info):
+        _Logger.__init__(self,loglevel)
         self.__key=key
         self.__nRounds=nRounds
         self.__nRows=nRows
         self.__nColumns=nColumns
         self.__wordSize=wordSize
         self.__nKeyWords=nKeyWords
-        self.__sbox=SBox(wordSize,sboxCalc,loglevel=loglevel)
+        self.__sbox=_SBox(wordSize,sboxCalc,loglevel=loglevel)
                          #,useCalc=True)
-        self.__word=Word(nRows,wordSize)
+        self.__word=_Word(nRows,wordSize)
         self.__keyExpanded=[None]*self.__nKeyWords
-        self.debug_stream("key",key,operation="keyExpansion()\t")
+        self._debug_stream("key",key,operation="keyExpansion()\t")
         
-        key=Long(self.__wordSize).toArray(key,self.__nKeyWords*self.__nRows*\
+        key=_Long(self.__wordSize).toArray(key,self.__nKeyWords*self.__nRows*\
                                           self.__wordSize)
-        self.debug_stream("key array",key,operation="keyExpansion()\t")
+        self._debug_stream("key array",key,operation="keyExpansion()\t")
         for i in range(self.__nKeyWords):
-            self.__keyExpanded[i]=Word(self.__nRows,
+            self.__keyExpanded[i]=_Word(self.__nRows,
                     self.__wordSize).fromList(key[(self.__nRows*i):\
                                                 (self.__nRows*i)+self.__nRows])
         i=self.__nKeyWords
         while (i<(self.__nColumns*(self.__nRounds+1))):
-            self.debug_stream("i",i,operation='keyExpansion()\t')
+            self._debug_stream("i",i,operation='keyExpansion()\t')
             temp=self.__keyExpanded[i-1]
-            self.debug_stream("temp",temp,operation='keyExpansion()\t')
+            self._debug_stream("temp",temp,operation='keyExpansion()\t')
             if (i%self.__nKeyWords==0):
                 rotWord=self.__rotWord(temp)
-                self.debug_stream("rotWord",
+                self._debug_stream("rotWord",
                                   rotWord,operation='keyExpansion()\t')
                 subWord=self.__subWord(rotWord)
-                self.debug_stream("subWord",
+                self._debug_stream("subWord",
                                   subWord,operation='keyExpansion()\t')
-                Rcon=Word(self.__nRows,
-                       self.__wordSize).fromList([RC[i/self.__nKeyWords],0,0,0])
+                Rcon=_Word(self.__nRows,
+                       self.__wordSize).fromList([_RC[i/self.__nKeyWords],0,0,0])
                 subWord^=Rcon
-                self.debug_stream("Rcon",Rcon,operation='keyExpansion()\t')
-                self.debug_stream("subWord with Rcon",subWord,
+                self._debug_stream("Rcon",Rcon,operation='keyExpansion()\t')
+                self._debug_stream("subWord with Rcon",subWord,
                                   operation='keyExpansion()\t')
             elif i%self.__nKeyWords==4:
                 subWord=self.__subWord(subWord)
-                self.debug_stream("subWord",
+                self._debug_stream("subWord",
                                   subWord,operation='keyExpansion()\t')
             else:
                 subWord=temp
-            self.debug_stream("w[i-Nk]",self.__keyExpanded[i-self.__nKeyWords],
+            self._debug_stream("w[i-Nk]",self.__keyExpanded[i-self.__nKeyWords],
                               operation='keyExpansion()\t')
             self.__keyExpanded.append(self.__keyExpanded[i-self.__nKeyWords]\
                                       ^subWord)
-            self.debug_stream("w[i]",self.__keyExpanded[i],
+            self._debug_stream("w[i]",self.__keyExpanded[i],
                               operation='keyExpansion()\t')
             i+=1
-        self.debug_stream("keyExpanded",self.__keyExpanded,
+        self._debug_stream("keyExpanded",self.__keyExpanded,
                           operation="keyExpansion()\t")
-        self.debug_stream("size of key expanded %d"%len(self.__keyExpanded))
+        self._debug_stream("size of key expanded %d"%len(self.__keyExpanded))
         
     def getKey(self):
         return self.__keyExpanded

@@ -24,15 +24,15 @@
 ##
 ##############################################################################
 
-MAJOR_VERSION=0
-MINOR_VERSION=2
-BUILD_VERSION=0
-REVISION_VERSION=0
+_MAJOR_VERSION=0
+_MINOR_VERSION=2
+_BUILD_VERSION=0
+_REVISION_VERSION=0
 
 def VERSION():
-    return (MAJOR_VERSION,MINOR_VERSION,
-            BUILD_VERSION,REVISION_VERSION)
+    return (_MAJOR_VERSION,_MINOR_VERSION,
+            _BUILD_VERSION,_REVISION_VERSION)
 
 def version():
-    return '%d.%d.%d-%d'%(MAJOR_VERSION,MINOR_VERSION,
-                          BUILD_VERSION,REVISION_VERSION)
+    return '%d.%d.%d-%d'%(_MAJOR_VERSION,_MINOR_VERSION,
+                          _BUILD_VERSION,_REVISION_VERSION)

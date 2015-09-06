@@ -24,15 +24,15 @@
 ##
 ##############################################################################
 
-from Logger import Logger
-from ThirdLevel import Word
+from Logger import Logger as _Logger
+from ThirdLevel import Word as _Word
 
-class AddRoundKey(Logger):
-    def __init__(self,nRows,nColumns,wordSize,loglevel=Logger.info):
-        Logger.__init__(self,loglevel)
+class AddRoundKey(_Logger):
+    def __init__(self,nRows,nColumns,wordSize,loglevel=_Logger._info):
+        _Logger.__init__(self,loglevel)
         self.__nRows=nRows
         self.__nColumns=nColumns
-        self.__word=Word(nRows,wordSize)
+        self.__word=_Word(nRows,wordSize)
     def do(self,input,subkey):
         '''One of the round transformation methods.
            The round key (from the PRG) list of arrays (can be thougth as a

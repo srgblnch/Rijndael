@@ -34,11 +34,11 @@ from docutils.parsers.rst.directives import percentage
 from copy import copy,deepcopy
 import csv
 from datetime import datetime
-from Logger import Logger
+from GeneralizedRijndael.Logger import Logger
 import multiprocessing
 from numpy import array,float64
 from optparse import OptionParser
-from Polynomials import *
+from GeneralizedRijndael.Polynomials import *
 from PolynomialsTest import setupLogging
 from sys import getrecursionlimit,setrecursionlimit
 import traceback
@@ -100,7 +100,7 @@ class TimeFromClock(TimeMeasurer):
 
 
 class OutputFile(Logger):
-    def __init__(self,name,logLevel=Logger.info):
+    def __init__(self,name,logLevel=Logger._info):
         Logger.__init__(self,logLevel)
         self._file_suffix = name
         self._file_extension = "csv"
@@ -173,7 +173,7 @@ class PolynomialSearch(Logger):
        part in restriction 3, when the sboxes shall be tested for all the 
        polynomials.
     '''
-    def __init__(self,degree,tmeasDateTime=False,logLevel=Logger.info,
+    def __init__(self,degree,tmeasDateTime=False,logLevel=Logger._info,
                  inParallel=None):
         Logger.__init__(self,logLevel)
         self._degree = degree
@@ -212,7 +212,7 @@ class PolynomialSearch(Logger):
            From all the elements in the binary polynomial ring select the ones 
            that are invertible
         '''
-        self.info_stream("R0: fins invertible elements:")
+        self._info_stream("R0: fins invertible elements:")
         idx = 2#discard polynomials 0 and 1, start in z
         _nonInvertibles = 0
         _candidates = []
@@ -225,13 +225,13 @@ class PolynomialSearch(Logger):
             else:
                 if not _candidates.count([inverse,sample]):
                     _candidates.append([sample,inverse])
-                    self.info_stream("\tcandidate found: (%s,%s)"
+                    self._info_stream("\tcandidate found: (%s,%s)"
                                      %(sample,inverse))
                 else:
                     self.debug_stream("\tcandidate already in from inverse"\
                                       " (%s)"%(sample))
             idx += 1
-        self.info_stream("R0: Found %d candidates and %d non invertible "\
+        self._info_stream("R0: Found %d candidates and %d non invertible "\
                          "(%d total elements)"
                          %(len(_candidates),_nonInvertibles,
                            2**self._degree))
@@ -241,7 +241,7 @@ class PolynomialSearch(Logger):
         '''
            The invertible elements shall not have itself as inverse
         '''
-        self.info_stream("R1: invertible elements shall not have itself "\
+        self._info_stream("R1: invertible elements shall not have itself "\
                          "as inverse")
         differentInverse = []
         for sample,inverse in invertibles:
@@ -250,7 +250,7 @@ class PolynomialSearch(Logger):
             else:
                 differentInverse.append([sample,inverse])
                 self.debug_stream("\tincluding (%s,%s)"%(sample,inverse))
-        self.info_stream("R1: left %d candidates"
+        self._info_stream("R1: left %d candidates"
                           %(len(differentInverse)))
         return differentInverse
         #TODO: output a file with the polynomials that has passed this 
@@ -262,10 +262,10 @@ class PolynomialSearch(Logger):
            the ring degree, and from them the ones where each of them have 
            a weight closer to the half of the ring degree.
         '''
-        self.info_stream("R2: balanced hamming weights")
+        self._info_stream("R2: balanced hamming weights")
         bestGlobalWeight = self._restriction2a(differentInverse)
         goodWeight = self._restriction2b(bestGlobalWeight)
-        self.info_stream("R2: left %d candidates"
+        self._info_stream("R2: left %d candidates"
                           %(len(goodWeight)))
         #TODO: Output a file with those polynomials and their hamming info
         return goodWeight
@@ -282,7 +282,7 @@ class PolynomialSearch(Logger):
                 classification[hammingWeight] = []
             classification[hammingWeight].append([sample,inverse])
         weights = classification.keys()
-        self.info_stream("\tR2a: weights in the classification: %s"
+        self._info_stream("\tR2a: weights in the classification: %s"
                           %(weights))
         if weights.count(self._degree):#exact equality
             bestGlobalWeight = classification[self._degree]
@@ -297,14 +297,14 @@ class PolynomialSearch(Logger):
                 for idx in indexes:
                     if classification.has_key(idx):
                         close = classification[idx]
-                        self.info_stream("\t\tfound %d candidates with "\
+                        self._info_stream("\t\tfound %d candidates with "\
                                           "weight %d"%(len(close),idx))
                         for candidate in close:
                             bestGlobalWeight.append(candidate)
                     else:
                         self.warning_stream("\t\tNo candidates with %d"%(idx))
                 i+=1
-        self.info_stream("\tR2a: left %d candidates"
+        self._info_stream("\tR2a: left %d candidates"
                           %(len(bestGlobalWeight)))
         return bestGlobalWeight
 
@@ -323,7 +323,7 @@ class PolynomialSearch(Logger):
                 classification[(h1,h2)] = []
             classification[(h1,h2)].append([sample,inverse])
         weights = classification.keys()
-        self.info_stream("\tR2b: weights classification: %s"%(weights))
+        self._info_stream("\tR2b: weights classification: %s"%(weights))
         halfdegree = self._degree//2
         goodWeight = []
         idx = (halfdegree,halfdegree)
@@ -361,7 +361,7 @@ class PolynomialSearch(Logger):
                                               "(%s,%s)"%(idx[0],idx[1]))
                     j+=1
                 i+=1
-        self.info_stream("\tR2b: left %d candidates"
+        self._info_stream("\tR2b: left %d candidates"
                           %(len(goodWeight)))
         return goodWeight
 
@@ -380,9 +380,9 @@ class PolynomialSearch(Logger):
              one that has used, on average, less time for the calculations.
            NOTE: this is not a deterministic procedure!
         '''
-        self.info_stream("R3: Find nu(z) candidates and select triplets "\
+        self._info_stream("R3: Find nu(z) candidates and select triplets "\
                           "with closer hamming weight to (w/2)*3.")
-        self.info_stream("\tAnd from here, the winner is the one with "\
+        self._info_stream("\tAnd from here, the winner is the one with "\
                          "timming results.")
         goalWeight = (self._degree/2)*3
         if self._degree < 8:
@@ -411,11 +411,11 @@ class PolynomialSearch(Logger):
             items = 0
             for k in candidates.keys():
                 items += len(candidates[k])
-            self.info_stream("\t[%d%%]Having %d candidates with weights %s"
+            self._info_stream("\t[%d%%]Having %d candidates with weights %s"
                              %(percentage,items,candidates.keys()))
         if candidates.has_key(goalWeight):
             classified = candidates[goalWeight]
-            self.info_stream("There are %d classified with the goalWeight"
+            self._info_stream("There are %d classified with the goalWeight"
                              %(len(classified)))
         else:
             i = 1
@@ -425,20 +425,20 @@ class PolynomialSearch(Logger):
                     if candidates.has_key(idx):
                         for element in candidates[idx]:
                             classified.append(element)
-                        self.info_stream("Added %d classified with combined "
+                        self._info_stream("Added %d classified with combined "
                                          "hamming weight of %d"
                                          %(len(candidates[idx]),idx))
                     else:
-                        self.info_stream("No candidates with weight %d"
+                        self._info_stream("No candidates with weight %d"
                                          %(len(candidates[idx])))
-        self.info_stream("The %d pairs, has been expanded to %d triples to "\
+        self._info_stream("The %d pairs, has been expanded to %d triples to "\
                          "check their computation time."
                          %(len(goodWeight),len(classified)))
         del candidates
         OutputFile("ring%d_restriction3_classified"
                    %self._degree).write(classified)
         if len(classified) == 1:
-            self.info_stream("With only one classified, avoiding timming "\
+            self._info_stream("With only one classified, avoiding timming "\
                              "measures, there is a winner already")
             finalists = {}
             finalists[(None,None)] = classified
@@ -483,15 +483,15 @@ class PolynomialSearch(Logger):
             self._mu = self._ring(winner[0][0])
             self._inv_mu = self._ring(winner[0][1])
             self._nu = self._ring(winner[0][2])
-            self.info_stream("***** The chosen triplet, with mean time "\
+            self._info_stream("***** The chosen triplet, with mean time "\
                              "(avg:%s,std:%s) is *****"
                              %(std_average[0][1],std_average[0][0]))
-            self.info_stream("\tmu(z) = %s = %s"
+            self._info_stream("\tmu(z) = %s = %s"
                              %(self._mu,hex(self._mu)))
-            self.info_stream("\tmu^{-1}(z) = %s = %s"
+            self._info_stream("\tmu^{-1}(z) = %s = %s"
                              %(self._inv_mu,hex(self._inv_mu)))
-            self.info_stream("\tnu(z) = %s = %s"%(self._nu,hex(self._nu)))
-            self.info_stream("\tw=%d,h=%d+%d+%d"
+            self._info_stream("\tnu(z) = %s = %s"%(self._nu,hex(self._nu)))
+            self._info_stream("\tw=%d,h=%d+%d+%d"
                              %(self._degree,
                                self._mu.hammingWeight,
                                self._inv_mu.hammingWeight,
@@ -524,12 +524,12 @@ class PolynomialSearch(Logger):
                                                 args=(semaphore,pool,
                                                       mu,inv_mu,nu,finalists,
                                                       progress,finish)))
-        self.info_stream("Parallel testing of sboxes candidates. "\
+        self._info_stream("Parallel testing of sboxes candidates. "\
                          "%d tasks with %d parallel slots"
                          %(len(jobs),self._inParallel))
         #start very many jobs consumes a huge portion of memory
         #then use an event to report that a new job can be launched
-        self.info_stream("Starting %d parallel tasks"%(self._inParallel))
+        self._info_stream("Starting %d parallel tasks"%(self._inParallel))
         for i in range(self._inParallel+1):
             jobs[i].start()
         lastTask = len(jobs)
@@ -562,7 +562,7 @@ class PolynomialSearch(Logger):
                                 %(progress,mu,inv_mu,nu,e))
             return
         if average:
-            self.info_stream("\t\t[%d%%]Candidate (%s,%s,%s)"\
+            self._info_stream("\t\t[%d%%]Candidate (%s,%s,%s)"\
                              " = %f (std %g)"
                               %(progress,mu,inv_mu,nu,average,std))
             with self._classifiedLock:
@@ -664,7 +664,7 @@ def cmdArgs(parser):
                            "sboxes restrictions with in a ring search"\
                       "do it in parallel")
 
-def doSearch(degree,tmeasDateTime,loglevel=Logger.info,
+def doSearch(degree,tmeasDateTime,loglevel=Logger._info,
              res=None,inParallel=None):
     try:
         searcher = PolynomialSearch(degree,tmeasDateTime,loglevel,inParallel)
@@ -706,7 +706,7 @@ class ActivePool(object):
             self._results[key] = value
             print("Saving results in ActivePool, they are: %s"%(self._results))
 
-def worker(_lock, pool, tmeasDateTime,fName,fLocker,logLevel=Logger.info):
+def worker(_lock, pool, tmeasDateTime,fName,fLocker,logLevel=Logger._info):
     id = int(multiprocessing.current_process().name)
     with _lock:
         pool.makeActive("%s"%id)
@@ -732,7 +732,7 @@ def worker(_lock, pool, tmeasDateTime,fName,fLocker,logLevel=Logger.info):
 MIN_RING = 3
 MAX_RING = 16
 
-def makeItParallel(measCk,fName,logLevel=Logger.info):
+def makeItParallel(measCk,fName,logLevel=Logger._info):
     pool = ActivePool()
     maxParallelprocesses = multiprocessing.cpu_count()
     semaphore = multiprocessing.Semaphore(maxParallelprocesses)

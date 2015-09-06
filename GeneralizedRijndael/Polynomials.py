@@ -24,11 +24,14 @@
 ##
 ##############################################################################
 
-from Logger import Logger,levelFromMeaning
-from ThirdLevel import shift,binlen
-from copy import copy,deepcopy
+from Logger import Logger as _Logger
+#from Logger import levelFromMeaning as _levelFromMeaning
+from ThirdLevel import shift as _shift
+#from ThirdLevel import binlen as _binlen
+from copy import copy as _copy
+from copy import deepcopy as _deepcopy
 
-def BinaryPolynomialModulo(modulo,variable='x',loglevel=Logger.info):
+def BinaryPolynomialModulo(modulo,variable='x',loglevel=_Logger._info):
     '''BinaryPolynomialModulo is a builder for the given modulo. The returning
        object can generate elements in this field or ring (depending on the 
        reducibility of the modulo polynomial).
@@ -53,7 +56,7 @@ def BinaryPolynomialModulo(modulo,variable='x',loglevel=Logger.info):
                         %(modulo,variable))
     #This help is shown when
     #>>> Polynomials.BinaryPolynomialModulo?
-    class BinaryPolynomialModuloConstructor(Logger):
+    class BinaryPolynomialModuloConstructor(_Logger):
         def __init__(self,value):
             '''Polynomial defined by an integer or an string representation 
                of an element of the field or ring defined when made the builder
@@ -72,7 +75,7 @@ def BinaryPolynomialModulo(modulo,variable='x',loglevel=Logger.info):
             #This help is shown when, from the last one
             #>>> field?
             #FIXME: improve the logging on this class
-            Logger.__init__(self,loglevel)
+            _Logger.__init__(self,loglevel)
             if len(variable) != 1:
                 raise NameError("The indeterminate must be "\
                                 "a single character.")
@@ -95,7 +98,7 @@ def BinaryPolynomialModulo(modulo,variable='x',loglevel=Logger.info):
                                          "is not interpretable"%(type(value)))
             self._gcd = None
             self._multinv = None
-            self.debug_stream("coefficients", self._coefficients)
+            self._debug_stream("coefficients", self._coefficients)
             if type(modulo) == int:
                 self._modulo = modulo
             elif type(modulo) == str:
@@ -106,12 +109,12 @@ def BinaryPolynomialModulo(modulo,variable='x',loglevel=Logger.info):
                 except Exception,e:
                     raise AssertionError("The given modulo type '%s'"\
                                          "is not interpretable"%(type(modulo)))
-            self.debug_stream("modulo", self._modulo)
+            self._debug_stream("modulo", self._modulo)
             #if the degree of coefficients > degree of modulo, do the reduction
             if self.degree >= len("{0:b}".format(self._modulo)):
                 q,r = self.__division__(self._coefficients,self._modulo)
                 self._coefficients = r
-                self.debug_stream("reduced coefficients", self._coefficients)
+                self._debug_stream("reduced coefficients", self._coefficients)
         @property
         def coefficients(self):
             return self._coefficients
@@ -266,8 +269,8 @@ def BinaryPolynomialModulo(modulo,variable='x',loglevel=Logger.info):
         #---- + Addition
         @checkTypes
         def __add__(self,other):# => a+b
-            a = copy(self.coefficients)
-            b = copy(other.coefficients)
+            a = _copy(self.coefficients)
+            b = _copy(other.coefficients)
             return BinaryPolynomialModuloConstructor(a^b)
         def __iadd__(self,other):# => a+=b
             bar = self + other
@@ -279,8 +282,8 @@ def BinaryPolynomialModulo(modulo,variable='x',loglevel=Logger.info):
             return self
         def __sub__(self, other):# => a-b
             bar = -other
-            a = copy(self.coefficients)
-            b = copy(other.coefficients)
+            a = _copy(self.coefficients)
+            b = _copy(other.coefficients)
             return BinaryPolynomialModuloConstructor(a^b)
         def __isub__(self,other):# => a-=b
             bar = self - other
@@ -290,10 +293,10 @@ def BinaryPolynomialModulo(modulo,variable='x',loglevel=Logger.info):
         def __mul__(self,other):# => a*b
             '''
             '''
-            a = copy(self._coefficients)
-            b = copy(other._coefficients)
+            a = _copy(self._coefficients)
+            b = _copy(other._coefficients)
             res = self.__multiply__(a,b)
-            self.debug_stream("c = a * b = %s * %s = %s"
+            self._debug_stream("c = a * b = %s * %s = %s"
                               %(self.__interpretToStr__(a),
                                 self.__interpretToStr__(b),
                                 self.__interpretToStr__(res)))
@@ -317,8 +320,8 @@ def BinaryPolynomialModulo(modulo,variable='x',loglevel=Logger.info):
                       <integer> b (multiplier)
                Output: <integer> (result of the polynomial product).
             '''
-            self.debug_stream("a %s"%self.__interpretToStr__(a))
-            self.debug_stream("b %s"%self.__interpretToStr__(b))
+            self._debug_stream("a %s"%self.__interpretToStr__(a))
+            self._debug_stream("b %s"%self.__interpretToStr__(b))
             result = 0
             mask = 1
             i = 0
@@ -340,7 +343,7 @@ def BinaryPolynomialModulo(modulo,variable='x',loglevel=Logger.info):
             aShifted = a << i
             newerAccum = accum ^ aShifted
             if bit:
-                self.debug_stream("aShifted: %s"%
+                self._debug_stream("aShifted: %s"%
                                  self.__interpretToStr__(aShifted))
                 return newerAccum
             else:
@@ -364,22 +367,22 @@ def BinaryPolynomialModulo(modulo,variable='x',loglevel=Logger.info):
                 mx1 that can be back interpreted each bit as the coeffiecient
                 in a polynomial GF(2^w) if it was irreducible modulo or a ring.
             '''
-            self.debug_stream("self * other: %r * %r = %s * %s"%(self,other,
+            self._debug_stream("self * other: %r * %r = %s * %s"%(self,other,
                   bin(self._coefficients),bin(other._coefficients)))
             #self._coefficients in binary corresponds to last row
             #1 shift to the left is row0
             row = self._cyclic_rshift_(1)
             res = 0
-            self.debug_stream("input: %s %r"%(bin(other._coefficients),other))
+            self._debug_stream("input: %s %r"%(bin(other._coefficients),other))
             input = self.__mirrorbits__(other._coefficients)
             for i in range(self.modulodegree-1):
                 res = res << 1
-                self.debug_stream("row[%d]: %s %r"%(i,bin(row._coefficients),row))
+                self._debug_stream("row[%d]: %s %r"%(i,bin(row._coefficients),row))
                 bitProduct = row._coefficients & input
                 parity = self.__parity__(bitProduct)
                 row = row._cyclic_rshift_(1)
                 res |= parity
-            self.debug_stream("result: %s"%bin(res))
+            self._debug_stream("result: %s"%bin(res))
             return BinaryPolynomialModuloConstructor(self.__mirrorbits__(res))
         def __parity__(self,bits):
             '''Given a number, use a bit representation to proceed with an xor 
@@ -388,7 +391,7 @@ def BinaryPolynomialModulo(modulo,variable='x',loglevel=Logger.info):
             msg = "parity = %s"%(bin(bits))
             while bits > 1:
                 bits = (bits >> 1) ^ (bits & 1)
-            self.debug_stream("%s = %d"%(msg,bits))
+            self._debug_stream("%s = %d"%(msg,bits))
             return bits
         def __mirrorbits__(self,bits):
             '''Exchange the bit significance by placing the LSB first and the
@@ -401,22 +404,22 @@ def BinaryPolynomialModulo(modulo,variable='x',loglevel=Logger.info):
                 mirror <<= 1
                 mirror |= origin & 1
                 origin >>= 1
-            self.debug_stream("mirrored %s to %s"%(bin(bits),bin(mirror)))
+            self._debug_stream("mirrored %s to %s"%(bin(bits),bin(mirror)))
             return mirror
         #---- /% Division
         def __division__(self,a,b):
             '''TODO
             '''
             #FIXME: check division by 0 => ZeroDivisionError
-            self.debug_stream("\n<division>")
+            self._debug_stream("\n<division>")
             gr_a = len("{0:b}".format(a))-1
             gr_b = len("{0:b}".format(b))-1
             q = 0
             r = a
-            self.debug_stream("a",a)
-            self.debug_stream("b",b)
-            self.debug_stream("q",q)
-            self.debug_stream("r",r)
+            self._debug_stream("a",a)
+            self._debug_stream("b",b)
+            self._debug_stream("q",q)
+            self._debug_stream("r",r)
             shift = gr_a-gr_b
             while len("{0:b}".format(r))>=len("{0:b}".format(b)) and \
                   shift >= 0:
@@ -426,12 +429,12 @@ def BinaryPolynomialModulo(modulo,variable='x',loglevel=Logger.info):
                     temp = int("{0:b}".format(r)[0:-shift],2)<<shift
                 else:
                     temp = r
-                self.debug_stream("temp",temp)
+                self._debug_stream("temp",temp)
                 subs = b << shift
-                self.debug_stream("subs",subs)
+                self._debug_stream("subs",subs)
                 if len("{0:b}".format(temp)) == len("{0:b}".format(subs)):
                     bar = temp ^ subs
-                    self.debug_stream("temp ^subs",bar)
+                    self._debug_stream("temp ^subs",bar)
                     if shift > 0:
                         mask = int('1'*shift,2)
                         q = q | 1<<(shift)
@@ -439,11 +442,11 @@ def BinaryPolynomialModulo(modulo,variable='x',loglevel=Logger.info):
                     else:
                         q |= 1
                         r = bar
-                self.debug_stream("q",q)
-                self.debug_stream("r",r)
+                self._debug_stream("q",q)
+                self._debug_stream("r",r)
                 gr_a -= 1
                 shift = gr_a-gr_b
-            self.debug_stream("<\\division>\n")
+            self._debug_stream("<\\division>\n")
             return (q,r)
         def __div__(self,other):# => a/b
             q,r = self.__division__(self._coefficients,other._coefficients)
@@ -472,17 +475,17 @@ def BinaryPolynomialModulo(modulo,variable='x',loglevel=Logger.info):
                        <integer> y (polynomial bit representation)
             '''
             u,v = a,b
-            self.debug_stream("u",u)
-            self.debug_stream("v",v)
+            self._debug_stream("u",u)
+            self._debug_stream("v",v)
             g1,g2,h1,h2 = 1,0,0,1
-            self.debug_stream("g1",g1)
-            self.debug_stream("g2",g2)
-            self.debug_stream("h1",h1)
-            self.debug_stream("h2",h2)
+            self._debug_stream("g1",g1)
+            self._debug_stream("g2",g2)
+            self._debug_stream("h1",h1)
+            self._debug_stream("h2",h2)
             while u != 0:
                 j = len("{0:b}".format(u))-len("{0:b}".format(v))
                 if j < 0:
-                    self.debug_stream("%d < 0"%j)
+                    self._debug_stream("%d < 0"%j)
                     #u <-> v
                     u,v = v,u
                     #g1 <-> g2
@@ -493,13 +496,13 @@ def BinaryPolynomialModulo(modulo,variable='x',loglevel=Logger.info):
                 u = u^(v<<j)
                 g1 = g1^(g2<<j)
                 h1 = h1^(h2<<j)
-                self.debug_stream("\tu",u)
-                self.debug_stream("\tg1",g1)
-                self.debug_stream("\th1",h1)
+                self._debug_stream("\tu",u)
+                self._debug_stream("\tg1",g1)
+                self._debug_stream("\th1",h1)
             d,g,h = v,g2,h2
-            self.debug_stream("d",d)
-            self.debug_stream("g",g)
-            self.debug_stream("h",h)
+            self._debug_stream("d",d)
+            self._debug_stream("g",g)
+            self._debug_stream("h",h)
             return d,g,h
         @checkTypes
         def __gcd__(self,other):
@@ -520,8 +523,8 @@ def BinaryPolynomialModulo(modulo,variable='x',loglevel=Logger.info):
             if self._gcd == None:
                 self._gcd,self._multinv,y = \
                                  self.__egcd__(self._coefficients,self._modulo)
-            self.debug_stream("gcd",self._gcd)
-            self.debug_stream("x",self._multinv)
+            self._debug_stream("gcd",self._gcd)
+            self._debug_stream("x",self._multinv)
             if self._gcd != 1:
                 raise ArithmeticError("The inverse of %s modulo %s "\
                                       "doens't exist!"
@@ -696,16 +699,16 @@ class PolynomialRing:
            Input:
            Output:
         '''
-        res=deepcopy(sx)#---- FIXME: #[[0]*self.__nRows]*self.__nColumns
+        res=_deepcopy(sx)#---- FIXME: #[[0]*self.__nRows]*self.__nColumns
         for c in range(self.__nColumns):
-            shifted_ax=shift(ax,self.__nRows-1)
+            shifted_ax=_shift(ax,self.__nRows-1)
             for r in range(self.__nRows):
                 res[r][c]=0
                 for rbis in range(self.__nRows):
                     a = self._field(shifted_ax[rbis])
                     b = self._field(sx[rbis][c])
                     res[r][c]^=(a*b)._coefficients
-                shifted_ax=shift(shifted_ax,-1)
+                shifted_ax=_shift(shifted_ax,-1)
         return res
 
 if __name__ == "__main__":

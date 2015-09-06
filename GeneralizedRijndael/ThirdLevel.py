@@ -28,7 +28,7 @@
    levels above the Rijndael operations.
 '''
 
-from Logger import Logger
+from Logger import Logger as _Logger
 
 binlen=lambda x: len(bin(x))-2
 
@@ -105,9 +105,9 @@ def shift(l,n):
     '''
     return l[n:]+l[:n]
 
-class State(Logger):
-    def __init__(self,nRows,nColumns,loglevel=Logger.info):
-        Logger.__init__(self,loglevel)
+class State(_Logger):
+    def __init__(self,nRows,nColumns,loglevel=_Logger._info):
+        _Logger.__init__(self,loglevel)
         self.__nRows=nRows
         self.__nColumns=nColumns
     def fromArray(self,input):
@@ -127,8 +127,8 @@ class State(Logger):
             else:
                 state[row].append(input[i])
         for i in range(self.__nRows):
-            self.debug_stream("state[%d]"%i,state[i])
-        self.debug_stream("makeArray",state)
+            self._debug_stream("state[%d]"%i,state[i])
+        self._debug_stream("makeArray",state)
         return state
 
     def toArray(self,state):
@@ -141,5 +141,5 @@ class State(Logger):
         for j in range(self.__nColumns):
             for i in range(self.__nRows):
                 output.append(state[i][j])
-        self.debug_stream("unmakeArray",output)
+        self._debug_stream("unmakeArray",output)
         return output
