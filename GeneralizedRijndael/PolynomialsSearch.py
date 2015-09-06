@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from docutils.parsers.rst.directives import percentage
 
 #---- licence header
 ##############################################################################
@@ -384,18 +385,34 @@ class PolynomialSearch(Logger):
         self.info_stream("\tAnd from here, the winner is the one with "\
                          "timming results.")
         goalWeight = (self._degree/2)*3
+        if self._degree < 8:
+            goalThreshold = self._degree/2
+        elif self._degree < 8:
+            goalThreshold = self._degree/4
+        else:#reduce the space to save memory
+            goalThreshold = self._degree/8
         candidates = {}
-        for mu,inv_mu in goodWeight:
+        total = len(goodWeight)
+        for idx,pair in enumerate(goodWeight):
+            mu,inv_mu = pair
+            percentage = int(float(idx)/total*100)
             for idx in range(2,2**self._degree):
                 nu = self._ring(idx)
                 h = mu.hammingWeight+inv_mu.hammingWeight+nu.hammingWeight
-                if not candidates.has_key(h):
-                    candidates[h] = []
-                #reduce memory use when collect all the weights
-                #but later they will be needed as polynomials
-                candidates[h].append([mu.coefficients,
-                                      inv_mu.coefficients,
-                                      nu.coefficients])
+                if goalWeight-goalThreshold < h < goalWeight+goalThreshold:
+                    #discard too far weights to save memory
+                    if not candidates.has_key(h):
+                        candidates[h] = []
+                    #reduce memory use when collect all the weights
+                    #but later they will be needed as polynomials
+                    candidates[h].append([mu.coefficients,
+                                          inv_mu.coefficients,
+                                          nu.coefficients])
+            items = 0
+            for k in candidates.keys():
+                items += len(candidates[k])
+            self.info_stream("\t[%d%%]Having %d candidates with weights %s"
+                             %(percentage,items,candidates.keys()))
         if candidates.has_key(goalWeight):
             classified = candidates[goalWeight]
             self.info_stream("There are %d classified with the goalWeight"
@@ -417,13 +434,14 @@ class PolynomialSearch(Logger):
         self.info_stream("The %d pairs, has been expanded to %d triples to "\
                          "check their computation time."
                          %(len(goodWeight),len(classified)))
-        bar = []
-        for element in classified:
-            mu = self._ring(element[0])
-            mu = self._ring(element[1])
-            inv_nu = self._ring(element[2])
-            bar.append([mu,inv_mu,nu])
-        classified = bar
+        del candidates
+#         bar = []
+#         for element in classified:
+#             mu = self._ring(element[0])
+#             mu = self._ring(element[1])
+#             inv_nu = self._ring(element[2])
+#             bar.append([mu,inv_mu,nu])
+#         classified = bar
         OutputFile("ring%d_restriction3_classified"
                    %self._degree).write(classified)
         if len(classified) == 1:
@@ -532,6 +550,9 @@ class PolynomialSearch(Logger):
             pool.makeInactive("%s"%pid)
 
     def _testNuCandidate(self,mu,inv_mu,nu,finalists,tmeasurer,progress):
+        mu = self._ring(mu)
+        inv_mu = self._ring(inv_mu)
+        nu = self._ring(nu)
         try:
             average,std = self._fullTestAffineTransformation(mu,nu,tmeasurer)
         except ArithmeticError,e:
