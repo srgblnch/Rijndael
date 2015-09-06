@@ -391,38 +391,61 @@ class PolynomialSearch(Logger):
                 h = mu.hammingWeight+inv_mu.hammingWeight+nu.hammingWeight
                 if not candidates.has_key(h):
                     candidates[h] = []
-                candidates[h].append([mu,inv_mu,nu])
+                #reduce memory use when collect all the weights
+                #but later they will be needed as polynomials
+                candidates[h].append([mu.coefficients,
+                                      inv_mu.coefficients,
+                                      nu.coefficients])
         if candidates.has_key(goalWeight):
             classified = candidates[goalWeight]
+            self.info_stream("There are %d classified with the goalWeight"
+                             %(len(classified)))
         else:
             i = 1
             classified = []
             while i<self._degree/2 and not classified:
                 for idx in [goalWeight-i,goalWeight+i]:
-                    classified.append(candidates[idx])
-                    self.info_stream("added %d classified with combined "
-                                     "hamming weight of %d"
-                                     %(len(candidates[idx]),idx))
-        self.info_stream("There are %d classified to check their timming"
-                         %(len(classified)))
+                    if candidates.has_key(idx):
+                        for element in candidates[idx]:
+                            classified.append(element)
+                        self.info_stream("Added %d classified with combined "
+                                         "hamming weight of %d"
+                                         %(len(candidates[idx]),idx))
+                    else:
+                        self.info_stream("No candidates with weight %d"
+                                         %(len(candidates[idx])))
+        self.info_stream("The %d pairs, has been expanded to %d triples to "\
+                         "check their computation time."
+                         %(len(goodWeight),len(classified)))
+        bar = []
+        for element in classified:
+            mu = self._ring(element[0])
+            mu = self._ring(element[1])
+            inv_nu = self._ring(element[2])
+            bar.append([mu,inv_mu,nu])
+        classified = bar
         OutputFile("ring%d_restriction3_classified"
                    %self._degree).write(classified)
-        if self._inParallel:
-            finalists = self._manager.list()
-        else:
+        if len(classified) == 1:
+            self.info_stream("With only one classified, avoiding timming "\
+                             "measures, there is a winner already")
             finalists = {}
-        if self._inParallel:
-            if not self._useDateTime:
-                raise EnvironmentError("Parallel calculation only "\
-                                       "available with --datetime")
+            finalists[(None,None)] = classified
+        elif self._inParallel:
+            finalists = self._manager.list()
             self._makeItParallel(classified,finalists)
         else:
+            finalists = {}
             if self._useDateTime:
                 tmeasurer = TimeFromDatetime()
             else:
                 tmeasurer = TimeFromClock()
-            for mu,inv_mu,nu in classified:
-                self._testNuCandidate(mu,inv_mu,nu,finalists,tmeasurer)
+            totalElements = len(classified)
+            for idx,element in enumerate(classified):
+                mu,inv_mu,nu = element
+                progress = int(float(idx)/totalElements*100)
+                self._testNuCandidate(mu,inv_mu,nu,finalists,
+                                      tmeasurer,progress)
         if self._inParallel:
             bar = {}
             for element in finalists:
@@ -472,42 +495,53 @@ class PolynomialSearch(Logger):
             self.warning_stream("Cannot prepare more slots that the available"\
                                 "number of cores. Cutting to the maximum.")
             self._inParallel = maxParallelprocesses
+        if not self._useDateTime:
+            raise EnvironmentError("No support for time.clock in parallel "\
+                                   "calculation. Use --datetime")
         semaphore = multiprocessing.Semaphore(self._inParallel)
         fLocker = multiprocessing.Lock()
         results = {}
-        jobs = [
-                multiprocessing.Process(target=self.worker, 
-                                        name=str(nu.coefficients), 
-                                        args=(semaphore,pool,mu,inv_mu,nu,
-                                              finalists,))
-                for mu,inv_mu,nu in goodCandidates
-                ]
+        totalElements = len(goodCandidates)
+        jobs = []
+        for idx,element in enumerate(goodCandidates):
+            mu,inv_mu,nu = element
+            progress = int(float(idx)/totalElements*100)
+            jobs.append(multiprocessing.Process(target=self.worker,
+                                                name=str(idx),
+                                                args=(semaphore,pool,
+                                                      mu,inv_mu,nu,finalists,
+                                                      progress)))
         self.info_stream("Parallel testing of sboxes candidates. "\
                   "%d tasks with %d parallel slots"
                   %(len(jobs),self._inParallel))
+        #FIXME: start very many jobs consumes a huge portion of memory
         for j in jobs:
             #self.info_stream('On start, running: %s'%str(pool))
             j.start()
-
         for j in jobs:
             j.join()
             #self.info_stream('Finish, running: %s'%str(pool))
         #self.info_stream("At the end: %s"%str(pool))
 
-    def worker(self,flow,pool,mu,inv_mu,nu,finalists):
+    def worker(self,flow,pool,mu,inv_mu,nu,finalists,progress):
         tmeasurer = TimeFromDatetime()
         with flow:
             pid = int(multiprocessing.current_process().name)
             pool.makeActive("%s"%pid)
-            self._testNuCandidate(mu,inv_mu,nu,finalists,tmeasurer)
+            self._testNuCandidate(mu,inv_mu,nu,finalists,tmeasurer,progress)
             pool.makeInactive("%s"%pid)
 
-    def _testNuCandidate(self,mu,inv_mu,nu,finalists,tmeasurer):
-        average,std = self._fullTestAffineTransformation(mu,nu,tmeasurer)
+    def _testNuCandidate(self,mu,inv_mu,nu,finalists,tmeasurer,progress):
+        try:
+            average,std = self._fullTestAffineTransformation(mu,nu,tmeasurer)
+        except ArithmeticError,e:
+            self.warning_stream("\t\t[%d%%]Discarted (%s,%s,%s): %s"
+                                %(progress,mu,inv_mu,nu,e))
+            return
         if average:
-            self.info_stream("\t\tCandidate (%s,%s,%s)"\
+            self.info_stream("\t\t[%d%%]Candidate (%s,%s,%s)"\
                              " = %f (std %g)"
-                              %(mu,inv_mu,nu,average,std))
+                              %(progress,mu,inv_mu,nu,average,std))
             with self._classifiedLock:
                 candidate = [mu.coefficients,
                              inv_mu.coefficients,
@@ -529,17 +563,19 @@ class PolynomialSearch(Logger):
             for i in range(2**self._degree):
                 a = self._ring(i)
                 b,tr,bm,tm = self._affineTransformation(a,mu,nu,tmeasurer)
-                if a == b or a == -b:
+                if a == b:
+                    raise ArithmeticError("Fixed point found")
+                elif a == -b:
+                    raise ArithmeticError("Opposite fixed point found")
                     self.debug_stream("\t\tDiscart %s: fixed or opposite fixed "\
                                       "point found"%(nu))
-                    return None,None
+                    raise ArithmeticError("")
                 t_ring.append(tr)
                 t_matrix.append(tm)
                 c,tr,cm,tm = self._invertAffineTransformation(b,bm,mu,nu,
                                                               tmeasurer)
                 if a != c:
-                    self.warning_stream("\t\tDiscart %s: %s != %s"%(nu,a,c))
-                    return None,None
+                    raise AssertionError("%s != %s"%(a,c))
                 t_ring.append(tr)
                 t_matrix.append(tm)
             t_ring = array(t_ring)
@@ -550,6 +586,12 @@ class PolynomialSearch(Logger):
             #results = t_matrix
             
             return results.mean(),results.std()
+        except ArithmeticError,e:
+            self.debug_stream("\t\tDiscart %s: %s"%(nu,e))
+            raise e
+        except AssertionError,e:
+            self.warning_stream("\t\tDiscart %s: %s"%(nu,e))
+            raise e
         except Exception,e:
             self.error_stream("Exception in full test of affine "\
                               "transformation for mu(z)=%s,nu(z)=%s: %s"
