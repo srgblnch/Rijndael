@@ -28,6 +28,7 @@
    concentrate every thing related with development and testing apart.
 '''
 
+from GeneralizedRijndael.Logger import levelFromMeaning as _levelFromMeaning
 from GeneralizedRijndael.Polynomials import *
 
 #---- ## Begin testing area
@@ -496,9 +497,9 @@ def setupLogging(loglevel):
     '''
     global logs
     if loglevel != None:
-        logs = levelFromMeaning(loglevel)
+        logs = _levelFromMeaning(loglevel)
     else:
-        logs = levelFromMeaning('info')
+        logs = _levelFromMeaning('info')
 
 from optparse import OptionParser
 

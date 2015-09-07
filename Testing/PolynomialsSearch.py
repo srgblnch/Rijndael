@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-from docutils.parsers.rst.directives import percentage
-
 #---- licence header
 ##############################################################################
 ##
@@ -38,6 +36,7 @@ from GeneralizedRijndael.Logger import Logger
 import multiprocessing
 from numpy import array,float64
 from optparse import OptionParser
+from GeneralizedRijndael.Logger import levelFromMeaning as _levelFromMeaning
 from GeneralizedRijndael.Polynomials import *
 from PolynomialsTest import setupLogging
 from sys import getrecursionlimit,setrecursionlimit
@@ -228,7 +227,7 @@ class PolynomialSearch(Logger):
                     self._info_stream("\tcandidate found: (%s,%s)"
                                      %(sample,inverse))
                 else:
-                    self.debug_stream("\tcandidate already in from inverse"\
+                    self._debug_stream("\tcandidate already in from inverse"\
                                       " (%s)"%(sample))
             idx += 1
         self._info_stream("R0: Found %d candidates and %d non invertible "\
@@ -246,10 +245,10 @@ class PolynomialSearch(Logger):
         differentInverse = []
         for sample,inverse in invertibles:
             if sample == inverse:
-                self.debug_stream("\tremoving  (%s,%s)"%(sample,inverse))
+                self._debug_stream("\tremoving  (%s,%s)"%(sample,inverse))
             else:
                 differentInverse.append([sample,inverse])
-                self.debug_stream("\tincluding (%s,%s)"%(sample,inverse))
+                self._debug_stream("\tincluding (%s,%s)"%(sample,inverse))
         self._info_stream("R1: left %d candidates"
                           %(len(differentInverse)))
         return differentInverse
@@ -286,11 +285,11 @@ class PolynomialSearch(Logger):
                           %(weights))
         if weights.count(self._degree):#exact equality
             bestGlobalWeight = classification[self._degree]
-            self.debug_stream("\t\tfound %d candidates with weight %s"
+            self._debug_stream("\t\tfound %d candidates with weight %s"
                               %(len(bestGlobalWeight),self._degree))
         else:
             bestGlobalWeight = []
-            self.warning_stream("\t\tNo candidates with %d"%(self._degree))
+            self._warning_stream("\t\tNo candidates with %d"%(self._degree))
             i = 1
             while i<self._degree and not bestGlobalWeight:
                 indexes = [self._degree-i,self._degree+i]
@@ -302,7 +301,7 @@ class PolynomialSearch(Logger):
                         for candidate in close:
                             bestGlobalWeight.append(candidate)
                     else:
-                        self.warning_stream("\t\tNo candidates with %d"%(idx))
+                        self._warning_stream("\t\tNo candidates with %d"%(idx))
                 i+=1
         self._info_stream("\tR2a: left %d candidates"
                           %(len(bestGlobalWeight)))
@@ -329,13 +328,13 @@ class PolynomialSearch(Logger):
         idx = (halfdegree,halfdegree)
         if weights.count(idx):
             close = classification[idx]
-            self.debug_stream("\t\tfound %d candidates with "\
+            self._debug_stream("\t\tfound %d candidates with "\
                               "individual weights %s"
                               %(len(close),idx))
             for candidate in classification[idx]:
                 goodWeight.append(candidate)
         else:
-            self.debug_stream("\t\tNo candidates with (%d,%d)"
+            self._debug_stream("\t\tNo candidates with (%d,%d)"
                               %(halfdegree,halfdegree))
             i = 0
             while i<=halfdegree and not goodWeight:
@@ -351,13 +350,13 @@ class PolynomialSearch(Logger):
                     for idx in indexes:
                         if weights.count(idx):
                             close = classification[idx]
-                            self.debug_stream("\t\tfound %d candidates with "\
+                            self._debug_stream("\t\tfound %d candidates with "\
                                               "individual weights (%s,%s)"
                                               %(len(close),idx[0],idx[1]))
                             for candidate in classification[idx]:
                                 goodWeight.append(candidate)
                         else:
-                            self.debug_stream("\t\tNo candidates with "\
+                            self._debug_stream("\t\tNo candidates with "\
                                               "(%s,%s)"%(idx[0],idx[1]))
                     j+=1
                 i+=1
@@ -477,7 +476,7 @@ class PolynomialSearch(Logger):
             l = ""
             for each in winner:
                 l = "%s\t%s\n"%(l,each)
-            self.error_stream("***** Found a non unique winner! *****\n%s"%(l))
+            self._error_stream("***** Found a non unique winner! *****\n%s"%(l))
         else:
             self._std_average = std_average[0]
             self._mu = self._ring(winner[0][0])
@@ -503,7 +502,7 @@ class PolynomialSearch(Logger):
         pool = ActivePool()
         maxParallelprocesses = multiprocessing.cpu_count()
         if self._inParallel > maxParallelprocesses:
-            self.warning_stream("Cannot prepare more slots that the available"\
+            self._warning_stream("Cannot prepare more slots that the available"\
                                 "number of cores. Cutting to the maximum.")
             self._inParallel = maxParallelprocesses
         if not self._useDateTime:
@@ -536,7 +535,7 @@ class PolynomialSearch(Logger):
         for i in range(self._inParallel+1,lastTask+1):
             finish.clear()
             if i < lastTask:
-                self.debug_stream("A task has finished, launching next %d"%(i))
+                self._debug_stream("A task has finished, launching next %d"%(i))
                 jobs[i].start()
             finish.wait()
         for j in jobs:
@@ -558,7 +557,7 @@ class PolynomialSearch(Logger):
         try:
             average,std = self._fullTestAffineTransformation(mu,nu,tmeasurer)
         except ArithmeticError,e:
-            self.warning_stream("\t\t[%d%%]Discarted (%s,%s,%s): %s"
+            self._warning_stream("\t\t[%d%%]Discarted (%s,%s,%s): %s"
                                 %(progress,mu,inv_mu,nu,e))
             return
         if average:
@@ -590,7 +589,7 @@ class PolynomialSearch(Logger):
                     raise ArithmeticError("Fixed point found")
                 elif a == -b:
                     raise ArithmeticError("Opposite fixed point found")
-                    self.debug_stream("\t\tDiscart %s: fixed or opposite fixed "\
+                    self._debug_stream("\t\tDiscart %s: fixed or opposite fixed "\
                                       "point found"%(nu))
                     raise ArithmeticError("")
                 t_ring.append(tr)
@@ -610,13 +609,13 @@ class PolynomialSearch(Logger):
             
             return results.mean(),results.std()
         except ArithmeticError,e:
-            self.debug_stream("\t\tDiscart %s: %s"%(nu,e))
+            self._debug_stream("\t\tDiscart %s: %s"%(nu,e))
             raise e
         except AssertionError,e:
-            self.warning_stream("\t\tDiscart %s: %s"%(nu,e))
+            self._warning_stream("\t\tDiscart %s: %s"%(nu,e))
             raise e
         except Exception,e:
-            self.error_stream("Exception in full test of affine "\
+            self._error_stream("Exception in full test of affine "\
                               "transformation for mu(z)=%s,nu(z)=%s: %s"
                               %(mu,nu,e))
             import traceback
@@ -674,7 +673,7 @@ def doSearch(degree,tmeasDateTime,loglevel=Logger._info,
         return copy(searcher._mu),copy(searcher._nu)
     except Exception,e:
         try:
-            searcher.error_stream("Fatal error during search: %s"%(e))
+            searcher._error_stream("Fatal error during search: %s"%(e))
             import traceback
             traceback.print_exc()
         except:
@@ -761,9 +760,9 @@ def main():
     cmdArgs(parser)
     (options, args) = parser.parse_args()
     setupLogging(options.loglevel)
-    logLevel = levelFromMeaning(options.loglevel)
+    logLevel = _levelFromMeaning(options.loglevel)
     if options.find_mu_nu_candidates != None:
-        print("in parallel: %s"%(options.parallel_processing))
+        print("in parallel: %s"%(options.parallel_sboxes))
         doSearch(options.find_mu_nu_candidates,options.datetime,
                  logLevel,inParallel=options.parallel_sboxes)
     elif options.find_all_mu_nu_candidates != None:
