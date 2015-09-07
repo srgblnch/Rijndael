@@ -512,42 +512,65 @@ class PolynomialSearch(Logger):
         fLocker = multiprocessing.Lock()
         finish = multiprocessing.Event()
         finish.clear()
+        finishedTasks = self._manager.list()
         results = {}
         totalElements = len(goodCandidates)
-        jobs = []
+        jobs = {}
         for idx,element in enumerate(goodCandidates):
             mu,inv_mu,nu = element
             progress = int(float(idx)/totalElements*100)
-            jobs.append(multiprocessing.Process(target=self.worker,
-                                                name=str(idx),
-                                                args=(semaphore,pool,
-                                                      mu,inv_mu,nu,finalists,
-                                                      progress,finish)))
-        self._info_stream("Parallel testing of sboxes candidates. "\
+            jobs[idx] = {'target':self.worker,
+                         'name':str(idx),
+                         'args':(semaphore,pool,mu,inv_mu,nu,finalists,
+                                 progress,finish,finishedTasks)}
+        nTasks = len(jobs.keys())
+        self._debug_stream("Parallel testing of sboxes candidates. "\
                          "%d tasks with %d parallel slots"
-                         %(len(jobs),self._inParallel))
+                         %(nTasks,self._inParallel))
         #start very many jobs consumes a huge portion of memory
         #then use an event to report that a new job can be launched
-        self._info_stream("Starting %d parallel tasks"%(self._inParallel))
-        for i in range(self._inParallel+1):
-            jobs[i].start()
-        lastTask = len(jobs)
-        for i in range(self._inParallel+1,lastTask+1):
-            finish.clear()
-            if i < lastTask:
-                self._debug_stream("A task has finished, launching next %d"%(i))
-                jobs[i].start()
-            finish.wait()
-        for j in jobs:
-            j.join()
+        self._debug_stream("Starting %d parallel tasks"%(self._inParallel))
+        running = {}
+        while len(jobs.keys()) > 0 or len(running.keys()) > 0:
+            while len(finishedTasks) > 0:
+                j = finishedTasks.pop()
+                self._debug_stream("\t\t\tTask %d has finished "\
+                                   "(also finished %s)"%(j,finishedTasks))
+                running[j].join()
+                running.pop(j)
+            
+            self._debug_stream("\t\t\tPrepare to launch %d tasks"
+                               %(self._inParallel-len(running.keys())))
+            while len(jobs.keys()) > 0 and \
+            len(running.keys()) < self._inParallel:
+                i = jobs.keys()[0]
+                self._debug_stream("\t\t\tPreparing to launch task %d "\
+                                   "(running %s)"%(i,running.keys()))
+                running[i] = self.launchNewTask(i,jobs)
+                jobs.pop(i)
+            self._debug_stream("\t\t\tWait to task finish: %s"
+                               %(running.keys()))
+            if len(running.keys()) > 0:
+                finish.wait()
+                finish.clear()
 
-    def worker(self,flow,pool,mu,inv_mu,nu,finalists,progress,hasFinish):
+    def launchNewTask(self,i,jobs):
+        job = multiprocessing.Process(target=jobs[i]['target'],
+                                      name=jobs[i]['name'],
+                                      args=jobs[i]['args'])
+        self._debug_stream("\t\t\tLaunching task %d"%(i))
+        job.start()
+        return job
+
+    def worker(self,flow,pool,mu,inv_mu,nu,finalists,progress,
+               hasFinish,finishedTasks):
         tmeasurer = TimeFromDatetime()
         with flow:
             pid = int(multiprocessing.current_process().name)
             pool.makeActive("%s"%pid)
             self._testNuCandidate(mu,inv_mu,nu,finalists,tmeasurer,progress)
             pool.makeInactive("%s"%pid)
+            finishedTasks.append(pid)
             hasFinish.set()
 
     def _testNuCandidate(self,mu,inv_mu,nu,finalists,tmeasurer,progress):
