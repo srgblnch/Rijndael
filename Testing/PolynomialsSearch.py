@@ -384,7 +384,7 @@ class PolynomialSearch(Logger):
         self._info_stream("\tAnd from here, the winner is the one with "\
                          "timming results.")
         goalWeight = (self._degree/2)*3
-        goalThreshold = self._degree/2
+        goalThreshold = goalWeight
         candidates = {}
         total = len(goodWeight)
         for idx,pair in enumerate(goodWeight):
@@ -393,7 +393,8 @@ class PolynomialSearch(Logger):
             for idx in range(2,2**self._degree):
                 nu = self._ring(idx)
                 h = mu.hammingWeight+inv_mu.hammingWeight+nu.hammingWeight
-                if goalWeight-goalThreshold < h < goalWeight+goalThreshold:
+                if h in \
+                range(goalWeight-goalThreshold,goalWeight+goalThreshold+1):
                     #discard too far weights to save memory
                     if not candidates.has_key(h):
                         candidates[h] = []
@@ -403,18 +404,23 @@ class PolynomialSearch(Logger):
                                           inv_mu.coefficients,
                                           nu.coefficients])
             #reduce the dictionary keys if there are better weights
-            distances = []
-            for k in candidates.keys():
-                distances.append(abs(goalWeight-k))
-            distances.sort()
-            self._info_stream("Distances: %s"%(distances))
-            goalThreshold = distances[0]
-            for k in candidates.keys():
-                if abs(k-goalWeight) > goalThreshold:
-                    candidates.pop(k)
-                    self._info_stream("Removing candidates with combinated "\
-                                      "weight %d because there are already "\
-                                      "some with better weights"%(k))
+            if goalThreshold > 0:
+                distances = []
+                for k in candidates.keys():
+                    distances.append(abs(goalWeight-k))
+                distances.sort()
+                self._info_stream("\t\tWeight distances: %s"%(distances))
+                if goalThreshold > distances[0]:
+                    self._info_stream("\t\tReduce the threshold from %d "\
+                                      "to %d"%(goalThreshold,distances[0]))
+                    goalThreshold = distances[0]
+                for k in candidates.keys():
+                    if abs(k-goalWeight) > goalThreshold:
+                        x = candidates.pop(k)
+                        self._info_stream("\t\tRemoving %d candidates with "\
+                                          "combined weight %d because "\
+                                          "there are already some with "\
+                                          "better weights"%(len(x),k))
             items = 0
             for k in candidates.keys():
                 items += len(candidates[k])
@@ -542,21 +548,21 @@ class PolynomialSearch(Logger):
         while len(jobs.keys()) > 0 or len(running.keys()) > 0:
             while len(finishedTasks) > 0:
                 j = finishedTasks.pop()
-                self._debug_stream("\t\t\tTask %d has finished "\
+                self._debug_stream("\t\tTask %d has finished "\
                                    "(also finished %s)"%(j,finishedTasks))
                 running[j].join()
                 running.pop(j)
             
-            self._debug_stream("\t\t\tPrepare to launch %d tasks"
+            self._debug_stream("\t\tPrepare to launch %d tasks"
                                %(self._inParallel-len(running.keys())))
             while len(jobs.keys()) > 0 and \
             len(running.keys()) < self._inParallel:
                 i = jobs.keys()[0]
-                self._debug_stream("\t\t\tPreparing to launch task %d "\
+                self._debug_stream("\t\tPreparing to launch task %d "\
                                    "(running %s)"%(i,running.keys()))
                 running[i] = self.launchNewTask(i,jobs)
                 jobs.pop(i)
-            self._debug_stream("\t\t\tWait to task finish: %s"
+            self._debug_stream("\t\tWait to task finish: %s"
                                %(running.keys()))
             if len(running.keys()) > 0:
                 finish.wait()
@@ -566,7 +572,7 @@ class PolynomialSearch(Logger):
         job = multiprocessing.Process(target=jobs[i]['target'],
                                       name=jobs[i]['name'],
                                       args=jobs[i]['args'])
-        self._debug_stream("\t\t\tLaunching task %d"%(i))
+        self._debug_stream("\t\tLaunching task %d"%(i))
         job.start()
         return job
 
@@ -588,11 +594,11 @@ class PolynomialSearch(Logger):
         try:
             average,std = self._fullTestAffineTransformation(mu,nu,tmeasurer)
         except ArithmeticError,e:
-            self._warning_stream("\t\t[%d%%]Discarted (%s,%s,%s): %s"
+            self._warning_stream("\t[%d%%]Discarted (%s,%s,%s): %s"
                                 %(progress,mu,inv_mu,nu,e))
             return
         if average:
-            self._info_stream("\t\t[%d%%]Candidate (%s,%s,%s)"\
+            self._info_stream("\t[%d%%]Candidate (%s,%s,%s)"\
                              " = %f (std %g)"
                               %(progress,mu,inv_mu,nu,average,std))
             with self._classifiedLock:
