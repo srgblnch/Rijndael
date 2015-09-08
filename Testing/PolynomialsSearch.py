@@ -384,12 +384,7 @@ class PolynomialSearch(Logger):
         self._info_stream("\tAnd from here, the winner is the one with "\
                          "timming results.")
         goalWeight = (self._degree/2)*3
-        if self._degree < 8:
-            goalThreshold = self._degree/2
-        elif self._degree < 8:
-            goalThreshold = self._degree/4
-        else:#reduce the space to save memory
-            goalThreshold = self._degree/8
+        goalThreshold = self._degree/2
         candidates = {}
         total = len(goodWeight)
         for idx,pair in enumerate(goodWeight):
@@ -407,6 +402,19 @@ class PolynomialSearch(Logger):
                     candidates[h].append([mu.coefficients,
                                           inv_mu.coefficients,
                                           nu.coefficients])
+            #reduce the dictionary keys if there are better weights
+            distances = []
+            for k in candidates.keys():
+                distances.append(abs(goalWeight-k))
+            distances.sort()
+            self._info_stream("Distances: %s"%(distances))
+            goalThreshold = distances[0]
+            for k in candidates.keys():
+                if abs(k-goalWeight) > goalThreshold:
+                    candidates.pop(k)
+                    self._info_stream("Removing candidates with combinated "\
+                                      "weight %d because there are already "\
+                                      "some with better weights"%(k))
             items = 0
             for k in candidates.keys():
                 items += len(candidates[k])
