@@ -323,6 +323,11 @@ class PolynomialSearch(Logger):
             classification[(h1,h2)].append([sample,inverse])
         weights = classification.keys()
         self._info_stream("\tR2b: weights classification: %s"%(weights))
+        return self._classifyByIndividualWeights(classification,weights)
+
+    #####
+    #---- restriction 2 submethods
+    def _classifyByIndividualWeights(self,classification,weights):
         halfdegree = self._degree//2
         goodWeight = []
         idx = (halfdegree,halfdegree)
@@ -363,6 +368,8 @@ class PolynomialSearch(Logger):
         self._info_stream("\tR2b: left %d candidates"
                           %(len(goodWeight)))
         return goodWeight
+    #---- done restriction 2 submethods
+    #####
 
     def _restriction3(self,goodWeight):
         '''
@@ -382,8 +389,25 @@ class PolynomialSearch(Logger):
         self._info_stream("R3: Find nu(z) candidates and select triplets "\
                           "with closer hamming weight to (w/2)*3.")
         self._info_stream("\tAnd from here, the winner is the one with "\
-                         "timming results.")
+                         "timing results.")
         goalWeight = (self._degree/2)*3
+        candidates = self._ExpandPairs2Triples(goodWeight,goalWeight)
+        classified = self._classifyByCombinedHammingWeight(candidates,goalWeight)
+        self._info_stream("The %d pairs, has been expanded to %d triples to "\
+                         "check their computation time."
+                         %(len(goodWeight),len(classified)))
+        del candidates
+        OutputFile("ring%d_restriction3_classified"
+                   %self._degree).write(classified)
+        classified = self._randomClassified(classified)
+        finalists = self._doTimeMeasurements(classified)
+        del classified
+        finalists = self._unflatFinalists(finalists)
+        self._selectTheWinner(finalists)
+
+    #####
+    #---- restriction 3 submethods
+    def _ExpandPairs2Triples(self,goodWeight,goalWeight):
         goalThreshold = goalWeight
         candidates = {}
         total = len(goodWeight)
@@ -426,6 +450,9 @@ class PolynomialSearch(Logger):
                 items += len(candidates[k])
             self._info_stream("\t[%d%%]Having %d candidates with weights %s"
                              %(percentage,items,candidates.keys()))
+        return candidates
+
+    def _classifyByCombinedHammingWeight(self,candidates,goalWeight):
         if candidates.has_key(goalWeight):
             classified = candidates[goalWeight]
             self._info_stream("There are %d classified with the goalWeight"
@@ -444,12 +471,17 @@ class PolynomialSearch(Logger):
                     else:
                         self._info_stream("No candidates with weight %d"
                                          %(len(candidates[idx])))
-        self._info_stream("The %d pairs, has been expanded to %d triples to "\
-                         "check their computation time."
-                         %(len(goodWeight),len(classified)))
-        del candidates
-        OutputFile("ring%d_restriction3_classified"
-                   %self._degree).write(classified)
+        return classified
+
+    def _randomClassified(self,classified):
+        from random import randint
+        self._debug_stream("Too many elements is classified, "\
+                           "doing a random cut")
+        while len(classified) > 1e5:
+            classified.pop(randint(0,len(classified)))
+        return classified
+
+    def _doTimeMeasurements(self,classified):
         if len(classified) == 1:
             self._info_stream("With only one classified, avoiding timming "\
                              "measures, there is a winner already")
@@ -470,21 +502,25 @@ class PolynomialSearch(Logger):
                 progress = int(float(idx)/totalElements*100)
                 self._testNuCandidate(mu,inv_mu,nu,finalists,
                                       tmeasurer,progress)
+        return finalists
+
+    def _unflatFinalists(self,finalists):
         if self._inParallel:
             bar = {}
             for element in finalists:
                 std = element[0]
                 average = element[1]
-                #mu = self._ring(element[2])
-                #inv_mu = self._ring(element[3])
-                #nu = self._ring(element[4])
+                mu = element[2]
+                inv_mu = element[3]
+                nu = element[4]
                 if not bar.has_key((std,average)):
                     bar[(std,average)] = []
                 bar[(std,average)].append([mu,inv_mu,nu])
-            finalists = bar
+            return bar
+        return finalists
+
+    def _selectTheWinner(self,finalists):
         std_average = finalists.keys(); std_average.sort()
-        OutputFile("ring%d_restriction3_finalists"
-                   %self._degree).write(finalists)
         winner = finalists[std_average[0]]
         if len(winner) != 1:
             l = ""
@@ -677,6 +713,9 @@ class PolynomialSearch(Logger):
         cm = inv_mu.__matrix_product__(b-nu)
         diff_m = tmeasurer.stop()
         return c,diff_r,cm,diff_m
+    
+    #---- done restriction 3 submethods
+    #####
 
 def cmdArgs(parser):
     '''Include all the command line parameters to be accepted and used.
