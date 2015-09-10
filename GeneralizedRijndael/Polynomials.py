@@ -712,6 +712,8 @@ def SuperPolynomialRingModulo(modulo,variable='x',loglevel=_Logger._info):
                 self._coefficients = self.__interpretFromStr__(value)
             #TODO: are there other representations 
             #that a constructor can support?
+            # - list of integers: but how to know the polynomial modulo of 
+            #                     field?
             else:
                 raise AssertionError("The given coefficients type '%s'"\
                                      "is not interpretable"%(type(value)))
@@ -729,15 +731,25 @@ def SuperPolynomialRingModulo(modulo,variable='x',loglevel=_Logger._info):
                                          "is not interpretable"%(type(modulo)))
             
         def __str__(self):
-            '''Readable representation. (%s)
+            '''
+                Readable representation. (%s)
             '''
             return self.__interpretToStr__(self._coefficients)
         def __repr__(self):
-            '''Unambiguous representation. (%r)
+            '''
+                Unambiguous representation. (%r)
             '''
             return "%s (mod %s)"%(self.__interpretToStr__(self._coefficients),
                                   self.__interpretToStr__(self._modulo))
-        def __interpretToStr__(self,polynomial):
+            
+        def __hex__(self):
+            '''
+                String where the coefficients are compacted on an hexadecimal
+                representation.
+            '''
+            return self.__interpretToStr__(self._coefficients,hexSubfield=True)
+            
+        def __interpretToStr__(self,polynomial,hexSubfield=False):
             if polynomial == 0:
                 return '0'#FIXME: the neutral element of the first operation
             else:
@@ -751,21 +763,33 @@ def SuperPolynomialRingModulo(modulo,variable='x',loglevel=_Logger._info):
                         elif coefficient == self._subfield(1):
                             terms.append("+1")
                         else:
-                            terms.append("+(%s)"%(coefficient))
+                            if hexSubfield:
+                                terms.append("+%s"%(hex(coefficient)))
+                            else:
+                                terms.append("+(%s)"%(coefficient))
                     elif exponent == 1:
                         if coefficient == self._subfield(0):
                             terms.append("")
                         elif coefficient == self._subfield(1):
                             terms.append("+%s"%(self._variable))
                         else:
-                            terms.append("+(%s)%s"%(coefficient,self._variable))
+                            if hexSubfield:
+                                terms.append("+%s%s"
+                                            %(hex(coefficient),self._variable))
+                            else:
+                                terms.append("+(%s)%s"
+                                             %(coefficient,self._variable))
                     else:
                         if coefficient == self._subfield(0):
                             terms.append("")
                         elif coefficient == self._subfield(1):
                             terms.append("+%s^%d"%(self._variable,exponent))
                         else:
-                            terms.append("+(%s)%s^%d"
+                            if hexSubfield:
+                                terms.append("+%s%s^%d"
+                                   %(hex(coefficient),self._variable,exponent))
+                            else:
+                                terms.append("+(%s)%s^%d"
                                         %(coefficient,self._variable,exponent))
                 collect = ''.join(["%s"%(term) for term in terms])
                 if collect[0] == '+':
@@ -778,12 +802,14 @@ def SuperPolynomialRingModulo(modulo,variable='x',loglevel=_Logger._info):
             while i < len(string):
                 while string[i] == ' ' or i == len(string):
                     i += 1#ignore any &nbsp;
-                character = string[i]
-                if character == '(':
-                    self._debug_stream("")
+                if string[i] == '(':
                     closer = string.find(')',i)
                     coefficient = string[i+1:closer]
                     i = closer
+                elif string[i:i+2] == '0x':
+                    vblePos = string.find(self._variable,i)
+                    coefficient = string[i:vblePos]
+                    i = vblePos
                 else:
                     coefficient = self._subfield(1)
                 if string[i] != self._variable:
@@ -827,6 +853,37 @@ def SuperPolynomialRingModulo(modulo,variable='x',loglevel=_Logger._info):
         @property
         def modulo(self):
             return self.__interpretToStr__(self._modulo)
+        @property
+        def degree(self):
+            return len(self._coefficients)
+        @property
+        def modulodegree(self):
+            return len(self._modulo)-1
+        def __mul__(self,other):
+            '''Given two polynomials over F_{2^8} multiplie them modulo x^{4}+1
+               s'(x) = a(x) \otimes s(x)
+               [s'_0,c]   [a_3 a_0 a_1 a_2] [s_0,c]
+               [s'_1,c] = [a_2 a_3 a_0 a_1] [s_1,c]
+               [s'_2,c]   [a_1 a_2 a_3 a_0] [s_2,c]
+               [s'_3,c]   [a_0 a_1 a_2 a_3] [s_3,c]
+               s'_0,c = (a_3 \bullet s_0,c) \oplus (a_0 \bullet s_1,c) \oplus
+                        (a_1 \bullet s_2,c) \oplus (a_2 \bullet s_3,c)
+               s'_1,c = (a_2 \bullet s_0,c) \oplus (a_3 \bullet s_1,c) \oplus
+                        (a_0 \bullet s_2,c) \oplus (a_1 \bullet s_3,c)
+               s'_2,c = (a_1 \bullet s_0,c) \oplus (a_2 \bullet s_1,c) \oplus
+                        (a_3 \bullet s_2,c) \oplus (a_0 \bullet s_3,c)
+               s'_3,c = (a_0 \bullet s_0,c) \oplus (a_1 \bullet s_1,c) \oplus
+                        (a_2 \bullet s_2,c) \oplus (a_3 \bullet s_3,c)
+               Where \bullet is the finite field (F_{2^8}) multiplication,
+               and \oplus an xor operation
+               Input:
+               Output:
+            '''
+            #TODO...
+            pass
+        def __imul__(self,other):# => a*=b
+            bar = self * other
+            return SuperPolynomialRingConstructor(bar._coefficients)
     return SuperPolynomialRingConstructor
 
 class PolynomialRing(_Logger):
@@ -889,7 +946,10 @@ if __name__ == "__main__":
     field = BinaryPolynomialModulo('z^8+z^4+z^3+z+1',loglevel=_Logger._info)
     ring = SuperPolynomialRingModulo("x^4+1",loglevel=_Logger._debug)
     example = randomSuperPolynomial(ring,4,field,8)
-    print("%r"%example)
+    print("Random element of the polynomial ring with coefficients in a "\
+          "binary polynomial field:\n\tstring:\t%s\n\trepr:\t%r\n\thex:\t%s"
+          %(example,example,hex(example)))
     example._coefficients[randint(0,3)] = field(0)
-    print("%r"%example)
-    
+    print("Eliminate one of the coefficients to test the good representation "\
+          "when there is no coefficient:\n\tstring:\t%s\n\trepr:\t%r"\
+          "\n\thex:\t%s"%(example,example,hex(example)))
