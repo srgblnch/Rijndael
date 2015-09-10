@@ -10,8 +10,8 @@ The code has been made to academic cryptographic purposes and its cryptoanalysis
 Install
 -------
 
-To install this code as a python module is needed to have **cython** available 
-and also the setuptools. Then only the following commands are needed:
+To install this code as a python module is needed to have **setuptools** 
+available. Then only the following commands are needed:
 
 ```
 $ python setup.py build
@@ -23,7 +23,10 @@ on an specific directory.
 
 This module has been made to be compiled to improve execution time, but 
 specially to measure differences between 32 and 64 bit architectures setting
-up different parameter combinations.
+up different parameter combinations. Now it is under a hard development 
+process but, as soon as it has completed all the mathematical elements, 
+*cython* will come to the scene to have architecture dependant binaries to 
+check difference between them.
 
 Testing
 -------
