@@ -31,7 +31,7 @@ from ThirdLevel import shift as _shift
 from copy import copy as _copy
 from copy import deepcopy as _deepcopy
 
-def BinaryPolynomialModulo(modulo,variable='x',loglevel=_Logger._info):
+def BinaryPolynomialModulo(modulo,variable='z',loglevel=_Logger._info):
     '''BinaryPolynomialModulo is a builder for the given modulo. The returning
        object can generate elements in this field or ring (depending on the 
        reducibility of the modulo polynomial).
@@ -42,14 +42,14 @@ def BinaryPolynomialModulo(modulo,variable='x',loglevel=_Logger._info):
        
        Arguments:
        - modulo: (mandatory) an integer or an string representation of a 
-         polynomial (like 'x^8+x^4+x^3+x+1' that's equivalent to 0x11B).
-       - variable: by default is 'x' and it is only used for the output strings
+         polynomial (like 'z^8+z^4+z^3+z+1' that's equivalent to 0x11B).
+       - variable: by default is 'z' and it is only used for the output strings
          representing the polynomials.
        - loglevel: by default info, based on the superclass Logger enumeration.
        
        Example:
        >>> import Polynomials
-       >>> field = Polynomials.BinaryPolynomialModulo('x^8+x^4+x^3+x+1')
+       >>> field = Polynomials.BinaryPolynomialModulo('z^8+z^4+z^3+z+1')
     '''
     if type(modulo) == str and modulo.count(variable) == 0:
         raise Exception("modulo %s is not defined over %s variable"
@@ -68,9 +68,9 @@ def BinaryPolynomialModulo(modulo,variable='x',loglevel=_Logger._info):
                  
                Example:
                >>> from Polynomials import BinaryPolynomialModulo
-               >>> field = BinaryPolynomialModulo('x^8+x^4+x^3+x+1')
+               >>> field = BinaryPolynomialModulo('z^8+z^4+z^3+z+1')
                >>> a = field(73); a
-               x^6+x^3+1 (mod x^8+x^4+x^3+x+1)
+               z^6+z^3+1 (mod z^8+z^4+z^3+z+1)
             '''
             #This help is shown when, from the last one
             #>>> field?
@@ -171,7 +171,7 @@ def BinaryPolynomialModulo(modulo,variable='x',loglevel=_Logger._info):
             def comparator(self,other):
                 if other.__class__ == type(None):
                     return function(self,other)
-                if other.__class__ != BinaryPolynomialModuloConstructor:
+                if str(other.__class__) != str(self.__class__):
                     raise EnvironmentError("Cannot compare with non "\
                                            "polynomials (%s,%s)"
                                            %(type(other),other.__class__))
@@ -212,7 +212,7 @@ def BinaryPolynomialModulo(modulo,variable='x',loglevel=_Logger._info):
                     elif exponent == 0:#and coefficient == '1'
                         terms.append('+1')
                     elif exponent == 1:#and coefficient == '1'
-                        #equiv to x^1 but short
+                        #equiv to z^1 but short
                         terms.append('+%s'%(self._variable))
                     else:
                         terms.append('+%s^%d'%(self._variable,exponent))
@@ -225,7 +225,7 @@ def BinaryPolynomialModulo(modulo,variable='x',loglevel=_Logger._info):
             value = 0
             for i in range(len(terms)):
                 if terms[i] == '%s'%self._variable:
-                    value |= 1<<1#x^1
+                    value |= 1<<1#z^1
                 elif terms[i] == '1':
                     value |= 1
                 elif terms[i].count(self._variable):
@@ -311,7 +311,7 @@ def BinaryPolynomialModulo(modulo,variable='x',loglevel=_Logger._info):
                integers as bit strings to proceed with a polynomial product
                (without reduction).
                With the goal of a constant time operation, the number of loops
-               to manage each of the coefficients in b(x) will be always the 
+               to manage each of the coefficients in b(z) will be always the 
                maximum (that is, the based on the reduction polynomio. Also 
                there will be performed the same operations even the coefficient
                in the loop to process is 0 or 1 (and the distinction is on the
@@ -668,17 +668,180 @@ def getNu(wordSize,official=False):
     }[wordSize]
     return Mu
 
-class PolynomialRing:
+
+def SuperPolynomialRingModulo(modulo,variable='x',loglevel=_Logger._info):
+    '''
+        Polynomial ring with coefficients in  a binary polynomial field.
+        TODO: more explanation.
+    '''
+    if type(modulo) == str and modulo.count(variable) == 0:
+        raise Exception("modulo %s is not defined over %s variable"
+                        %(modulo,variable))
+    class SuperPolynomialRingConstructor(_Logger):
+        '''
+            TODO: document
+        '''
+        def __init__(self,value):
+            _Logger.__init__(self,loglevel)
+            if len(variable) != 1:
+                raise NameError("The indeterminate must be "\
+                                "a single character.")
+            if ord('a') > variable.lower() > ord('x'):
+                raise NameError("The indeterminate must be a valid "\
+                                "alphabet letter.")
+            self._variable = variable
+            if type(value) == SuperPolynomialRingConstructor or \
+               value.__class__ == SuperPolynomialRingConstructor:
+                self._coefficients = value.coefficients
+            elif type(value) == list:
+                if len(value) == 0:
+                    #TODO: build the neutral element of the first operation
+                    raise NotImplementedError("Not yet available")
+                firstCoefficient = value[0]
+                if str(type(firstCoefficient)).\
+                count('BinaryPolynomialModuloConstructor'):
+                    for coefficient in value[1:]:
+                        if not str(type(coefficient)).\
+                        count('BinaryPolynomialModuloConstructor'):
+                            raise TypeError("coefficients shall be a binary "\
+                                            "polynomial field elements")
+                        if firstCoefficient.modulo != coefficient.modulo:
+                            raise AssertionError("All the coefficients shall "\
+                                                 "be from the same field.")
+            elif type(value) == str:
+                self._coefficients = self.__interpretFromStr__(value)
+            #TODO: are there other representations 
+            #that a constructor can support?
+            else:
+                raise AssertionError("The given coefficients type '%s'"\
+                                     "is not interpretable"%(type(value)))
+            self._coefficients = value
+            self._subfield = BinaryPolynomialModulo(\
+                                self._coefficients[0].modulo,
+                                self._coefficients[0].variable)
+            if type(modulo) == str:
+                self._modulo = self.__interpretFromStr__(modulo)
+            else:
+                try:#Do a last try to interpret the coefficients
+                    self._modulo = int(modulo)
+                except Exception,e:
+                    raise AssertionError("The given modulo type '%s'"\
+                                         "is not interpretable"%(type(modulo)))
+            
+        def __str__(self):
+            '''Readable representation. (%s)
+            '''
+            return self.__interpretToStr__(self._coefficients)
+        def __repr__(self):
+            '''Unambiguous representation. (%r)
+            '''
+            return "%s (mod %s)"%(self.__interpretToStr__(self._coefficients),
+                                  self.__interpretToStr__(self._modulo))
+        def __interpretToStr__(self,polynomial):
+            if polynomial == 0:
+                return '0'#FIXME: the neutral element of the first operation
+            else:
+                terms = [] #coefficients representations list
+                for idx,coefficient in enumerate(polynomial):
+                    exponent = len(polynomial)-idx-1
+                    #FIXME: those nested 'ifs' can be simplified
+                    if exponent == 0:
+                        if coefficient == self._subfield(0):
+                            terms.append("")
+                        elif coefficient == self._subfield(1):
+                            terms.append("+1")
+                        else:
+                            terms.append("+(%s)"%(coefficient))
+                    elif exponent == 1:
+                        if coefficient == self._subfield(0):
+                            terms.append("")
+                        elif coefficient == self._subfield(1):
+                            terms.append("+%s"%(self._variable))
+                        else:
+                            terms.append("+(%s)%s"%(coefficient,self._variable))
+                    else:
+                        if coefficient == self._subfield(0):
+                            terms.append("")
+                        elif coefficient == self._subfield(1):
+                            terms.append("+%s^%d"%(self._variable,exponent))
+                        else:
+                            terms.append("+(%s)%s^%d"
+                                        %(coefficient,self._variable,exponent))
+                collect = ''.join(["%s"%(term) for term in terms])
+                if collect[0] == '+':
+                    collect = collect[1:]
+                return collect
+        def __interpretFromStr__(self,string):
+            #FIXME: simplify, that's too big for the task to do.
+            terms = {}
+            i = 0
+            while i < len(string):
+                while string[i] == ' ' or i == len(string):
+                    i += 1#ignore any &nbsp;
+                character = string[i]
+                if character == '(':
+                    self._debug_stream("")
+                    closer = string.find(')',i)
+                    coefficient = string[i+1:closer]
+                    i = closer
+                else:
+                    coefficient = self._subfield(1)
+                if string[i] != self._variable:
+                    i += 1
+                if i == len(string):
+                    terms[0] = coefficient
+                    break
+                if string[i] == self._variable:
+                    j = i+1
+                    while string[j] == ' ' or i == len(string):
+                        j += 1#ignore any &nbsp;
+                    if string[j] == '^':
+                        closer = string.find('+',j)
+                        exponent = int(string[j+1:closer])
+                        i = closer
+                    elif string[j] == '+':
+                        exponent = 1
+                        i += j+1
+                elif string[i] == '+':
+                    exponent = 0
+                    i += 1
+                else:
+                    raise SyntaxError("Cannot understand %s as a polynomial "\
+                                      "ring with coefficients in a binary "\
+                                      "polynomial field"%(string))
+                terms[exponent] = coefficient
+                i += 1
+            degrees = terms.keys()
+            degrees.sort()
+            degree = degrees[-1]
+            coefficients = []
+            for i in range(degree,-1,-1):
+                if terms.has_key(i):
+                    coefficients.append(self._subfield(terms[i]))
+                else:
+                    coefficients.append(self._subfield(0))
+            return coefficients
+        @property
+        def coefficients(self):
+            return self._coefficients
+        @property
+        def modulo(self):
+            return self.__interpretToStr__(self._modulo)
+    return SuperPolynomialRingConstructor
+
+class PolynomialRing(_Logger):
     '''This represents a polynomial over (GF(2^n))^l, with a modulo polynomial 
        composed (decomposable in roots) this becomes a algebraic ring.
        The coefficients on this polynomial ring are elements of a polynomial 
        field.
     '''
-    def __init__(self,nRows,nColumns,wordSize):
+    def __init__(self,nRows,nColumns,wordSize,loglevel=_Logger._info):
+        _Logger.__init__(self,loglevel)
         self.__nRows=nRows
         self.__nColumns=nColumns
         field_modulo = getBinaryPolynomialFieldModulo(wordSize)
         self._field = BinaryPolynomialModulo(field_modulo)
+        
     def product(self,ax,sx):
         '''Given two polynomials over F_{2^8} multiplie them modulo x^{4}+1
            s'(x) = a(x) \otimes s(x)
@@ -711,5 +874,22 @@ class PolynomialRing:
                 shifted_ax=_shift(shifted_ax,-1)
         return res
 
+def randomBinaryPolynomial(field,degree):
+    return field(randint(0,2**degree))
+
+def randomSuperPolynomial(ring,ringDegree,field,fieldDegree):
+    coefficients = []
+    for i in range(ringDegree):
+        coefficients.append(randomBinaryPolynomial(field,fieldDegree))
+    return ring(coefficients)
+
 if __name__ == "__main__":
-    print("Use PolynomialsTest.py for testing.")
+    from random import randint
+    #print("Use PolynomialsTest.py for testing.")
+    field = BinaryPolynomialModulo('z^8+z^4+z^3+z+1',loglevel=_Logger._info)
+    ring = SuperPolynomialRingModulo("x^4+1",loglevel=_Logger._debug)
+    example = randomSuperPolynomial(ring,4,field,8)
+    print("%r"%example)
+    example._coefficients[randint(0,3)] = field(0)
+    print("%r"%example)
+    

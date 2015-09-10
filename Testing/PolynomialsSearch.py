@@ -399,7 +399,7 @@ class PolynomialSearch(Logger):
         del candidates
         OutputFile("ring%d_restriction3_classified"
                    %self._degree).write(classified)
-        classified = self._randomClassified(classified)
+        classified = self.__randomCut(classified)
         finalists = self._doTimeMeasurements(classified)
         del classified
         finalists = self._unflatFinalists(finalists)
@@ -447,6 +447,8 @@ class PolynomialSearch(Logger):
                                           "better weights"%(len(x),k))
             items = 0
             for k in candidates.keys():
+                if len(candidates[k]) > 1e5:
+                    candidates[k] = self.__randomCut(candidates[k])
                 items += len(candidates[k])
             self._info_stream("\t[%d%%]Having %d candidates with weights %s"
                              %(percentage,items,candidates.keys()))
@@ -473,12 +475,13 @@ class PolynomialSearch(Logger):
                                          %(len(candidates[idx])))
         return classified
 
-    def _randomClassified(self,classified):
+    def __randomCut(self,classified):
         from random import randint
-        self._debug_stream("Too many elements is classified, "\
-                           "doing a random cut")
-        while len(classified) > 1e5:
-            classified.pop(randint(0,len(classified)))
+        if len(classified) > 1e5:
+            self._info_stream("Too many elements (%s) is classified, "\
+                               "doing a random cut"%(len(classified)))
+            while len(classified) > 1e5:
+                classified.pop(randint(0,len(classified)-1))
         return classified
 
     def _doTimeMeasurements(self,classified):

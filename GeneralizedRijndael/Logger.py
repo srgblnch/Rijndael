@@ -43,7 +43,7 @@ def levelFromMeaning(value):
         return Logger._info
 
 #TODO: document the methods
-class Logger:
+class Logger(object):
     '''
     '''
     _error   = 1
@@ -54,6 +54,8 @@ class Logger:
     def __init__(self,loglevel):
         '''
         '''
+        object.__init__(self)
+        #super(Logger,self).__init()
         self._logLevel = loglevel
         self._when_build = _datetime.now()
         self._log2file = False
