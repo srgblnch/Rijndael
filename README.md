@@ -7,38 +7,75 @@ The original schema of the [Rijndael](http://en.wikipedia.org/wiki/Advanced_Encr
 
 The code has been made to academic cryptographic purposes and its cryptoanalysis hasn't start yet. It encrypts and decrypts, but it hasn't been demonstrated its properties like the original Rijndael has. The side-channel attacks neither wasn't studied yet, then they are not prevented in the current code stage.
 
-Usage
------
+Install
+-------
 
-Cython compilation has been temporally removed until the development is completed. Then it will be when cython comes to the scene to introduce compilation to improve execution time and measure if there are differences between 32 and 64 architectures.
+To install this code as a python module is needed to have **cython** available 
+and also the setuptools. Then only the following commands are needed:
 
-<!--To compile it uses the [cython](http://cython.org)'s *Distutils* module, the [setuptools](http://en.wikipedia.org/wiki/Setuptools) and the build from cython. Then just call:
 ```
 $ python setup.py build
+$ python setup.py install
 ```
 
-This will produce a '*GeneralizedRijndael.so*' in a new '*build*' directory if there wasn't any problem. As this is not a finished modules, the install process is not used, but this *so* file can be placed somewhere within the *$PYTHONPATH* or simlinked inside the test directory.
+Remember to use *--prefix* on the install if you like to do the installation
+on an specific directory.
 
-Even it is cythonized and can be compiled, by now the sources are pure python; then it can be executed as:
-
-```
-$ python GeneralizedRijndael/GeneralizedRijndael.py
-```
-
-And if it has been compiled and there is a '*GeneralizedRijndael.so*' available; then it can be executed as:
-
-```
-$ python grijndael.py
-```
-
-Check with the '--help' parameter to know more how to use it's parametering.-->
+This module has been made to be compiled to improve execution time, but 
+specially to measure differences between 32 and 64 bit architectures setting
+up different parameter combinations.
 
 Testing
 -------
 
-Many of the modules inside have their own testing. They shall work simply by calling the file from python because they have a 'main' defined. Testing will require a refactoring to split what shall be a unit test and what's a simple check.
+For (something like) unit testing, no installation is required. Many of the 
+modules in the directory *GeneralizedRijndael* have their own testing to be 
+called from the command line using a python promt. Testing will require a 
+refactoring itself to split what shall be a unit test and what's a simple 
+check.
 
 Extras
 ------
 
-**TODO**
+```python
+>>> import GeneralizedRijndael
+>>> GeneralizedRijndael.version()
+'0.2.0-0'
+```
+
+The main constructor available in this module is 
+*GeneralizedRijndael.GeneralizedRijndael*. A little help in the docstring 
+shall be made soon, but there can be listed the arguments that this constructor
+can have. With:
+
+```python
+>>> from random import randint
+>>> k = randint(0,2**128-1)
+>>> rijndael128 = GeneralizedRijndael.GeneralizedRijndael(k)
+```
+
+The *rijndael* object is configured, with a **non secure** random key, like a
+standard *rijndael 128*: a block size of 128 (with a state matrix of 4x4 cells
+with 8 bits on each) and a key with the same size and 10 rounds process.
+
+The test vectors from the Rijndael's standard can be used. But also something 
+more, on the fly like:
+
+```python
+>>> m = randint(0,2**128-1); c = rijndael128.cipher(m); c
+23544119155075312493179623650411912571L
+>>> m == rijndael128.decipher(c)
+True
+```
+To have different Rijndael's standard sizes, the constructor shall be used:
+
+```python
+>>> k = randint(0,2**192-1)
+>>> rijndael192 = GeneralizedRijndael.GeneralizedRijndael(k,nRounds=12,nKeyWords=6)
+>>> k = randint(0,2**256-1)
+>>> rijndael256 = GeneralizedRijndael.GeneralizedRijndael(k,nRounds=14,nKeyWords=8)
+```
+
+Many other sizes can be used. But with wordsizes different the *8*, the 
+parameter *sboxCalc* shall be set to True. Otherwise you'll have an exception
+because there aren't sboxes for any other size than 8.
