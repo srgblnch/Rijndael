@@ -43,6 +43,8 @@ from sys import getrecursionlimit,setrecursionlimit
 import traceback
 from time import clock,time
 
+CEILING = 1e3
+
 class TimeMeasurer:
     def __init__(self):
         self._t0 = 0.0
@@ -447,7 +449,7 @@ class PolynomialSearch(Logger):
                                           "better weights"%(len(x),k))
             items = 0
             for k in candidates.keys():
-                if len(candidates[k]) > 1e5:
+                if len(candidates[k]) > CEILING:
                     candidates[k] = self.__randomCut(candidates[k])
                 items += len(candidates[k])
             self._info_stream("\t[%d%%]Having %d candidates with weights %s"
@@ -477,10 +479,10 @@ class PolynomialSearch(Logger):
 
     def __randomCut(self,classified):
         from random import randint
-        if len(classified) > 1e5:
+        if len(classified) > CEILING:
             self._info_stream("Too many elements (%s) is classified, "\
                                "doing a random cut"%(len(classified)))
-            while len(classified) > 1e5:
+            while len(classified) > CEILING:
                 classified.pop(randint(0,len(classified)-1))
         return classified
 
