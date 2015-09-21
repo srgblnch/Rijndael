@@ -169,7 +169,7 @@ def BinaryPolynomialModulo(modulo,variable='z',loglevel=_Logger._info):
                operations.
             '''
             def comparator(self,other):
-                if other.__class__ == type(None):
+                if other.__class__ in [type(None),int]:
                     return function(self,other)
                 if str(other.__class__) != str(self.__class__):
                     raise EnvironmentError("Cannot compare with non "\
@@ -293,6 +293,11 @@ def BinaryPolynomialModulo(modulo,variable='z',loglevel=_Logger._info):
         def __mul__(self,other):# => a*b
             '''
             '''
+            if type(other) == int:# a * n = [a,a,...,a]
+                res = []
+                for i in range(other):
+                    res.append(_deepcopy(self))
+                return res
             a = _copy(self._coefficients)
             b = _copy(other._coefficients)
             res = self.__multiply__(a,b)
@@ -673,6 +678,7 @@ def SuperPolynomialRingModulo(modulo,variable='x',loglevel=_Logger._info):
     '''
         Polynomial ring with coefficients in  a binary polynomial field.
         TODO: more explanation.
+        
     '''
     if type(modulo) == str and modulo.count(variable) == 0:
         raise Exception("modulo %s is not defined over %s variable"
@@ -792,6 +798,8 @@ def SuperPolynomialRingModulo(modulo,variable='x',loglevel=_Logger._info):
                                 terms.append("+(%s)%s^%d"
                                         %(coefficient,self._variable,exponent))
                 collect = ''.join(["%s"%(term) for term in terms])
+                if len(collect) == 0:
+                    return '0'#neutral of the first operation
                 if collect[0] == '+':
                     collect = collect[1:]
                 return collect
@@ -876,14 +884,52 @@ def SuperPolynomialRingModulo(modulo,variable='x',loglevel=_Logger._info):
                         (a_2 \bullet s_2,c) \oplus (a_3 \bullet s_3,c)
                Where \bullet is the finite field (F_{2^8}) multiplication,
                and \oplus an xor operation
-               Input:
-               Output:
+               Input: Two polynomial ring elements with coefficients in the 
+                      same binary polynomial ring.
+               Output: The product between the two input pylinomials
             '''
             #TODO...
-            pass
+            ax = _deepcopy(self.coefficients)
+            #self._debug_stream("ax = %s"%ax)
+            sx = _deepcopy(other.coefficients)
+            #self._debug_stream("sx = %s"%sx)
+            sx_ = self._subfield(0)*4
+            degree = self.modulodegree
+            for i,sxi in enumerate(sx):
+                #self._debug_stream("Taking %dth element of sx: %s"%(i,sxi))
+                for j,axj in enumerate(ax):
+                    #self._debug_stream("Taking %dth element of ax: %s"%(j,axj))
+                    #self._debug_stream("sx[%d]*ax[%d] = %s * %s"
+                    #                    %(i,j,sxi,axj))
+                    sx_[i] += (sxi*axj)
+                    #self._debug_stream("sx_[%d] = sx[%d]*ax[%d] = %s"
+                    #                    %(i,i,j,sx_[i]))
+                sx = _shift(sx,-1)
+                #self._debug_stream("Shifting sx = %s"%(sx))
+            return SuperPolynomialRingConstructor(sx_)
+            
         def __imul__(self,other):# => a*=b
             bar = self * other
             return SuperPolynomialRingConstructor(bar._coefficients)
+        
+        def __eq__(self,other):# => a == b
+            if other == None:
+                return False
+            for i,xi in enumerate(self._coefficients):
+                if xi != other._coefficients[i]:
+                    return False
+            return True
+        
+        def is_(self,other):# => a == b
+            return self == other
+        
+        def __ne__(self,other):# => a!=b
+            if self.__eq__(other):
+                return False
+            return True
+        
+        def is_not(self,other):# => a != b
+            return self != other
     return SuperPolynomialRingConstructor
 
 class PolynomialRing(_Logger):
@@ -953,3 +999,20 @@ if __name__ == "__main__":
     print("Eliminate one of the coefficients to test the good representation "\
           "when there is no coefficient:\n\tstring:\t%s\n\trepr:\t%r"\
           "\n\thex:\t%s"%(example,example,hex(example)))
+    print("\nTesting the product:")
+    for r in range(10):
+        axlist = [randint(0,2**8),randint(0,2**8),randint(0,2**8),randint(0,2**8)]
+        sxlist = [randint(0,2**8),randint(0,2**8),randint(0,2**8),randint(0,2**8)]
+        ax = ring([field(i) for i in axlist])
+        sx = ring([field(i) for i in sxlist])
+        print("\nTesting random pair: %s * %s"%(ax,sx))
+        rx = ax * sx
+        bar = PolynomialRing(4,4,8)
+        state = [sxlist]*4
+        foo = bar.product(axlist,state)[0]
+        foox = ring([field(i) for i in foo])
+        if rx != foox:
+            print("\tAlert %s != %s"%(rx,foox))
+            break
+        else:
+            print("\tOK:\n\t\t%s\n\t\t%s"%(rx,foox))
