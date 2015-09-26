@@ -756,7 +756,8 @@ def doSearch(degree,tmeasDateTime,loglevel=Logger._info,
         try:
             searcher._error_stream("Fatal error during search: %s"%(e))
             import traceback
-            traceback.print_exc()
+            trace = traceback.format_exc()
+            searcher._error_stream("Traceback:\n%s"%trace)
         except:
             fName = datetime.now().strftime("%Y%m%d_%H%M%S")+".log"
             with open(fName,"a") as f:
