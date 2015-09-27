@@ -393,13 +393,14 @@ class PolynomialSearch(Logger):
         self._info_stream("\tAnd from here, the winner is the one with "\
                          "timing results.")
         goalWeight = (self._degree/2)*3
-        finalists = None
+        finalists = {}
         tries = 0
-        while finalists == None or tries == 10:
+        while len(finalists.keys()) == 0:
             candidates = self._ExpandPairs2Triples(goodWeight,goalWeight)
-            classified = self._classifyByCombinedHammingWeight(candidates,goalWeight)
-            self._info_stream("The %d pairs, has been expanded to %d triples to "\
-                             "check their computation time."
+            classified = self._classifyByCombinedHammingWeight(candidates,
+                                                               goalWeight)
+            self._info_stream("The %d pairs, has been expanded to %d triples "\
+                             "to check their computation time."
                              %(len(goodWeight),len(classified)))
             del candidates
             OutputFile("ring%d_restriction3_classified"
@@ -409,8 +410,17 @@ class PolynomialSearch(Logger):
             #If there is no outcome frome the time measurements (because no one
             #of the cut candidates that complains the restriction of fixed 
             #points, for example) then try to repeat the collection and cut.
-            tries += 1
+            if len(finalists.keys()) == 0:
+                if tries < 10:
+                    self._info_stream("With this sampling set it hasn't "\
+                                      "found finalists. Do a new sampling...")
             #add also a limit on this retries to avoid never ending process.
+                else:#if tries == 10:
+                    msg = "After %d samplings no finalists found. "\
+                          "No more tries"%(tries)
+                    self._warning_stream(msg)
+                    raise Exception(msg)
+            tries += 1
         del classified
         finalists = self._unflatFinalists(finalists)
         self._selectTheWinner(finalists)
@@ -485,12 +495,12 @@ class PolynomialSearch(Logger):
                                          %(len(candidates[idx])))
         return classified
 
-    def __randomCut(self,classified):
+    def __randomCut(self,classified,limit=CEILING):
         from random import randint
-        if len(classified) > CEILING:
+        if len(classified) > limit:
             self._info_stream("Too many elements (%s) is classified, "\
                                "doing a random cut"%(len(classified)))
-            while len(classified) > CEILING:
+            while len(classified) > limit:
                 classified.pop(randint(0,len(classified)-1))
         return classified
 
