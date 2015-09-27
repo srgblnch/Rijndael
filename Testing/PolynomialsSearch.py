@@ -393,16 +393,24 @@ class PolynomialSearch(Logger):
         self._info_stream("\tAnd from here, the winner is the one with "\
                          "timing results.")
         goalWeight = (self._degree/2)*3
-        candidates = self._ExpandPairs2Triples(goodWeight,goalWeight)
-        classified = self._classifyByCombinedHammingWeight(candidates,goalWeight)
-        self._info_stream("The %d pairs, has been expanded to %d triples to "\
-                         "check their computation time."
-                         %(len(goodWeight),len(classified)))
-        del candidates
-        OutputFile("ring%d_restriction3_classified"
-                   %self._degree).write(classified)
-        classified = self.__randomCut(classified)
-        finalists = self._doTimeMeasurements(classified)
+        finalists = None
+        tries = 0
+        while finalists == None or tries == 10:
+            candidates = self._ExpandPairs2Triples(goodWeight,goalWeight)
+            classified = self._classifyByCombinedHammingWeight(candidates,goalWeight)
+            self._info_stream("The %d pairs, has been expanded to %d triples to "\
+                             "check their computation time."
+                             %(len(goodWeight),len(classified)))
+            del candidates
+            OutputFile("ring%d_restriction3_classified"
+                       %self._degree).write(classified)
+            classified = self.__randomCut(classified)
+            finalists = self._doTimeMeasurements(classified)
+            #If there is no outcome frome the time measurements (because no one
+            #of the cut candidates that complains the restriction of fixed 
+            #points, for example) then try to repeat the collection and cut.
+            tries += 1
+            #add also a limit on this retries to avoid never ending process.
         del classified
         finalists = self._unflatFinalists(finalists)
         self._selectTheWinner(finalists)
