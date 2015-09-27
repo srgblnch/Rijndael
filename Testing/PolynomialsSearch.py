@@ -467,8 +467,10 @@ class PolynomialSearch(Logger):
                                           "better weights"%(len(x),k))
             items = 0
             for k in candidates.keys():
-                if len(candidates[k]) > CEILING:
-                    candidates[k] = self.__randomCut(candidates[k])
+                #only do the cut if the collected candidates are 
+                #1 order of magnitude bigger than the ceiling.
+                candidates[k] = self.__randomCut(candidates[k],CEILING*10)
+                #There is an if inside to avoid cut if smaller
                 items += len(candidates[k])
             self._info_stream("\t[%d%%]Having %d candidates with weights %s"
                              %(percentage,items,candidates.keys()))
@@ -495,14 +497,14 @@ class PolynomialSearch(Logger):
                                          %(len(candidates[idx])))
         return classified
 
-    def __randomCut(self,classified,limit=CEILING):
+    def __randomCut(self,sampleSet,limit=CEILING):
         from random import randint
-        if len(classified) > limit:
-            self._info_stream("Too many elements (%s) is classified, "\
-                               "doing a random cut"%(len(classified)))
-            while len(classified) > limit:
-                classified.pop(randint(0,len(classified)-1))
-        return classified
+        if len(sampleSet) > limit:
+            self._info_stream("Too many elements (%s) in the set, "\
+                               "doing a random cut"%(len(sampleSet)))
+            while len(sampleSet) > limit:
+                sampleSet.pop(randint(0,len(sampleSet)-1))
+        return sampleSet
 
     def _doTimeMeasurements(self,classified):
         if len(classified) == 1:
