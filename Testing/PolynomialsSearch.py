@@ -44,6 +44,7 @@ import traceback
 from time import clock,time
 
 CEILING = 1e3
+ORDER = 10
 
 class TimeMeasurer:
     def __init__(self):
@@ -183,7 +184,7 @@ class PolynomialSearch(Logger):
         self._file_suffix = "PolynomialSearch_%d"%degree
         self._log2file = True
         modulo = getBinaryPolynomialRingModulo(self._degree)
-        self._ring = BinaryPolynomialModulo(modulo,variable='z')
+        self._field = BinaryPolynomialModulo(modulo,variable='z')
         self._std_average = float('NaN')
         self._mu = None
         self._inv_mu = None
@@ -218,7 +219,7 @@ class PolynomialSearch(Logger):
         _nonInvertibles = 0
         _candidates = []
         while idx < 2**self._degree:
-            sample = self._ring(idx)
+            sample = self._field(idx)
             try:
                 inverse = ~sample
             except:
@@ -393,13 +394,14 @@ class PolynomialSearch(Logger):
         self._info_stream("\tAnd from here, the winner is the one with "\
                          "timing results.")
         goalWeight = (self._degree/2)*3
-        finalists = None
+        finalists = {}
         tries = 0
-        while finalists == None or tries == 10:
+        while len(finalists.keys()) == 0:
             candidates = self._ExpandPairs2Triples(goodWeight,goalWeight)
-            classified = self._classifyByCombinedHammingWeight(candidates,goalWeight)
-            self._info_stream("The %d pairs, has been expanded to %d triples to "\
-                             "check their computation time."
+            classified = self._classifyByCombinedHammingWeight(candidates,
+                                                               goalWeight)
+            self._info_stream("The %d pairs, has been expanded to %d triples "\
+                             "to check their computation time."
                              %(len(goodWeight),len(classified)))
             del candidates
             OutputFile("ring%d_restriction3_classified"
@@ -409,8 +411,17 @@ class PolynomialSearch(Logger):
             #If there is no outcome frome the time measurements (because no one
             #of the cut candidates that complains the restriction of fixed 
             #points, for example) then try to repeat the collection and cut.
-            tries += 1
+            if len(finalists.keys()) == 0:
+                if tries < 10:
+                    self._info_stream("With this sampling set it hasn't "\
+                                      "found finalists. Do a new sampling...")
             #add also a limit on this retries to avoid never ending process.
+                else:#if tries == 10:
+                    msg = "After %d samplings no finalists found. "\
+                          "No more tries"%(tries)
+                    self._warning_stream(msg)
+                    raise Exception(msg)
+            tries += 1
         del classified
         finalists = self._unflatFinalists(finalists)
         self._selectTheWinner(finalists)
@@ -425,7 +436,7 @@ class PolynomialSearch(Logger):
             mu,inv_mu = pair
             percentage = int(float(idx)/total*100)
             for idx in range(2,2**self._degree):
-                nu = self._ring(idx)
+                nu = self._field(idx)
                 h = mu.hammingWeight+inv_mu.hammingWeight+nu.hammingWeight
                 if h in \
                 range(goalWeight-goalThreshold,goalWeight+goalThreshold+1):
@@ -457,8 +468,10 @@ class PolynomialSearch(Logger):
                                           "better weights"%(len(x),k))
             items = 0
             for k in candidates.keys():
-                if len(candidates[k]) > CEILING:
-                    candidates[k] = self.__randomCut(candidates[k])
+                #only do the cut if the collected candidates are 
+                #1 order of magnitude bigger than the ceiling.
+                candidates[k] = self.__randomCut(candidates[k],CEILING*ORDER)
+                #There is an if inside to avoid cut if smaller
                 items += len(candidates[k])
             self._info_stream("\t[%d%%]Having %d candidates with weights %s"
                              %(percentage,items,candidates.keys()))
@@ -485,14 +498,14 @@ class PolynomialSearch(Logger):
                                          %(len(candidates[idx])))
         return classified
 
-    def __randomCut(self,classified):
+    def __randomCut(self,sampleSet,limit=CEILING):
         from random import randint
-        if len(classified) > CEILING:
-            self._info_stream("Too many elements (%s) is classified, "\
-                               "doing a random cut"%(len(classified)))
-            while len(classified) > CEILING:
-                classified.pop(randint(0,len(classified)-1))
-        return classified
+        if len(sampleSet) > limit:
+            self._info_stream("Too many elements (%s) in the set, "\
+                               "doing a random cut"%(len(sampleSet)))
+            while len(sampleSet) > limit:
+                sampleSet.pop(randint(0,len(sampleSet)-1))
+        return sampleSet
 
     def _doTimeMeasurements(self,classified):
         if len(classified) == 1:
@@ -542,9 +555,9 @@ class PolynomialSearch(Logger):
             self._error_stream("***** Found a non unique winner! *****\n%s"%(l))
         else:
             self._std_average = std_average[0]
-            self._mu = self._ring(winner[0][0])
-            self._inv_mu = self._ring(winner[0][1])
-            self._nu = self._ring(winner[0][2])
+            self._mu = self._field(winner[0][0])
+            self._inv_mu = self._field(winner[0][1])
+            self._nu = self._field(winner[0][2])
             self._info_stream("***** The chosen triplet, with mean time "\
                              "(avg:%s,std:%s) is *****"
                              %(std_average[0][1],std_average[0][0]))
@@ -558,7 +571,7 @@ class PolynomialSearch(Logger):
                                self._mu.hammingWeight,
                                self._inv_mu.hammingWeight,
                                self._nu.hammingWeight))
-        OutputFile("ring%d_restriction3_winner"
+        OutputFile("field%d_restriction3_winner"
                    %self._degree).write(winner)
 
     def _makeItParallel(self,goodCandidates,finalists):
@@ -637,9 +650,9 @@ class PolynomialSearch(Logger):
             hasFinish.set()
 
     def _testNuCandidate(self,mu,inv_mu,nu,finalists,tmeasurer,progress):
-        mu = self._ring(mu)
-        inv_mu = self._ring(inv_mu)
-        nu = self._ring(nu)
+        mu = self._field(mu)
+        inv_mu = self._field(inv_mu)
+        nu = self._field(nu)
         try:
             average,std = self._fullTestAffineTransformation(mu,nu,tmeasurer)
         except ArithmeticError,e:
@@ -666,10 +679,10 @@ class PolynomialSearch(Logger):
         """
         """
         try:
-            t_ring = []
+            t_field = []
             t_matrix = []
             for i in range(2**self._degree):
-                a = self._ring(i)
+                a = self._field(i)
                 b,tr,bm,tm = self._affineTransformation(a,mu,nu,tmeasurer)
                 if a == b:
                     raise ArithmeticError("Fixed point found")
@@ -678,19 +691,19 @@ class PolynomialSearch(Logger):
                     self._debug_stream("\t\tDiscart %s: fixed or opposite fixed "\
                                       "point found"%(nu))
                     raise ArithmeticError("")
-                t_ring.append(tr)
+                t_field.append(tr)
                 t_matrix.append(tm)
                 c,tr,cm,tm = self._invertAffineTransformation(b,bm,mu,nu,
                                                               tmeasurer)
                 if a != c:
                     raise AssertionError("%s != %s"%(a,c))
-                t_ring.append(tr)
+                t_field.append(tr)
                 t_matrix.append(tm)
-            t_ring = array(t_ring)
+            t_field = array(t_field)
             t_matrix = array(t_matrix)
             
-            #Usually is smallest the time using ring view
-            results = t_ring
+            #Usually is smallest the time using field view
+            results = t_field
             #results = t_matrix
             
             return results.mean(),results.std()
@@ -737,19 +750,19 @@ def cmdArgs(parser):
                       help="output prints log level: "\
                                             "{error,warning,info,debug,trace}")
     parser.add_option('',"--find-mu-nu-candidates",type='int',
-                      help="Given a size of a ring (in bits) return the pair"\
+                      help="Given a size of a field (in bits) return the pair"\
                       "of mu(z) and nu(z) that satisfies the restrictions.")
     parser.add_option('',"--find-all-mu-nu-candidates",action="store_true",
-                      help="Loops over all expected rings to find mus and nus")
+                    help="Loops over all expected fields to find mus and nus")
     parser.add_option('',"--datetime",action="store_true",
                       help="By default the time meter is from time.clock(), "\
                       "but can be cahnged to use datetime library to measure.")
     parser.add_option('',"--parallel-processing",action="store_true",
-                      help="When find candidates for many rings, "\
+                      help="When find candidates for many fields, "\
                       "do it in parallel")
     parser.add_option('',"--parallel-sboxes",type='int',
                       help="How many parallel processes used to check the "\
-                           "sboxes restrictions with in a ring search"\
+                           "sboxes restrictions with in a field search"\
                       "do it in parallel")
 
 def doSearch(degree,tmeasDateTime,loglevel=Logger._info,
