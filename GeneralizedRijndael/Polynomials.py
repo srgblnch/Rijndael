@@ -49,11 +49,15 @@ def BinaryPolynomialModulo(modulo,variable='z',loglevel=_Logger._info):
        >>> import Polynomials
        >>> field = Polynomials.BinaryPolynomialModulo('z^8+z^4+z^3+z+1')
     '''
+    #This help is shown when
+    #>>> Polynomials.BinaryPolynomialModulo?
+    if len(variable) != 1:
+        raise NameError("The indeterminate must be a single character.")
+    if ord('a') > variable.lower() > ord('z'):
+        raise NameError("The indeterminate must be a valid alphabet letter.")
     if type(modulo) == str and modulo.count(variable) == 0:
         raise Exception("modulo %s is not defined over %s variable"
                         %(modulo,variable))
-    #This help is shown when
-    #>>> Polynomials.BinaryPolynomialModulo?
     class BinaryPolynomialModuloConstructor(_Logger):
         def __init__(self,value):
             '''Polynomial defined by an integer or an string representation 
@@ -74,12 +78,6 @@ def BinaryPolynomialModulo(modulo,variable='z',loglevel=_Logger._info):
             #>>> field?
             #FIXME: improve the logging on this class
             _Logger.__init__(self,loglevel)
-            if len(variable) != 1:
-                raise NameError("The indeterminate must be "\
-                                "a single character.")
-            if ord('a') > variable.lower() > ord('z'):
-                raise NameError("The indeterminate must be a valid "\
-                                "alphabet letter.")
             self._variable = variable
             if type(value) == BinaryPolynomialModuloConstructor or \
                value.__class__ == BinaryPolynomialModuloConstructor:
@@ -113,23 +111,35 @@ def BinaryPolynomialModulo(modulo,variable='z',loglevel=_Logger._info):
                 q,r = self.__division__(self._coefficients,self._modulo)
                 self._coefficients = r
                 self._debug_stream("reduced coefficients", self._coefficients)
+
         @property
         def coefficients(self):
+            """Get the coefficients of the polinomial as an integer"""
             return self._coefficients
         @property
         def modulo(self):
+            """Get the string that represents the modulo polynomials"""
             return self.__interpretToStr__(self._modulo)
         @property
         def variable(self):
+            """Get the char that is used as polinomial variable."""
             return self._variable
         @property
         def degree(self):
+            """Get the degree of the polynomial"""
             return len("{0:b}".format(self._coefficients))
         @property
         def hammingWeight(self):
+            """Get the hamming weight of the polynomial.
+               Hamming weight is defined as the number of non null elements. In
+               the binary case, the number of ones.
+            """
             return bin(self._coefficients).count('1')
         @property
         def modulodegree(self):
+            """Get the degree of the modulo polynomial. That is the maximum 
+               that the elements on the field/ring defined could have.
+            """
             return len("{0:b}".format(self._modulo))
         @property
         def isZero(self):
@@ -411,47 +421,52 @@ def BinaryPolynomialModulo(modulo,variable='z',loglevel=_Logger._info):
             self._debug_stream("mirrored %s to %s"%(bin(bits),bin(mirror)))
             return mirror
         #---- /% Division
-        def __division__(self,a,b):
-            '''TODO
+        def __division__(self,divident,divisor):
             '''
-            #FIXME: check division by 0 => ZeroDivisionError
+               Given two polynomials, divide them and return its quotient 
+               and rest.
+               Input: Two polynomial elements.
+               Output: The quotient and rest between the two input polynomials.
+            '''
+            if BinaryPolynomialModuloConstructor(divisor).isZero:
+                raise ZeroDivisionError
             self._debug_stream("\n<division>")
-            gr_a = len("{0:b}".format(a))-1
-            gr_b = len("{0:b}".format(b))-1
-            q = 0
-            r = a
-            self._debug_stream("a",a)
-            self._debug_stream("b",b)
-            self._debug_stream("q",q)
-            self._debug_stream("r",r)
-            shift = gr_a-gr_b
-            while len("{0:b}".format(r))>=len("{0:b}".format(b)) and \
+            gr_divident = len("{0:b}".format(divident))-1
+            gr_divisor = len("{0:b}".format(divisor))-1
+            quotient = 0
+            rest = divident
+            self._debug_stream("divident",divident)
+            self._debug_stream("divisor",divisor)
+            self._debug_stream("quotient",quotient)
+            self._debug_stream("rest",rest)
+            shift = gr_divident-gr_divisor
+            while len("{0:b}".format(rest))>=len("{0:b}".format(divisor)) and \
                   shift >= 0:
-                #FIXME: this means deg(r) >= deg(b), but it's horrible
-                gr_r = len("{0:b}".format(r))-1
+                #FIXME: this means deg(rest) >= deg(divisor), but it's horrible
+                gr_rest = len("{0:b}".format(rest))-1
                 if shift > 0:
-                    temp = int("{0:b}".format(r)[0:-shift],2)<<shift
+                    temp = int("{0:b}".format(rest)[0:-shift],2)<<shift
                 else:
-                    temp = r
+                    temp = rest
                 self._debug_stream("temp",temp)
-                subs = b << shift
+                subs = divisor << shift
                 self._debug_stream("subs",subs)
                 if len("{0:b}".format(temp)) == len("{0:b}".format(subs)):
                     bar = temp ^ subs
                     self._debug_stream("temp ^subs",bar)
                     if shift > 0:
                         mask = int('1'*shift,2)
-                        q = q | 1<<(shift)
-                        r = bar | (a & mask)
+                        quotient = quotient | 1<<(shift)
+                        rest = bar | (divident & mask)
                     else:
-                        q |= 1
-                        r = bar
-                self._debug_stream("q",q)
-                self._debug_stream("r",r)
-                gr_a -= 1
-                shift = gr_a-gr_b
+                        quotient |= 1
+                        rest = bar
+                self._debug_stream("quotient",quotient)
+                self._debug_stream("rest",rest)
+                gr_divident -= 1
+                shift = gr_divident-gr_divisor
             self._debug_stream("<\\division>\n")
-            return (q,r)
+            return (quotient,rest)
         def __div__(self,other):# => a/b
             q,r = self.__division__(self._coefficients,other._coefficients)
             return BinaryPolynomialModuloConstructor(q)
@@ -686,13 +701,20 @@ def getNu(wordSize,official=False):
     return Mu
 
 
-def TwoVblePolynomialModulo(modulo,coefficients_field,variable='x',
+def TwoVblePolynomialModulo(modulo,coefficients_class,variable='x',
                               loglevel=_Logger._info):
     '''
-        Polynomial ring with coefficients in  a binary polynomial field.
+        Polynomial field/ring with 
+        coefficients in a binary polynomial field/ring.
         TODO: more explanation.
-        
     '''
+    if len(variable) != 1:
+        raise NameError("The indeterminate must be a single character.")
+    if ord('a') > variable.lower() > ord('z'):
+        raise NameError("The indeterminate must be a valid alphabet letter.")
+    if coefficients_class(0).variable == variable:
+        raise NameError("The indeterminate must be different that the "\
+                        "coefficients class")
     if type(modulo) == str and modulo.count(variable) == 0:
         raise Exception("modulo %s is not defined over %s variable"
                         %(modulo,variable))
@@ -702,13 +724,7 @@ def TwoVblePolynomialModulo(modulo,coefficients_field,variable='x',
         '''
         def __init__(self,value):
             _Logger.__init__(self,loglevel)
-            self._subfield = coefficients_field
-            if len(variable) != 1:
-                raise NameError("The indeterminate must be "\
-                                "a single character.")
-            if ord('a') > variable.lower() > ord('x'):
-                raise NameError("The indeterminate must be a valid "\
-                                "alphabet letter.")
+            self._coefficientClass = coefficients_class
             self._variable = variable
             if type(value) == TwoVblePolynomialModuloConstructor or \
                value.__class__ == TwoVblePolynomialModuloConstructor:
@@ -734,22 +750,18 @@ def TwoVblePolynomialModulo(modulo,coefficients_field,variable='x',
                 self._coefficients = self.__interpretFromStr__(value)
             #TODO: are there other representations 
             #that a constructor can support?
-            # - list of integers: but how to know the polynomial modulo of 
-            #                     field?
+            # - list of integers: TODO
             else:
                 raise AssertionError("The given coefficients type '%s'"\
                                      "is not interpretable"%(type(value)))
-#             self._subfield = coefficients_field
             for coefficient in self.coefficients:
                 self._trace_stream("checking type of coefficient %r"
                                    %(coefficient))
-                if type(coefficient) != self._subfield:
+                if type(coefficient) != self._coefficientClass:
                     raise AssertionError("The given coefficient type '%s'"\
                                          "is not an expected '%s'"
-                                         %(type(coefficient),self._subfield))
-#             self._subfield = BinaryPolynomialModulo(\
-#                                 self._coefficients[0].modulo,
-#                                 self._coefficients[0].variable)
+                                         %(type(coefficient),
+                                           self._coefficientClass))
             if type(modulo) == str:
                 self._modulo = self.__interpretFromStr__(modulo)
             else:
@@ -787,9 +799,9 @@ def TwoVblePolynomialModulo(modulo,coefficients_field,variable='x',
                     exponent = len(polynomial)-idx-1
                     #FIXME: those nested 'ifs' can be simplified
                     if exponent == 0:
-                        if coefficient == self._subfield(0):
+                        if coefficient == self._coefficientClass(0):
                             terms.append("")
-                        elif coefficient == self._subfield(1):
+                        elif coefficient == self._coefficientClass(1):
                             terms.append("+1")
                         else:
                             if hexSubfield:
@@ -798,9 +810,9 @@ def TwoVblePolynomialModulo(modulo,coefficients_field,variable='x',
                             else:
                                 terms.append("+(%s)"%(coefficient))
                     elif exponent == 1:
-                        if coefficient == self._subfield(0):
+                        if coefficient == self._coefficientClass(0):
                             terms.append("")
-                        elif coefficient == self._subfield(1):
+                        elif coefficient == self._coefficientClass(1):
                             terms.append("+%s"%(self._variable))
                         else:
                             if hexSubfield:
@@ -811,9 +823,9 @@ def TwoVblePolynomialModulo(modulo,coefficients_field,variable='x',
                                 terms.append("+(%s)*%s"
                                              %(coefficient,self._variable))
                     else:
-                        if coefficient == self._subfield(0):
+                        if coefficient == self._coefficientClass(0):
                             terms.append("")
-                        elif coefficient == self._subfield(1):
+                        elif coefficient == self._coefficientClass(1):
                             terms.append("+%s^%d"%(self._variable,exponent))
                         else:
                             if hexSubfield:
@@ -903,14 +915,14 @@ def TwoVblePolynomialModulo(modulo,coefficients_field,variable='x',
                 if terms.has_key(i):
                     self._trace_stream("processing degree %d term %s"
                                        %(i,terms[i]))
-                    coefficients.append(self._subfield(terms[i]))
+                    coefficients.append(self._coefficientClass(terms[i]))
                 else:
                     self._trace_stream("processing degree %d without term"%(i))
-                    coefficients.append(self._subfield(0))
+                    coefficients.append(self._coefficientClass(0))
             return coefficients
         @property
         def coefficients(self):
-            return self._coefficients
+            return self._coefficients[:]#return a copy, not the same list
         @property
         def modulo(self):
             return self.__interpretToStr__(self._modulo)
@@ -920,6 +932,54 @@ def TwoVblePolynomialModulo(modulo,coefficients_field,variable='x',
         @property
         def modulodegree(self):
             return len(self._modulo)-1
+        
+        @property
+        def isZero(self):
+            '''Neutral element of the first operation, addition.'''
+            for coefficient in self.coefficients:
+                if coefficient != self._coefficientClass(0):
+                    return False
+                    #FIXME: would be good to make it time constant
+            return True
+        @property
+        def isOne(self):
+            '''Neutral element of the second operation, product.'''
+            coefficients = self.coefficients
+            coefficients.reverse()
+            for degree,coefficient in enumerate(coefficients):
+                if degree == 0:
+                    search = self._coefficientClass(1)
+                else:
+                    search = self._coefficientClass(0)
+                if coefficient != search:
+                    return False
+                #FIXME: would be good to make it time constant
+            return True
+#         @property
+#         def isInvertible(self):
+#             '''Show if the element is invertible modulo for the product 
+#                operation.
+#             '''
+#             if self._gcd == None:
+#                 self._gcd,self._multinv,y = \
+#                                  self.__egcd__(self._coefficients,self._modulo)
+#             if self._gcd == 1:
+#                 return True
+#             return False
+        def __iter__(self):
+            coefficients = self._coefficients
+            coefficients.reverse()
+            return iter(coefficients)
+        def iter(self):
+            return self.__iter__()
+        def __getitem__(self,n):
+            coefficients = self.coefficients
+            ceofficients.reverse()
+            if n < len(coefficients):
+                return coefficients[n]
+            raise OverflowError("No coefficient with this degree")
+        def __type__(self):
+            return self.__class__
         
         def __eq__(self,other):# => a == b
             if other == None:
@@ -945,12 +1005,22 @@ def TwoVblePolynomialModulo(modulo,coefficients_field,variable='x',
         def __add__(self,other):# => a+b
             a = _copy(self.coefficients)
             b = _copy(other.coefficients)
-            result = [self._subfield(0)]*self.modulodegree
+            result = [self._coefficientClass(0)]*self.modulodegree
             for i in range(self.modulodegree):
                 result[i] = a[i] + b[i]
             return TwoVblePolynomialModuloConstructor(result)
         def __iadd__(self,other):# => a+=b
             bar = self + other
+            return TwoVblePolynomialModuloConstructor(bar._coefficients)
+        def __sub__(self,other):# => a-b
+            a = _copy(self.coefficients)
+            b = _copy(other.coefficients)
+            result = [self._coefficientClass(0)]*self.modulodegree
+            for i in range(self.modulodegree):
+                result[i] = a[i] - b[i]
+            return TwoVblePolynomialModuloConstructor(result)
+        def __isub__(self,other):# => a-=b
+            bar = self - other
             return TwoVblePolynomialModuloConstructor(bar._coefficients)
         #---- * Product
         def __mul__(self,other):# => a*b
@@ -984,7 +1054,7 @@ def TwoVblePolynomialModulo(modulo,coefficients_field,variable='x',
             #reverse to match index and exponent.
             multiplicand.reverse()
             multiplier.reverse()
-            result = [self._subfield(0)]*self.modulodegree*2
+            result = [self._coefficientClass(0)]*self.modulodegree*2
             for i,coefficient in enumerate(multiplier):
                 partial = self.__multiplicationStep__(multiplicand,
                                                       coefficient,i)
@@ -999,26 +1069,105 @@ def TwoVblePolynomialModulo(modulo,coefficients_field,variable='x',
                       <integer> degree (the exponent where the coefficient is)
                Output: <coefficients list> product line
             '''
-            line = [self._subfield(0)]*self.modulodegree*2
+            line = [self._coefficientClass(0)]*self.modulodegree*2
             for i in range(len(multiplicant)):
                 #shift: i+ degree
                 line[i+degree] = multiplicant[i] * coefficient
             return line
         #---- /% Division: TODO
+#         def __div__(self,other):# => a/b
+#             pass#TODO
+#         def __idiv__(self,other):# => a/=b
+#             pass#TODO
+#         def __mod__(self,other):# => a%b
+#             pass#TODO
+#         def _imod__(self,other):# => a%=b
+#             pass#TODO
+        def __division__(self,divident,divisor):
+            """Given 2 polynomials, divide them to return the quotient and 
+               the rest. Following the equiation:
+                  divident = divisor*quotient + rest
+               Input: <polynomial> divident,divisor
+               Output: <polynomial> quotient,rest
+            """#TODO
+            if divisor.isZero:
+                raise ZeroDivisionError
+            quotient = 0
+            rest = divident
+            #start with a valid equation divident = divisor*quotient + rest
+            self._debug_stream("%s = %s * %s + %s"
+                               %(divident,divisor,quotient,rest))
+            shifter = divident.degree - divisor.degree
+            while rest.degree >= divisor.degree and shifter >= 0:
+                
+                    
+                TwoVblePolynomialModuloConstructor(rest)
+                
+                if shifter > 0:
+                    temp = rest.coefficients
+                    temp.reverse()
+                    temp = temp[0:shifter]
+                else:
+                    temp = rest.coefficients
+                    temp.reverse()
+                self._debug_stream("temp = %s"%(temp))
+                substraction = divisor.coefficients
+                substraction.reverse()
+                
+#             shift = gr_divident-gr_divisor
+#             while rest.degree >= divisor.degree and shift >= 0:
+#                 #FIXME: this means deg(rest) >= deg(divisor), but it's horrible
+#                 gr_rest = rest.degree
+#                 if shift > 0:
+#                     temp = rest.coefficients[0:-shift]<<shift
+#                 else:
+#                     temp = rest
+#                 self._debug_stream("temp",temp)
+#                 subs = divisor << shift
+#                 self._debug_stream("subs",subs)
+#                 if len("{0:b}".format(temp)) == len("{0:b}".format(subs)):
+#                     bar = temp ^ subs
+#                     self._debug_stream("temp ^subs",bar)
+#                     if shift > 0:
+#                         mask = int('1'*shift,2)
+#                         quotient = quotient | 1<<(shift)
+#                         rest = bar | (divident & mask)
+#                     else:
+#                         quotient |= 1
+#                         rest = bar
+#                 self._debug_stream("quotient",quotient)
+#                 self._debug_stream("rest",rest)
+#                 gr_divident -= 1
+#                 shift = gr_divident-gr_divisor
+#             self._debug_stream("<\\division>\n")
+#             return (quotient,rest)
         #---- ~ Multiplicative inverse: TODO
+        #      - operator.__inv__(a) => ~a
+        def __invert__(self):# => ~a, that means like a^-1
+            pass#TODO
+        def __multiplicativeInverse__(self):
+            pass#TODO
+        def __gcd__(self,other):
+            pass#TODO
+        def __egcd__(self,a,b):
+            pass#TODO
         #---- <<>> Shifts: TODO
-#         def __lshift__(self,n):# => <<
-#             return BinaryPolynomialModuloConstructor(\
-#                     self._coefficients+[self._subfield(0)]*n)
-#         def __rshift__(self,n):# => >>
-#             return BinaryPolynomialModuloConstructor(\
-#                     self._coefficients[:len(self._coefficients)-n])
-#         def __ilshift__(self,n):# => <<=
-#             return BinaryPolynomialModuloConstructor(\
-#                     self._coefficients+[self._subfield(0)]*n)
-#         def __irshift__(self,n):# => >>=
-#             return BinaryPolynomialModuloConstructor(\
-#                     self._coefficients[:len(self._coefficients)-n])
+        def __lshift__(self,n):# => a << n
+            return TwoVblePolynomialModuloConstructor(\
+                    self.coefficients+[self._coefficientClass(0)]*n)
+        def __rshift__(self,n):# => a >> n
+            return TwoVblePolynomialModuloConstructor(\
+                    self.coefficients[:len(self.coefficients)-n])
+        def __ilshift__(self,n):# => <<=
+            return TwoVblePolynomialModuloConstructor(\
+                    self.coefficients+[self._coefficientClass(0)]*n)
+        def __irshift__(self,n):# => >>=
+            return TwoVblePolynomialModuloConstructor(\
+                    self.coefficients[:len(self.coefficients)-n])
+        def _cyclic_lshift_(self,n):
+            pass#TODO
+        def _cyclic_rshift_(self,n):
+            pass#TODO
         #---- End class TwoVblePolynomialModuloConstructor
     return TwoVblePolynomialModuloConstructor
 
@@ -1091,6 +1240,20 @@ def testConstructor():
     print("Eliminate one of the coefficients to test the good representation "\
           "when there is no coefficient:\n\tstring:\t%s\n\trepr:\t%r"\
           "\n\thex:\t%s"%(example,example,hex(example)))
+    try:
+        ring = TwoVblePolynomialModulo("z^4+1",field,variable='zs')
+    except:
+        print("Constructor multichar lenght variable pass.")
+    else:
+        print("Alert! Build a polynomial modulo with an invalid variable name")
+    try:
+        ring = TwoVblePolynomialModulo("z^4+1",field,variable='z')
+    except:
+        print("Constructor with two equal variable pass.")
+    else:
+        print("Alert! Build a polynomial modulo with the same vble name for "\
+              "coefficients test failed.")
+    
 
 def testAdd(a=None,b=None):
     field = BinaryPolynomialModulo('z^8+z^4+z^3+z+1',loglevel=_Logger._info)
