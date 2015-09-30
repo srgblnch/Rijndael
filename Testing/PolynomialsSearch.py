@@ -184,7 +184,7 @@ class PolynomialSearch(Logger):
         self._file_suffix = "PolynomialSearch_%d"%degree
         self._log2file = True
         modulo = getBinaryPolynomialRingModulo(self._degree)
-        self._field = BinaryPolynomialModulo(modulo,variable='z')
+        self._ring = BinaryPolynomialModulo(modulo,variable='z')
         self._std_average = float('NaN')
         self._mu = None
         self._inv_mu = None
@@ -219,7 +219,7 @@ class PolynomialSearch(Logger):
         _nonInvertibles = 0
         _candidates = []
         while idx < 2**self._degree:
-            sample = self._field(idx)
+            sample = self._ring(idx)
             try:
                 inverse = ~sample
             except:
@@ -436,7 +436,7 @@ class PolynomialSearch(Logger):
             mu,inv_mu = pair
             percentage = int(float(idx)/total*100)
             for idx in range(2,2**self._degree):
-                nu = self._field(idx)
+                nu = self._ring(idx)
                 h = mu.hammingWeight+inv_mu.hammingWeight+nu.hammingWeight
                 if h in \
                 range(goalWeight-goalThreshold,goalWeight+goalThreshold+1):
@@ -555,9 +555,9 @@ class PolynomialSearch(Logger):
             self._error_stream("***** Found a non unique winner! *****\n%s"%(l))
         else:
             self._std_average = std_average[0]
-            self._mu = self._field(winner[0][0])
-            self._inv_mu = self._field(winner[0][1])
-            self._nu = self._field(winner[0][2])
+            self._mu = self._ring(winner[0][0])
+            self._inv_mu = self._ring(winner[0][1])
+            self._nu = self._ring(winner[0][2])
             self._info_stream("***** The chosen triplet, with mean time "\
                              "(avg:%s,std:%s) is *****"
                              %(std_average[0][1],std_average[0][0]))
@@ -571,7 +571,7 @@ class PolynomialSearch(Logger):
                                self._mu.hammingWeight,
                                self._inv_mu.hammingWeight,
                                self._nu.hammingWeight))
-        OutputFile("field%d_restriction3_winner"
+        OutputFile("ring%d_restriction3_winner"
                    %self._degree).write(winner)
 
     def _makeItParallel(self,goodCandidates,finalists):
@@ -650,9 +650,9 @@ class PolynomialSearch(Logger):
             hasFinish.set()
 
     def _testNuCandidate(self,mu,inv_mu,nu,finalists,tmeasurer,progress):
-        mu = self._field(mu)
-        inv_mu = self._field(inv_mu)
-        nu = self._field(nu)
+        mu = self._ring(mu)
+        inv_mu = self._ring(inv_mu)
+        nu = self._ring(nu)
         try:
             average,std = self._fullTestAffineTransformation(mu,nu,tmeasurer)
         except ArithmeticError,e:
@@ -679,10 +679,10 @@ class PolynomialSearch(Logger):
         """
         """
         try:
-            t_field = []
+            t_ring = []
             t_matrix = []
             for i in range(2**self._degree):
-                a = self._field(i)
+                a = self._ring(i)
                 b,tr,bm,tm = self._affineTransformation(a,mu,nu,tmeasurer)
                 if a == b:
                     raise ArithmeticError("Fixed point found")
@@ -691,19 +691,19 @@ class PolynomialSearch(Logger):
                     self._debug_stream("\t\tDiscart %s: fixed or opposite fixed "\
                                       "point found"%(nu))
                     raise ArithmeticError("")
-                t_field.append(tr)
+                t_ring.append(tr)
                 t_matrix.append(tm)
                 c,tr,cm,tm = self._invertAffineTransformation(b,bm,mu,nu,
                                                               tmeasurer)
                 if a != c:
                     raise AssertionError("%s != %s"%(a,c))
-                t_field.append(tr)
+                t_ring.append(tr)
                 t_matrix.append(tm)
-            t_field = array(t_field)
+            t_ring = array(t_ring)
             t_matrix = array(t_matrix)
             
-            #Usually is smallest the time using field view
-            results = t_field
+            #Usually is smallest the time using ring view
+            results = t_ring
             #results = t_matrix
             
             return results.mean(),results.std()
@@ -750,19 +750,19 @@ def cmdArgs(parser):
                       help="output prints log level: "\
                                             "{error,warning,info,debug,trace}")
     parser.add_option('',"--find-mu-nu-candidates",type='int',
-                      help="Given a size of a field (in bits) return the pair"\
+                      help="Given a size of a ring (in bits) return the pair"\
                       "of mu(z) and nu(z) that satisfies the restrictions.")
     parser.add_option('',"--find-all-mu-nu-candidates",action="store_true",
-                    help="Loops over all expected fields to find mus and nus")
+                    help="Loops over all expected rings to find mus and nus")
     parser.add_option('',"--datetime",action="store_true",
                       help="By default the time meter is from time.clock(), "\
                       "but can be cahnged to use datetime library to measure.")
     parser.add_option('',"--parallel-processing",action="store_true",
-                      help="When find candidates for many fields, "\
+                      help="When find candidates for many rings, "\
                       "do it in parallel")
     parser.add_option('',"--parallel-sboxes",type='int',
                       help="How many parallel processes used to check the "\
-                           "sboxes restrictions with in a field search"\
+                           "sboxes restrictions with in a ring search"\
                       "do it in parallel")
 
 def doSearch(degree,tmeasDateTime,loglevel=Logger._info,
