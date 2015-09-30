@@ -464,12 +464,23 @@ class PolynomialSearch(Logger):
                     else:
                         goalThreshold = distances[0]
                 for k in candidates.keys():
-                    if abs(k-goalWeight) > goalThreshold:
-                        x = candidates.pop(k)
-                        self._info_stream("\t\tRemoving %d candidates with "\
-                                          "combined weight %d because "\
-                                          "there are already some with "\
-                                          "better weights"%(len(x),k))
+                    if self._degree == 13:
+                        #again a hackish for the 13 degree
+                        if abs(k-goalWeight) != goalThreshold:
+                            x = candidates.pop(k)
+                            self._info_stream("\t\tRemoving %d candidates "\
+                                              "with combined weight %d "\
+                                              "because there are already "\
+                                              "some with better weights"
+                                              %(len(x),k))
+                    else:
+                        if abs(k-goalWeight) > goalThreshold:
+                            x = candidates.pop(k)
+                            self._info_stream("\t\tRemoving %d candidates "\
+                                              "with combined weight %d "\
+                                              "because there are already "\
+                                              "some with better weights"
+                                              %(len(x),k))
             items = 0
             for k in candidates.keys():
                 #only do the cut if the collected candidates are 
