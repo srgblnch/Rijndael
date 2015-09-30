@@ -460,7 +460,7 @@ class PolynomialSearch(Logger):
                                       "to %d"%(goalThreshold,distances[0]))
                     if self._degree == 13:
                         #That's a hackish because no finalists found
-                        goalThreshold = distances[1]
+                        goalThreshold = 1
                     else:
                         goalThreshold = distances[0]
                 for k in candidates.keys():
