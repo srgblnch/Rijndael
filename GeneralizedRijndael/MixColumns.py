@@ -24,49 +24,96 @@
 ##
 ##############################################################################
 
+from copy import deepcopy as _deepcopy
 from Logger import Logger as _Logger
 from Polynomials import PolynomialRing as _PolynomialRing
 from Polynomials import getBinaryPolynomialFieldModulo \
                     as _getBinaryPolynomialFieldModulo
-#from Polynomials import BinaryPolynomialModulo as _BinaryPolynomialModulo
+from Polynomials import TwoVblePolynomialModulo as _TwoVblePolynomialModulo
+from Polynomials import BinaryPolynomialModulo as _BinaryPolynomialModulo
 
 class MixColumns(_Logger):
     def __init__(self,nRows,nColumns,wordSize,loglevel=_Logger._info):
         _Logger.__init__(self,loglevel)
         #---- FIXME: refactor this horrible if
         if wordSize==8:
+            polynomialModule=_getBinaryPolynomialFieldModulo(wordSize)
+            self._subfield = _BinaryPolynomialModulo(polynomialModule)
             if nRows==4:
                 #MDS matrices (Maximum Distance Separable)
-                self.__cx=[0x3,0x1,0x1,0x2]
-                self.__dx=[0xB,0xD,0x9,0xE]#c(x) \otimes d(x) = 1 (mod m)
+                self.__c=[0x3,0x1,0x1,0x2]
+                self.__d=[0xB,0xD,0x9,0xE]#c(x) \otimes d(x) = 1 (mod m)
+                self._ring = _TwoVblePolynomialModulo("x^4+1",self._subfield)
             elif nRows==3:
-                self.__cx=[0xD,0x1,0x1]#---- FIXME: unknown
-                self.__dx=[0x3C,0xAA,0x3C]#---- FIXME: unknown
+                self.__c=[0xD,0x1,0x1]#---- FIXME: unknown
+                self.__d=[0x3C,0xAA,0x3C]#---- FIXME: unknown
+                self._ring = _TwoVblePolynomialModulo("x^3+1",self._subfield)
             elif nRows==2:
-                self.__cx=[0x2,0x3]#---- FIXME: unknown
-                self.__dx=[0x2,0x3]#---- FIXME: unknown
-            polynomialModule=_getBinaryPolynomialFieldModulo(wordSize)#0b100011011
-#        elif  wordSize==4:
-#            if nRows==4:
-#                self.__cx=self.__dx=[0,0,0,0]#---- FIXME: unknown
-#            elif nRows==3:
-#                self.__cx=self.__dx=[0,0,0]#---- FIXME: unknown
-#            elif nRows==2:
-#                self.__cx=self.__dx=[0,0]#---- FIXME: unknown
-#            polynomialModule=0b10000
-#        elif  wordSize==2:
-#            if nRows==4:
-#                self.__cx=self.__dx=[0x3,0x1,0x1,0x2]#---- FIXME: unknown
-#            elif nRows==3:
-#                self.__cx=self.__dx=[0,0,0]#---- FIXME: unknown
-#            elif nRows==2:
-#                self.__cx=self.__dx=[0x2,0x3]#---- FIXME: unknown
-#            polynomialModule=0b100
+                self.__c=[0x2,0x3]#---- FIXME: unknown
+                self.__d=[0x2,0x3]#---- FIXME: unknown
+                self._ring = _TwoVblePolynomialModulo("x^2+1",self._subfield)
         else:
             raise Exception("(__init__)","There is no MixColumns for %d "\
                             "wordsize"%(self.__wordSize))
+        self.__cx = self._ring([self._subfield(i) for i in self.__c])
+        self.__dx = self._ring([self._subfield(i) for i in self.__d])
+        self._nColumns = nColumns
         self.__polynomialRing=_PolynomialRing(nRows,nColumns,wordSize)
+
     def do(self,input):
-        return self.__polynomialRing.product(self.__cx,input)
+        self._info_stream("input: %s"%(printlist(input)))
+        #First do with the first approach made
+        res = self.__polynomialRing.product(self.__c,input)
+        #Second way with a class that implements a polynomial ring
+        #with coeficients in a binary polynomial field.
+        nRows = len(input)
+        output = [[self._subfield(input[r][c]) for r in range(nRows)] \
+                                      for c in range(self._nColumns)]
+        for c in range(self._nColumns):
+            self._info_stream("For column %d"%(c))
+            sx = self._ring([self._subfield(input[r][c]) \
+                             for r in range(len(input))])
+            sx_ = self.__cx * sx
+            self._info_stream("\t%s * %s"%(hex(self.__cx),hex(sx)))
+            self._info_stream("\t\t= %s"%(hex(sx_)))
+#             self._info_stream("\t%s * %s"%((self.__cx,sx)))
+#             self._info_stream("\t\t= %s"%(sx_))
+            for r in range(self._nColumns):
+                self._info_stream("output[%d][%d] %s += %s : %s += %s"
+                                  %(r,c,hex(output[r][c]),
+                                    hex(sx_.coefficients[r]),output[r][c],
+                                    sx_.coefficients[r]))
+                output[r][c] += sx_.coefficients[-r]
+        for c in range(self._nColumns):
+            for r in range(nRows):
+                output[r][c] = output[r][c].coefficients
+        self._info_stream("output: %s"%(printlist(output)))
+        if res == output:
+            return res
+        self._error_stream("\nFailed\tinput:\t%s\n\tres:\t%s\n\toutput\t%s"
+                        %(printlist(input),printlist(res),printlist(output)))
+
     def invert(self,input):
-        return self.__polynomialRing.product(self.__dx,input)
+        res = self.__polynomialRing.product(self.__d,input)
+        return res
+
+def printlist(l):
+    if type(l) == list:
+        ans = "["
+        for i,e in enumerate(l):
+            ans += "%s"%(printlist(e))
+            if i != len(l)-1:
+                ans += ","
+        return ans + "]"
+    else:
+        return "0x%X"%(l)
+
+def main():
+    input = [[randint(0,2**8) for i in range(4)] for j in range(4)]
+    mc = MixColumns(4,4,8)
+    mc.do(input)
+
+
+if __name__ == "__main__":
+    from random import randint
+    main()

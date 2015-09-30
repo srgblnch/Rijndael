@@ -25,9 +25,7 @@
 ##############################################################################
 
 from Logger import Logger as _Logger
-#from Logger import levelFromMeaning as _levelFromMeaning
 from ThirdLevel import shift as _shift
-#from ThirdLevel import binlen as _binlen
 from copy import copy as _copy
 from copy import deepcopy as _deepcopy
 
@@ -382,7 +380,8 @@ def BinaryPolynomialModulo(modulo,variable='z',loglevel=_Logger._info):
             input = self.__mirrorbits__(other._coefficients)
             for i in range(self.modulodegree-1):
                 res = res << 1
-                self._debug_stream("row[%d]: %s %r"%(i,bin(row._coefficients),row))
+                self._debug_stream("row[%d]: %s %r"
+                                   %(i,bin(row._coefficients),row))
                 bitProduct = row._coefficients & input
                 parity = self.__parity__(bitProduct)
                 row = row._cyclic_rshift_(1)
@@ -577,6 +576,7 @@ def BinaryPolynomialModulo(modulo,variable='z',loglevel=_Logger._info):
             second = (self._coefficients << (maxbits-(n%maxbits))\
                                                       & 2**maxbits-1)
             return first|second
+        #---- End class BinaryPolynomialModuloConstructor
     return BinaryPolynomialModuloConstructor
 
 def getBinaryPolynomialFieldModulo(wordSize):
@@ -607,8 +607,8 @@ def getBinaryPolynomialFieldModulo(wordSize):
 
 def getBinaryPolynomialRingModulo(wordSize):
     '''Who is chosen m'(z)? z^8+1 is the first that those the job
-       (build a polynomial ring), and that is the rule for the other sizes under
-       study here.
+       (build a polynomial ring), and that is the rule for the other sizes 
+       under study here.
        This is quite similar to how the binary polynomial field modulo is 
        chosen.
     '''
@@ -644,11 +644,17 @@ def getMu(wordSize,official=False):
         3:0x02,#z
         4:0x07,#z^2+z+1
         5:0x0B,#z^3+z+1
-        6:0x26,#z^5+z^2+z
+        6:0x0D,#z^3+z^2+1
         7:0x26,#z^5+z^2+z
         8:0x3D,#z^5+z^4+z^3+z^2+1#0x1F,#z^4+z^3+z^2+z+1
         9:0x52,#z^6+z^4+z
         10:0x15C,#z^8+z^6+z^4+z^3+z^2
+        11:0x6C8,#z^10+z^9+z^7+z^6+z^3
+        12:0xEC6,#z^11+z^10+z^9+z^7+z^6+z^2+z
+        #13:
+        14:0x3CC2,#z^13+z^12+z^11+z^10+z^7+z^6+z
+        15:0x79A0,#z^14+z^13+z^12+z^11+z^8+z^7+z^5
+        16:0xFAE0,#$z^15+z^14+z^13+z^12+z^11+z^9+z^7+z^6+z^5
     }[wordSize]
     return Mu
 
@@ -665,16 +671,23 @@ def getNu(wordSize,official=False):
         3:0x02,#z
         4:0x08,#z^3
         5:0x02,#z
-        6:0x25,#z^5+z^2+1
+        6:0x2C,#z^5+z^3+z^2
         7:0x10,#z^4
         8:0x47,#z^6+z^2+z+1#0x63,#z^6+z^5+z+1
-        9:0x38,#z^5+z^4+z^3+z
+        9:0x3A,#z^5+z^4+z^3+z
         10:0x236,#z^9+z^5+z^4+z^2+z
+        11:0xAD,#z^7+z^5+z^3+z^2+1
+        12:0x53,#z^6+z^4+z+1
+        #13:
+        14:0x38CC,#z^13+z^12+z^11+z^7+z^6+z^3+z^2 
+        15:0x9D9,#z^11+z^8+z^7+z^6+z^4+z^3+1
+        16:0x30FA,#z^13+z^12+z^7+z^6+z^5+z^4+z^3+z
     }[wordSize]
     return Mu
 
 
-def SuperPolynomialRingModulo(modulo,variable='x',loglevel=_Logger._info):
+def TwoVblePolynomialModulo(modulo,coefficients_field,variable='x',
+                              loglevel=_Logger._info):
     '''
         Polynomial ring with coefficients in  a binary polynomial field.
         TODO: more explanation.
@@ -683,12 +696,13 @@ def SuperPolynomialRingModulo(modulo,variable='x',loglevel=_Logger._info):
     if type(modulo) == str and modulo.count(variable) == 0:
         raise Exception("modulo %s is not defined over %s variable"
                         %(modulo,variable))
-    class SuperPolynomialRingConstructor(_Logger):
+    class TwoVblePolynomialModuloConstructor(_Logger):
         '''
             TODO: document
         '''
         def __init__(self,value):
             _Logger.__init__(self,loglevel)
+            self._subfield = coefficients_field
             if len(variable) != 1:
                 raise NameError("The indeterminate must be "\
                                 "a single character.")
@@ -696,8 +710,8 @@ def SuperPolynomialRingModulo(modulo,variable='x',loglevel=_Logger._info):
                 raise NameError("The indeterminate must be a valid "\
                                 "alphabet letter.")
             self._variable = variable
-            if type(value) == SuperPolynomialRingConstructor or \
-               value.__class__ == SuperPolynomialRingConstructor:
+            if type(value) == TwoVblePolynomialModuloConstructor or \
+               value.__class__ == TwoVblePolynomialModuloConstructor:
                 self._coefficients = value.coefficients
             elif type(value) == list:
                 if len(value) == 0:
@@ -714,6 +728,8 @@ def SuperPolynomialRingModulo(modulo,variable='x',loglevel=_Logger._info):
                         if firstCoefficient.modulo != coefficient.modulo:
                             raise AssertionError("All the coefficients shall "\
                                                  "be from the same field.")
+                self._coefficients = value
+                
             elif type(value) == str:
                 self._coefficients = self.__interpretFromStr__(value)
             #TODO: are there other representations 
@@ -723,10 +739,17 @@ def SuperPolynomialRingModulo(modulo,variable='x',loglevel=_Logger._info):
             else:
                 raise AssertionError("The given coefficients type '%s'"\
                                      "is not interpretable"%(type(value)))
-            self._coefficients = value
-            self._subfield = BinaryPolynomialModulo(\
-                                self._coefficients[0].modulo,
-                                self._coefficients[0].variable)
+#             self._subfield = coefficients_field
+            for coefficient in self.coefficients:
+                self._trace_stream("checking type of coefficient %r"
+                                   %(coefficient))
+                if type(coefficient) != self._subfield:
+                    raise AssertionError("The given coefficient type '%s'"\
+                                         "is not an expected '%s'"
+                                         %(type(coefficient),self._subfield))
+#             self._subfield = BinaryPolynomialModulo(\
+#                                 self._coefficients[0].modulo,
+#                                 self._coefficients[0].variable)
             if type(modulo) == str:
                 self._modulo = self.__interpretFromStr__(modulo)
             else:
@@ -770,7 +793,8 @@ def SuperPolynomialRingModulo(modulo,variable='x',loglevel=_Logger._info):
                             terms.append("+1")
                         else:
                             if hexSubfield:
-                                terms.append("+%s"%(hex(coefficient)))
+                                terms.append("+0x%X"
+                                             %(coefficient.coefficients))
                             else:
                                 terms.append("+(%s)"%(coefficient))
                     elif exponent == 1:
@@ -780,10 +804,11 @@ def SuperPolynomialRingModulo(modulo,variable='x',loglevel=_Logger._info):
                             terms.append("+%s"%(self._variable))
                         else:
                             if hexSubfield:
-                                terms.append("+%s%s"
-                                            %(hex(coefficient),self._variable))
+                                terms.append("+0x%X%s"
+                                            %(coefficient.coefficients,
+                                              self._variable))
                             else:
-                                terms.append("+(%s)%s"
+                                terms.append("+(%s)*%s"
                                              %(coefficient,self._variable))
                     else:
                         if coefficient == self._subfield(0):
@@ -792,10 +817,11 @@ def SuperPolynomialRingModulo(modulo,variable='x',loglevel=_Logger._info):
                             terms.append("+%s^%d"%(self._variable,exponent))
                         else:
                             if hexSubfield:
-                                terms.append("+%s%s^%d"
-                                   %(hex(coefficient),self._variable,exponent))
+                                terms.append("+0x%X%s^%d"
+                                   %(coefficient.coefficients,
+                                     self._variable,exponent))
                             else:
-                                terms.append("+(%s)%s^%d"
+                                terms.append("+(%s)*%s^%d"
                                         %(coefficient,self._variable,exponent))
                 collect = ''.join(["%s"%(term) for term in terms])
                 if len(collect) == 0:
@@ -807,23 +833,42 @@ def SuperPolynomialRingModulo(modulo,variable='x',loglevel=_Logger._info):
             #FIXME: simplify, that's too big for the task to do.
             terms = {}
             i = 0
+            self._trace_stream("Received the string %r (%d) to interpret"
+                               %(string,len(string)))
             while i < len(string):
+                self._trace_stream("To be process: %r"%(string[i:]))
                 while string[i] == ' ' or i == len(string):
                     i += 1#ignore any &nbsp;
+                #---- Coefficient area
                 if string[i] == '(':
                     closer = string.find(')',i)
                     coefficient = string[i+1:closer]
+                    self._trace_stream("Found a coefficient %r"%(coefficient))
+                    if closer+1 < len(string):
+                        if string[closer+1] == '*':
+                            self._trace_stream("'*' sign found.")
+                            closer += 2
                     i = closer
                 elif string[i:i+2] == '0x':
                     vblePos = string.find(self._variable,i)
                     coefficient = string[i:vblePos]
+                    self._trace_stream("Found a coefficient in hexadecimal %r"
+                                       %(coefficient))
                     i = vblePos
                 else:
-                    coefficient = self._subfield(1)
+                    self._trace_stream("No coefficient specified, "\
+                                       "it means a '1'")
+                    coefficient = '1'
+                #---- variable area
                 if string[i] != self._variable:
+                    self._trace_stream("Searching the variable %r != %s"
+                                       %(string[i],self._variable))
                     i += 1
+                #---- exponent area
                 if i == len(string):
                     terms[0] = coefficient
+                    self._trace_stream("Parsing finish! final terms dict: %s"
+                                       %(terms))
                     break
                 if string[i] == self._variable:
                     j = i+1
@@ -832,11 +877,14 @@ def SuperPolynomialRingModulo(modulo,variable='x',loglevel=_Logger._info):
                     if string[j] == '^':
                         closer = string.find('+',j)
                         exponent = int(string[j+1:closer])
+                        self._trace_stream("Found an exponent %d"%(exponent))
                         i = closer
                     elif string[j] == '+':
                         exponent = 1
-                        i += j+1
+                        self._trace_stream("No exponent means degree '1'")
+                        i = j
                 elif string[i] == '+':
+                    self._trace_stream("No variable means exponent '0'")
                     exponent = 0
                     i += 1
                 else:
@@ -844,15 +892,20 @@ def SuperPolynomialRingModulo(modulo,variable='x',loglevel=_Logger._info):
                                       "ring with coefficients in a binary "\
                                       "polynomial field"%(string))
                 terms[exponent] = coefficient
+                self._trace_stream("Current terms dict: %s"%terms)
                 i += 1
+                self._trace_stream("i = %d"%(i))
             degrees = terms.keys()
             degrees.sort()
             degree = degrees[-1]
             coefficients = []
             for i in range(degree,-1,-1):
                 if terms.has_key(i):
+                    self._trace_stream("processing degree %d term %s"
+                                       %(i,terms[i]))
                     coefficients.append(self._subfield(terms[i]))
                 else:
+                    self._trace_stream("processing degree %d without term"%(i))
                     coefficients.append(self._subfield(0))
             return coefficients
         @property
@@ -867,50 +920,6 @@ def SuperPolynomialRingModulo(modulo,variable='x',loglevel=_Logger._info):
         @property
         def modulodegree(self):
             return len(self._modulo)-1
-        def __mul__(self,other):
-            '''Given two polynomials over F_{2^8} multiplie them modulo x^{4}+1
-               s'(x) = a(x) \otimes s(x)
-               [s'_0,c]   [a_3 a_0 a_1 a_2] [s_0,c]
-               [s'_1,c] = [a_2 a_3 a_0 a_1] [s_1,c]
-               [s'_2,c]   [a_1 a_2 a_3 a_0] [s_2,c]
-               [s'_3,c]   [a_0 a_1 a_2 a_3] [s_3,c]
-               s'_0,c = (a_3 \bullet s_0,c) \oplus (a_0 \bullet s_1,c) \oplus
-                        (a_1 \bullet s_2,c) \oplus (a_2 \bullet s_3,c)
-               s'_1,c = (a_2 \bullet s_0,c) \oplus (a_3 \bullet s_1,c) \oplus
-                        (a_0 \bullet s_2,c) \oplus (a_1 \bullet s_3,c)
-               s'_2,c = (a_1 \bullet s_0,c) \oplus (a_2 \bullet s_1,c) \oplus
-                        (a_3 \bullet s_2,c) \oplus (a_0 \bullet s_3,c)
-               s'_3,c = (a_0 \bullet s_0,c) \oplus (a_1 \bullet s_1,c) \oplus
-                        (a_2 \bullet s_2,c) \oplus (a_3 \bullet s_3,c)
-               Where \bullet is the finite field (F_{2^8}) multiplication,
-               and \oplus an xor operation
-               Input: Two polynomial ring elements with coefficients in the 
-                      same binary polynomial ring.
-               Output: The product between the two input pylinomials
-            '''
-            #TODO...
-            ax = _deepcopy(self.coefficients)
-            #self._debug_stream("ax = %s"%ax)
-            sx = _deepcopy(other.coefficients)
-            #self._debug_stream("sx = %s"%sx)
-            sx_ = self._subfield(0)*4
-            degree = self.modulodegree
-            for i,sxi in enumerate(sx):
-                #self._debug_stream("Taking %dth element of sx: %s"%(i,sxi))
-                for j,axj in enumerate(ax):
-                    #self._debug_stream("Taking %dth element of ax: %s"%(j,axj))
-                    #self._debug_stream("sx[%d]*ax[%d] = %s * %s"
-                    #                    %(i,j,sxi,axj))
-                    sx_[i] += (sxi*axj)
-                    #self._debug_stream("sx_[%d] = sx[%d]*ax[%d] = %s"
-                    #                    %(i,i,j,sx_[i]))
-                sx = _shift(sx,-1)
-                #self._debug_stream("Shifting sx = %s"%(sx))
-            return SuperPolynomialRingConstructor(sx_)
-            
-        def __imul__(self,other):# => a*=b
-            bar = self * other
-            return SuperPolynomialRingConstructor(bar._coefficients)
         
         def __eq__(self,other):# => a == b
             if other == None:
@@ -930,7 +939,88 @@ def SuperPolynomialRingModulo(modulo,variable='x',loglevel=_Logger._info):
         
         def is_not(self,other):# => a != b
             return self != other
-    return SuperPolynomialRingConstructor
+        
+        #---- #Operations
+        #---- + Addition:
+        def __add__(self,other):# => a+b
+            a = _copy(self.coefficients)
+            b = _copy(other.coefficients)
+            result = [self._subfield(0)]*self.modulodegree
+            for i in range(self.modulodegree):
+                result[i] = a[i] + b[i]
+            return TwoVblePolynomialModuloConstructor(result)
+        def __iadd__(self,other):# => a+=b
+            bar = self + other
+            return TwoVblePolynomialModuloConstructor(bar._coefficients)
+        #---- * Product
+        def __mul__(self,other):# => a*b
+            '''Given two polynomials ring elements with coefficients in a
+               binary polynomial field, calculate their product.
+               Input: Two polynomial ring elements with coefficients in the 
+                      same binary polynomial ring.
+               Output: The product between the two input pylinomials
+            '''
+            a = _copy(self._coefficients)
+            b = _copy(other._coefficients)
+            self._debug_stream("a * b = %s * %s"%(self.__interpretToStr__(a),
+                                                  self.__interpretToStr__(b)))
+            res = self.__multiply__(a,b)
+            res.reverse()
+            p = TwoVblePolynomialModuloConstructor(res)
+            self._debug_stream("c = %s"%(p))
+            return p
+
+        def __imul__(self,other):# => a*=b
+            bar = self * other
+            return TwoVblePolynomialModuloConstructor(bar._coefficients)
+        
+        def __multiply__(self,multiplicand,multiplier):
+            '''Given two polynomials, proceed with a polynomial product
+               (without reduction).
+               Input: <coefficients list> multiplicand
+                      <coefficients list> multiplier
+               Output: <coefficients list> result
+            '''
+            #reverse to match index and exponent.
+            multiplicand.reverse()
+            multiplier.reverse()
+            result = [self._subfield(0)]*self.modulodegree*2
+            for i,coefficient in enumerate(multiplier):
+                partial = self.__multiplicationStep__(multiplicand,
+                                                      coefficient,i)
+                for i in range(len(partial)):
+                    result[i] += partial[i]
+            return result
+        def __multiplicationStep__(self,multiplicant,coefficient,degree):
+            '''Constant time function to calculate one of the steps in the 
+               multiplication.
+               Input: <coefficients list> multiplicant
+                      <coefficient> coefficient as binary polynomial element
+                      <integer> degree (the exponent where the coefficient is)
+               Output: <coefficients list> product line
+            '''
+            line = [self._subfield(0)]*self.modulodegree*2
+            for i in range(len(multiplicant)):
+                #shift: i+ degree
+                line[i+degree] = multiplicant[i] * coefficient
+            return line
+        #---- /% Division: TODO
+        #---- ~ Multiplicative inverse: TODO
+        #---- <<>> Shifts: TODO
+#         def __lshift__(self,n):# => <<
+#             return BinaryPolynomialModuloConstructor(\
+#                     self._coefficients+[self._subfield(0)]*n)
+#         def __rshift__(self,n):# => >>
+#             return BinaryPolynomialModuloConstructor(\
+#                     self._coefficients[:len(self._coefficients)-n])
+#         def __ilshift__(self,n):# => <<=
+#             return BinaryPolynomialModuloConstructor(\
+#                     self._coefficients+[self._subfield(0)]*n)
+#         def __irshift__(self,n):# => >>=
+#             return BinaryPolynomialModuloConstructor(\
+#                     self._coefficients[:len(self._coefficients)-n])
+        #---- End class TwoVblePolynomialModuloConstructor
+    return TwoVblePolynomialModuloConstructor
 
 class PolynomialRing(_Logger):
     '''This represents a polynomial over (GF(2^n))^l, with a modulo polynomial 
@@ -977,6 +1067,9 @@ class PolynomialRing(_Logger):
                 shifted_ax=_shift(shifted_ax,-1)
         return res
 
+
+#---- Testing
+
 def randomBinaryPolynomial(field,degree):
     return field(randint(0,2**degree))
 
@@ -986,11 +1079,10 @@ def randomSuperPolynomial(ring,ringDegree,field,fieldDegree):
         coefficients.append(randomBinaryPolynomial(field,fieldDegree))
     return ring(coefficients)
 
-if __name__ == "__main__":
-    from random import randint
-    #print("Use PolynomialsTest.py for testing.")
+def testConstructor():
+    print("Use PolynomialsTest.py for testing.")
     field = BinaryPolynomialModulo('z^8+z^4+z^3+z+1',loglevel=_Logger._info)
-    ring = SuperPolynomialRingModulo("x^4+1",loglevel=_Logger._debug)
+    ring = TwoVblePolynomialModulo("x^4+1",field,loglevel=_Logger._debug)
     example = randomSuperPolynomial(ring,4,field,8)
     print("Random element of the polynomial ring with coefficients in a "\
           "binary polynomial field:\n\tstring:\t%s\n\trepr:\t%r\n\thex:\t%s"
@@ -999,20 +1091,101 @@ if __name__ == "__main__":
     print("Eliminate one of the coefficients to test the good representation "\
           "when there is no coefficient:\n\tstring:\t%s\n\trepr:\t%r"\
           "\n\thex:\t%s"%(example,example,hex(example)))
-    print("\nTesting the product:")
-    for r in range(10):
-        axlist = [randint(0,2**8),randint(0,2**8),randint(0,2**8),randint(0,2**8)]
-        sxlist = [randint(0,2**8),randint(0,2**8),randint(0,2**8),randint(0,2**8)]
-        ax = ring([field(i) for i in axlist])
-        sx = ring([field(i) for i in sxlist])
-        print("\nTesting random pair: %s * %s"%(ax,sx))
-        rx = ax * sx
-        bar = PolynomialRing(4,4,8)
-        state = [sxlist]*4
-        foo = bar.product(axlist,state)[0]
-        foox = ring([field(i) for i in foo])
-        if rx != foox:
-            print("\tAlert %s != %s"%(rx,foox))
-            break
+
+def testAdd(a=None,b=None):
+    field = BinaryPolynomialModulo('z^8+z^4+z^3+z+1',loglevel=_Logger._info)
+    ring = TwoVblePolynomialModulo("x^4+1",field,loglevel=_Logger._debug)
+    if a == None:
+        a = randomSuperPolynomial(ring,4,field,8)
+    elif type(a) == list:
+        a = ring([field(a[i]) for i in range(len(a))])
+    if b == None:
+        b = randomSuperPolynomial(ring,4,field,8)
+    elif type(b) == list:
+        b = ring([field(b[i]) for i in range(len(b))])
+    c = a + b
+    print("Test to add %s + %s = %s"%(hex(a),hex(b),hex(c)))
+
+def doProductTest(axlist=None,sxlist=None):
+    field = BinaryPolynomialModulo('z^8+z^4+z^3+z+1',loglevel=_Logger._info)
+    ring = TwoVblePolynomialModulo("x^4+1",field,loglevel=_Logger._info)
+    if axlist == None:
+        axlist = []
+        for i in range(4):
+            axlist.append(randint(0,2**8))
+        axrandom = True
+    else:
+        axrandom = False
+    if sxlist == None:
+        sxlist = []
+        for i in range(4):
+            sxlist.append(randint(0,2**8))
+        sxrandom = True
+    else:
+        sxrandom = False
+    ax = ring([field(i) for i in axlist])
+    sx = ring([field(i) for i in sxlist])
+    if axrandom and sxrandom:
+        print("\tTesting random pair: %s * %s"%(ax,sx))
+    elif axrandom:
+        print("\tTesting pair with first term random: %s * %s"%(ax,sx))
+    elif sxrandom:
+        print("\tTesting pair with second term random: %s * %s"%(ax,sx))
+    else:
+        print("\tTesting fixed pair: %s * %s"%(ax,sx))
+    rx = ax * sx
+    bar = PolynomialRing(4,4,8)
+    state = [sxlist]*4
+    foo = bar.product(axlist,state)
+    #print("%s"%foo)
+    foox = ring([field(i) for i in foo[0]])
+    if rx != foox:
+        print("\t\tAlert rx != foox\n\t\t%s != %s"%(rx,foox))
+        return False
+    else:
+        if sx == rx:
+            print("\t\tAlert sx == rx\n\t\t%s == %s"%(sx,rx))
+            return False
         else:
-            print("\tOK:\n\t\t%s\n\t\t%s"%(rx,foox))
+            print("\t\tOK rx == foox\n\t\t%s == %s "%(rx,foox))
+            return True
+
+def productByInverse(polynomial,inverse=None):
+    field = BinaryPolynomialModulo('z^8+z^4+z^3+z+1',loglevel=_Logger._info)
+    ring = TwoVblePolynomialModulo("x^4+1",field,loglevel=_Logger._info)
+    productNeutralElement = ring([field(1)])
+    if inverse == None:
+        inverse = ~polynomial
+    rx = polynomial * inverse
+    if rx != productNeutralElement:
+        print("Alert! Does polynomials doesn't produce the neutral")
+        return False
+    return True
+
+def testProduct(n):
+    print("\nTesting the product operation:")
+    field = BinaryPolynomialModulo('z^8+z^4+z^3+z+1',loglevel=_Logger._info)
+    ring = TwoVblePolynomialModulo("x^4+1",field,loglevel=_Logger._debug)
+    c_x = ring('(z+1)*x^3+x^2+x+(z)')
+    d_x = ring('(z^3+z+1)*x^3+(z^3+z^2+1)*x^2+(z^3+1)*x+(z^3+z^2+z)')
+    productByInverse(polynomial=c_x,inverse=d_x)
+#     sageSamples = [
+#                    ]
+#     
+#     
+#     for r in range(n):
+#         if not doProductTest(): break
+#     doProductTest(axlist=[3,1,1,2],sxlist=[0xB,0xD,0x9,0xE])
+#     for r in range(n):
+#         #if not doProductTest(axlist=[0xB,0xD,0x9,0xE]): break
+#         if not doProductTest(axlist=[3,1,1,2]): break
+
+def main():
+    #testConstructor()
+    #testAdd(a=[0xAA,0xAB,0xAC,0xAD],b=[1,1,1,1])
+    #testAdd()
+    testProduct(2)
+
+if __name__ == "__main__":
+    from random import randint
+    main()
