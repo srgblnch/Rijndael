@@ -29,28 +29,31 @@ from ThirdLevel import shift as _shift
 from copy import copy as _copy
 from copy import deepcopy as _deepcopy
 
-def BinaryPolynomialModulo(modulo,variable='z',loglevel=_Logger._info):
-    '''BinaryPolynomialModulo is a builder for the given modulo. The returning
-       object can generate elements in this field or ring (depending on the 
-       reducibility of the modulo polynomial).
+def BinaryExtensionModulo(modulo,variable='z',loglevel=_Logger._info):
+    '''
+        BinaryExtensionModulo is a builder for \mathbb{F}_{2^w} (or GF(2^w) in
+        another notation) elements. Finite field or ring with characteristic 2
+        and extension degree 8, build from the polynomial ring F_2[z] modulo 
+        a degree w polynomial. This will produce a field if the modulo 
+        polynomial is irreduceble or a ring in case it can be reduced.
+        
+        The integer representation will use binary representation to assign 
+        the MSB to highest degree and the LSB to the 0 degree. For the string 
+        representation the sage notation has been take as inspiration.
        
-       The integer representation will use binary representation to assign the 
-       MSB to highest degree and the LSB to the 0 degree. For the string 
-       representation the sage notation has been take as inspiration.
-       
-       Arguments:
-       - modulo: (mandatory) an integer or an string representation of a 
-         polynomial (like 'z^8+z^4+z^3+z+1' that's equivalent to 0x11B).
-       - variable: by default is 'z' and it is only used for the output strings
-         representing the polynomials.
-       - loglevel: by default info, based on the superclass Logger enumeration.
-       
-       Example:
-       >>> import Polynomials
-       >>> field = Polynomials.BinaryPolynomialModulo('z^8+z^4+z^3+z+1')
+        Arguments:
+        - modulo: (mandatory) an integer or an string representation of a 
+          polynomial (like 'z^8+z^4+z^3+z+1' that's equivalent to 0x11B).
+        - variable: by default is 'z' and it is only used for the output 
+          strings representing the polynomials.
+        - loglevel: by default info, based on the superclass Logger enumeration.
+        
+        Example:
+        >>> import Polynomials
+        >>> field = Polynomials.BinaryExtensionModulo('z^8+z^4+z^3+z+1')
     '''
     #This help is shown when
-    #>>> Polynomials.BinaryPolynomialModulo?
+    #>>> Polynomials.BinaryExtensionModulo?
     if len(variable) != 1:
         raise NameError("The indeterminate must be a single character.")
     if ord('a') > variable.lower() > ord('z'):
@@ -58,29 +61,32 @@ def BinaryPolynomialModulo(modulo,variable='z',loglevel=_Logger._info):
     if type(modulo) == str and modulo.count(variable) == 0:
         raise Exception("modulo %s is not defined over %s variable"
                         %(modulo,variable))
-    class BinaryPolynomialModuloConstructor(_Logger):
+    class BinaryExtensionModuloConstructor(_Logger):
         def __init__(self,value):
-            '''Polynomial defined by an integer or an string representation 
-               of an element of the field or ring defined when made the builder
-               object.
-               
-               Argument:
-               - value: (mandatory) the value to be interpreted as a binary 
-                 polynomial finite field or ring.
-                 
-               Example:
-               >>> from Polynomials import BinaryPolynomialModulo
-               >>> field = BinaryPolynomialModulo('z^8+z^4+z^3+z+1')
-               >>> a = field(73); a
-               z^6+z^3+1 (mod z^8+z^4+z^3+z+1)
+            '''
+                Once have the builder of elements it can be used to generate
+                objects that represents and have operations defined. The allow
+                representations are integers (to be represented as a list of 
+                coefficients in binary) or a string representation with 
+                polynomial notation.
+                
+                Argument:
+                - value: (mandatory) the value to be interpreted as a binary 
+                  polynomial finite field or ring.
+                
+                Example:
+                >>> from Polynomials import BinaryExtensionModulo
+                >>> field = BinaryExtensionModulo('z^8+z^4+z^3+z+1')
+                >>> a = field(73); a
+                z^6+z^3+1 (mod z^8+z^4+z^3+z+1)
             '''
             #This help is shown when, from the last one
             #>>> field?
             #FIXME: improve the logging on this class
             _Logger.__init__(self,loglevel)
             self._variable = variable
-            if type(value) == BinaryPolynomialModuloConstructor or \
-               value.__class__ == BinaryPolynomialModuloConstructor:
+            if type(value) == BinaryExtensionModuloConstructor or \
+               value.__class__ == BinaryExtensionModuloConstructor:
                 self._coefficients = value.coefficients
             elif type(value) == int:
                 self._coefficients = abs(value)
@@ -244,7 +250,7 @@ def BinaryPolynomialModulo(modulo,variable='z',loglevel=_Logger._info):
                                       %(terms[i]))
             return value
         def __abs__(self):
-            return BinaryPolynomialModuloConstructor(abs(self._coefficients))
+            return BinaryExtensionModuloConstructor(abs(self._coefficients))
         def __len__(self):
             bits = "{0:b}".format(self._coefficients)
             if bits[0] == '-':
@@ -279,10 +285,10 @@ def BinaryPolynomialModulo(modulo,variable='z',loglevel=_Logger._info):
         def __add__(self,other):# => a+b
             a = _copy(self.coefficients)
             b = _copy(other.coefficients)
-            return BinaryPolynomialModuloConstructor(a^b)
+            return BinaryExtensionModuloConstructor(a^b)
         def __iadd__(self,other):# => a+=b
             bar = self + other
-            return BinaryPolynomialModuloConstructor(bar._coefficients)
+            return BinaryExtensionModuloConstructor(bar._coefficients)
         def __pos__(self):# => +a
             return self
         #---- - Substraction
@@ -292,10 +298,10 @@ def BinaryPolynomialModulo(modulo,variable='z',loglevel=_Logger._info):
             bar = -other
             a = _copy(self.coefficients)
             b = _copy(other.coefficients)
-            return BinaryPolynomialModuloConstructor(a^b)
+            return BinaryExtensionModuloConstructor(a^b)
         def __isub__(self,other):# => a-=b
             bar = self - other
-            return BinaryPolynomialModuloConstructor(bar._coefficients)
+            return BinaryExtensionModuloConstructor(bar._coefficients)
         #---- * Product
         @checkTypes
         def __mul__(self,other):# => a*b
@@ -313,10 +319,10 @@ def BinaryPolynomialModulo(modulo,variable='z',loglevel=_Logger._info):
                               %(self.__interpretToStr__(a),
                                 self.__interpretToStr__(b),
                                 self.__interpretToStr__(res)))
-            return BinaryPolynomialModuloConstructor(res)
+            return BinaryExtensionModuloConstructor(res)
         def __imul__(self,other):# => a*=b
             bar = self * other
-            return BinaryPolynomialModuloConstructor(bar._coefficients)
+            return BinaryExtensionModuloConstructor(bar._coefficients)
         def xtimes(self):
             return self << 1
         def __multiply__(self,a,b):
@@ -397,7 +403,7 @@ def BinaryPolynomialModulo(modulo,variable='z',loglevel=_Logger._info):
                 row = row._cyclic_rshift_(1)
                 res |= parity
             self._debug_stream("result: %s"%bin(res))
-            return BinaryPolynomialModuloConstructor(self.__mirrorbits__(res))
+            return BinaryExtensionModuloConstructor(self.__mirrorbits__(res))
         def __parity__(self,bits):
             '''Given a number, use a bit representation to proceed with an xor 
                (addition in GF(2)) of each of its elements.
@@ -428,7 +434,7 @@ def BinaryPolynomialModulo(modulo,variable='z',loglevel=_Logger._info):
                Input: Two polynomial elements.
                Output: The quotient and rest between the two input polynomials.
             '''
-            if BinaryPolynomialModuloConstructor(divisor).isZero:
+            if BinaryExtensionModuloConstructor(divisor).isZero:
                 raise ZeroDivisionError
             self._debug_stream("\n<division>")
             gr_divident = len("{0:b}".format(divident))-1
@@ -469,18 +475,18 @@ def BinaryPolynomialModulo(modulo,variable='z',loglevel=_Logger._info):
             return (quotient,rest)
         def __div__(self,other):# => a/b
             q,r = self.__division__(self._coefficients,other._coefficients)
-            return BinaryPolynomialModuloConstructor(q)
+            return BinaryExtensionModuloConstructor(q)
             #FIXME: the constructor will reduce it having the rest 
             #and not the quotient
         def __idiv__(self,other):# => a/=b
             q,r = self.__division__(self._coefficients,other._coefficients)
-            return BinaryPolynomialModuloConstructor(q)
+            return BinaryExtensionModuloConstructor(q)
         def __mod__(self,other):# => a%b
             q,r = self.__division__(self._coefficients,other._coefficients)
-            return BinaryPolynomialModuloConstructor(r)
+            return BinaryExtensionModuloConstructor(r)
         def _imod__(self,other):# => a%=b
             q,r = self.__division__(self._coefficients,other._coefficients)
-            return BinaryPolynomialModuloConstructor(r)
+            return BinaryExtensionModuloConstructor(r)
         #---- ~ Multiplicative inverse 
         #      - operator.__inv__(a) => ~a
         def __egcd__(self,a,b):
@@ -553,20 +559,20 @@ def BinaryPolynomialModulo(modulo,variable='z',loglevel=_Logger._info):
                 return self._multinv#%self._modulo
         def __invert__(self):# => ~a, that means like a^-1
             res = self.__multiplicativeInverse__()
-            return BinaryPolynomialModuloConstructor(res)
+            return BinaryExtensionModuloConstructor(res)
         #---- <<>> Shifts
         def __lshift__(self,n):# => <<
-            return BinaryPolynomialModuloConstructor(self._coefficients<<n)
+            return BinaryExtensionModuloConstructor(self._coefficients<<n)
         def __rshift__(self,n):# => >>
-            return BinaryPolynomialModuloConstructor(self._coefficients>>n)
+            return BinaryExtensionModuloConstructor(self._coefficients>>n)
         def __ilshift__(self,n):# => <<=
-            return BinaryPolynomialModuloConstructor(self._coefficients<<n)
+            return BinaryExtensionModuloConstructor(self._coefficients<<n)
         def __irshift__(self,n):# => >>=
-            return BinaryPolynomialModuloConstructor(self._coefficients>>n)
+            return BinaryExtensionModuloConstructor(self._coefficients>>n)
         def _cyclic_lshift_(self,n):
             '''
             '''
-            return BinaryPolynomialModuloConstructor(self._bit_lshift_(n))
+            return BinaryExtensionModuloConstructor(self._bit_lshift_(n))
         def _bit_lshift_(self,n):
             '''Using the polynomial coefficients as a bit string, return a bit 
                string with a left side cyclic shift. It uses the modulo degree 
@@ -580,7 +586,7 @@ def BinaryPolynomialModulo(modulo,variable='z',loglevel=_Logger._info):
         def _cyclic_rshift_(self,n):
             '''
             '''
-            return BinaryPolynomialModuloConstructor(self._bit_rshift_(n))
+            return BinaryExtensionModuloConstructor(self._bit_rshift_(n))
         def _bit_rshift_(self,n):
             '''Using the polynomial coefficients as a bit string, return a bit 
                string with a right side cyclic shift. It uses the modulo 
@@ -591,17 +597,17 @@ def BinaryPolynomialModulo(modulo,variable='z',loglevel=_Logger._info):
             second = (self._coefficients << (maxbits-(n%maxbits))\
                                                       & 2**maxbits-1)
             return first|second
-        #---- End class BinaryPolynomialModuloConstructor
-    return BinaryPolynomialModuloConstructor
+        #---- End class BinaryExtensionModuloConstructor
+    return BinaryExtensionModuloConstructor
 
-def getBinaryPolynomialFieldModulo(wordSize):
+def getBinaryExtensionFieldModulo(wordSize):
     '''Who is chosen m(z)? [1] z^8+z^4+z^3+z+1 is the first that those the job
        (build a polynomial field), and that is the rule for the other sizes 
        under study here.
        [1] "http://crypto.stackexchange.com/questions/16017/"\
            "about-the-rijndael-aes-sbox-polynomial-subbytes"
     '''
-    BinaryPolynomialFieldModulo = {
+    BinaryExtensionFieldModulo = {
         2:0x07,#z^2+z+1
         3:0x0B,#z^3+z+1
         4:0x13,#z^4+z+1
@@ -618,16 +624,16 @@ def getBinaryPolynomialFieldModulo(wordSize):
         15:0x8003,#z^15+z+1
         16:0x1002B,#z^16+z^5+z^3+z+1
     }[wordSize]
-    return BinaryPolynomialFieldModulo
+    return BinaryExtensionFieldModulo
 
-def getBinaryPolynomialRingModulo(wordSize):
+def getBinaryExtensionRingModulo(wordSize):
     '''Who is chosen m'(z)? z^8+1 is the first that those the job
        (build a polynomial ring), and that is the rule for the other sizes 
        under study here.
        This is quite similar to how the binary polynomial field modulo is 
        chosen.
     '''
-    BinaryPolynomialRingModulo = {
+    BinaryExtensionRingModulo = {
         2:0x05,#z^2+1
         3:0x09,#z^3+1
         4:0x11,#z^4+1
@@ -644,7 +650,7 @@ def getBinaryPolynomialRingModulo(wordSize):
         15:0x8001,#z^15+1
         16:0x10001,#z^16+1
     }[wordSize]
-    return BinaryPolynomialRingModulo
+    return BinaryExtensionRingModulo
 
 def getMu(wordSize,official=False):
     '''Invertible element in the binary polynomial ring used in the second 
@@ -701,12 +707,30 @@ def getNu(wordSize,official=False):
     return Mu
 
 
-def TwoVblePolynomialModulo(modulo,coefficients_class,variable='x',
+def VectorSpaceModulo(modulo,coefficients_class,variable='x',
                               loglevel=_Logger._info):
     '''
-        Polynomial field/ring with 
-        coefficients in a binary polynomial field/ring.
-        TODO: more explanation.
+        VectorSpaceModulo is a builder for (\mathbb{F}_{2^w})^l (or 
+        (GF(2^w))^l in another notation) elements. This vector space is made
+        by l elements of a finite field or ring of characteristic 2 with an 
+        extension degree w. This vector space is canstructed modulo a 
+        polynomial with l degree producing a field or a ring depending or the 
+        irreducibility or not of this modulo.
+        
+        Arguments:
+        - modulo: (mandatory) an string representation of a polynomial 
+          (like 'x^4+1').
+        - coefficients_class: (mandatory) an object resultant from the 
+          BinaryExtensionModulo build.
+        - variable: by default is 'x' and it is only used for the output 
+          strings representing the polynomials. Must be different than the 
+          used for the coefficients class.
+        - loglevel: by default info, based on the superclass Logger enumeration.
+        
+        Example:
+        >>> import Polynomials
+        >>> field = Polynomials.BinaryExtensionModulo('z^8+z^4+z^3+z+1')
+        >>> vectorRing = Polynomials.VectorSpaceModulo('x^4+1',field)
     '''
     if len(variable) != 1:
         raise NameError("The indeterminate must be a single character.")
@@ -718,16 +742,32 @@ def TwoVblePolynomialModulo(modulo,coefficients_class,variable='x',
     if type(modulo) == str and modulo.count(variable) == 0:
         raise Exception("modulo %s is not defined over %s variable"
                         %(modulo,variable))
-    class TwoVblePolynomialModuloConstructor(_Logger):
+    class VectorSpaceModuloConstructor(_Logger):
         '''
-            TODO: document
+            Once have the builder of elements it can be used to generate
+            objects that represents and have operations defined. The allow
+            representations is a list of elements in the coefficient class
+            (other representation would be added in the future) or a string 
+            representation with polynomial notation.
+            
+            Argument:
+            - value: (mandatory) the list of coefficients.
+            
+            Example:
+            >>> import Polynomials
+            >>> field = Polynomials.BinaryExtensionModulo('z^8+z^4+z^3+z+1')
+            >>> vectorRing = Polynomials.VectorSpaceModulo('x^4+1',field)
+            >>> vectorRing([field(3),field(9),field(6),field(1)])
+            (z+1)*x^3+(z^3+1)*x^2+(z^2+z)*x+1 (mod x^4+1)
         '''
+        #This help is shown when, from the last one
+        #>>> field?
         def __init__(self,value):
             _Logger.__init__(self,loglevel)
             self._coefficientClass = coefficients_class
             self._variable = variable
-            if type(value) == TwoVblePolynomialModuloConstructor or \
-               value.__class__ == TwoVblePolynomialModuloConstructor:
+            if type(value) == VectorSpaceModuloConstructor or \
+               value.__class__ == VectorSpaceModuloConstructor:
                 self._coefficients = value.coefficients
             elif type(value) == list:
                 if len(value) == 0:
@@ -735,10 +775,10 @@ def TwoVblePolynomialModulo(modulo,coefficients_class,variable='x',
                     raise NotImplementedError("Not yet available")
                 firstCoefficient = value[0]
                 if str(type(firstCoefficient)).\
-                count('BinaryPolynomialModuloConstructor'):
+                count('BinaryExtensionModuloConstructor'):
                     for coefficient in value[1:]:
                         if not str(type(coefficient)).\
-                        count('BinaryPolynomialModuloConstructor'):
+                        count('BinaryExtensionModuloConstructor'):
                             raise TypeError("coefficients shall be a binary "\
                                             "polynomial field elements")
                         if firstCoefficient.modulo != coefficient.modulo:
@@ -1008,20 +1048,20 @@ def TwoVblePolynomialModulo(modulo,coefficients_class,variable='x',
             result = [self._coefficientClass(0)]*self.modulodegree
             for i in range(self.modulodegree):
                 result[i] = a[i] + b[i]
-            return TwoVblePolynomialModuloConstructor(result)
+            return VectorSpaceModuloConstructor(result)
         def __iadd__(self,other):# => a+=b
             bar = self + other
-            return TwoVblePolynomialModuloConstructor(bar._coefficients)
+            return VectorSpaceModuloConstructor(bar._coefficients)
         def __sub__(self,other):# => a-b
             a = _copy(self.coefficients)
             b = _copy(other.coefficients)
             result = [self._coefficientClass(0)]*self.modulodegree
             for i in range(self.modulodegree):
                 result[i] = a[i] - b[i]
-            return TwoVblePolynomialModuloConstructor(result)
+            return VectorSpaceModuloConstructor(result)
         def __isub__(self,other):# => a-=b
             bar = self - other
-            return TwoVblePolynomialModuloConstructor(bar._coefficients)
+            return VectorSpaceModuloConstructor(bar._coefficients)
         #---- * Product
         def __mul__(self,other):# => a*b
             '''Given two polynomials ring elements with coefficients in a
@@ -1036,13 +1076,13 @@ def TwoVblePolynomialModulo(modulo,coefficients_class,variable='x',
                                                   self.__interpretToStr__(b)))
             res = self.__multiply__(a,b)
             res.reverse()
-            p = TwoVblePolynomialModuloConstructor(res)
+            p = VectorSpaceModuloConstructor(res)
             self._debug_stream("c = %s"%(p))
             return p
 
         def __imul__(self,other):# => a*=b
             bar = self * other
-            return TwoVblePolynomialModuloConstructor(bar._coefficients)
+            return VectorSpaceModuloConstructor(bar._coefficients)
         
         def __multiply__(self,multiplicand,multiplier):
             '''Given two polynomials, proceed with a polynomial product
@@ -1101,7 +1141,7 @@ def TwoVblePolynomialModulo(modulo,coefficients_class,variable='x',
             while rest.degree >= divisor.degree and shifter >= 0:
                 
                     
-                TwoVblePolynomialModuloConstructor(rest)
+                VectorSpaceModuloConstructor(rest)
                 
                 if shifter > 0:
                     temp = rest.coefficients
@@ -1153,23 +1193,23 @@ def TwoVblePolynomialModulo(modulo,coefficients_class,variable='x',
             pass#TODO
         #---- <<>> Shifts: TODO
         def __lshift__(self,n):# => a << n
-            return TwoVblePolynomialModuloConstructor(\
+            return VectorSpaceModuloConstructor(\
                     self.coefficients+[self._coefficientClass(0)]*n)
         def __rshift__(self,n):# => a >> n
-            return TwoVblePolynomialModuloConstructor(\
+            return VectorSpaceModuloConstructor(\
                     self.coefficients[:len(self.coefficients)-n])
         def __ilshift__(self,n):# => <<=
-            return TwoVblePolynomialModuloConstructor(\
+            return VectorSpaceModuloConstructor(\
                     self.coefficients+[self._coefficientClass(0)]*n)
         def __irshift__(self,n):# => >>=
-            return TwoVblePolynomialModuloConstructor(\
+            return VectorSpaceModuloConstructor(\
                     self.coefficients[:len(self.coefficients)-n])
         def _cyclic_lshift_(self,n):
             pass#TODO
         def _cyclic_rshift_(self,n):
             pass#TODO
-        #---- End class TwoVblePolynomialModuloConstructor
-    return TwoVblePolynomialModuloConstructor
+        #---- End class VectorSpaceModuloConstructor
+    return VectorSpaceModuloConstructor
 
 class PolynomialRing(_Logger):
     '''This represents a polynomial over (GF(2^n))^l, with a modulo polynomial 
@@ -1181,8 +1221,8 @@ class PolynomialRing(_Logger):
         _Logger.__init__(self,loglevel)
         self.__nRows=nRows
         self.__nColumns=nColumns
-        field_modulo = getBinaryPolynomialFieldModulo(wordSize)
-        self._field = BinaryPolynomialModulo(field_modulo)
+        field_modulo = getBinaryExtensionFieldModulo(wordSize)
+        self._field = BinaryExtensionModulo(field_modulo)
         
     def product(self,ax,sx):
         '''Given two polynomials over F_{2^8} multiplie them modulo x^{4}+1
@@ -1230,8 +1270,8 @@ def randomSuperPolynomial(ring,ringDegree,field,fieldDegree):
 
 def testConstructor():
     print("Use PolynomialsTest.py for testing.")
-    field = BinaryPolynomialModulo('z^8+z^4+z^3+z+1',loglevel=_Logger._info)
-    ring = TwoVblePolynomialModulo("x^4+1",field,loglevel=_Logger._debug)
+    field = BinaryExtensionModulo('z^8+z^4+z^3+z+1',loglevel=_Logger._info)
+    ring = VectorSpaceModulo("x^4+1",field,loglevel=_Logger._debug)
     example = randomSuperPolynomial(ring,4,field,8)
     print("Random element of the polynomial ring with coefficients in a "\
           "binary polynomial field:\n\tstring:\t%s\n\trepr:\t%r\n\thex:\t%s"
@@ -1241,13 +1281,13 @@ def testConstructor():
           "when there is no coefficient:\n\tstring:\t%s\n\trepr:\t%r"\
           "\n\thex:\t%s"%(example,example,hex(example)))
     try:
-        ring = TwoVblePolynomialModulo("z^4+1",field,variable='zs')
+        ring = VectorSpaceModulo("z^4+1",field,variable='zs')
     except:
         print("Constructor multichar lenght variable pass.")
     else:
         print("Alert! Build a polynomial modulo with an invalid variable name")
     try:
-        ring = TwoVblePolynomialModulo("z^4+1",field,variable='z')
+        ring = VectorSpaceModulo("z^4+1",field,variable='z')
     except:
         print("Constructor with two equal variable pass.")
     else:
@@ -1256,8 +1296,8 @@ def testConstructor():
     
 
 def testAdd(a=None,b=None):
-    field = BinaryPolynomialModulo('z^8+z^4+z^3+z+1',loglevel=_Logger._info)
-    ring = TwoVblePolynomialModulo("x^4+1",field,loglevel=_Logger._debug)
+    field = BinaryExtensionModulo('z^8+z^4+z^3+z+1',loglevel=_Logger._info)
+    ring = VectorSpaceModulo("x^4+1",field,loglevel=_Logger._debug)
     if a == None:
         a = randomSuperPolynomial(ring,4,field,8)
     elif type(a) == list:
@@ -1270,8 +1310,8 @@ def testAdd(a=None,b=None):
     print("Test to add %s + %s = %s"%(hex(a),hex(b),hex(c)))
 
 def doProductTest(axlist=None,sxlist=None):
-    field = BinaryPolynomialModulo('z^8+z^4+z^3+z+1',loglevel=_Logger._info)
-    ring = TwoVblePolynomialModulo("x^4+1",field,loglevel=_Logger._info)
+    field = BinaryExtensionModulo('z^8+z^4+z^3+z+1',loglevel=_Logger._info)
+    ring = VectorSpaceModulo("x^4+1",field,loglevel=_Logger._info)
     if axlist == None:
         axlist = []
         for i in range(4):
@@ -1314,8 +1354,8 @@ def doProductTest(axlist=None,sxlist=None):
             return True
 
 def productByInverse(polynomial,inverse=None):
-    field = BinaryPolynomialModulo('z^8+z^4+z^3+z+1',loglevel=_Logger._info)
-    ring = TwoVblePolynomialModulo("x^4+1",field,loglevel=_Logger._info)
+    field = BinaryExtensionModulo('z^8+z^4+z^3+z+1',loglevel=_Logger._info)
+    ring = VectorSpaceModulo("x^4+1",field,loglevel=_Logger._info)
     productNeutralElement = ring([field(1)])
     if inverse == None:
         inverse = ~polynomial
@@ -1327,8 +1367,8 @@ def productByInverse(polynomial,inverse=None):
 
 def testProduct(n):
     print("\nTesting the product operation:")
-    field = BinaryPolynomialModulo('z^8+z^4+z^3+z+1',loglevel=_Logger._info)
-    ring = TwoVblePolynomialModulo("x^4+1",field,loglevel=_Logger._debug)
+    field = BinaryExtensionModulo('z^8+z^4+z^3+z+1',loglevel=_Logger._info)
+    ring = VectorSpaceModulo("x^4+1",field,loglevel=_Logger._debug)
     c_x = ring('(z+1)*x^3+x^2+x+(z)')
     d_x = ring('(z^3+z+1)*x^3+(z^3+z^2+1)*x^2+(z^3+1)*x+(z^3+z^2+z)')
     productByInverse(polynomial=c_x,inverse=d_x)

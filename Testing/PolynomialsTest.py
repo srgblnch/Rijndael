@@ -41,10 +41,10 @@ def testBinaryPolynomial(value,field=True):
     '''
     degree = 8
     if field:
-        getModulo = getBinaryPolynomialFieldModulo
+        getModulo = getBinaryExtensionFieldModulo
     else:
-        getModulo = getBinaryPolynomialRingModulo
-    modulo = BinaryPolynomialModulo(getModulo(degree),
+        getModulo = getBinaryExtensionRingModulo
+    modulo = BinaryExtensionModulo(getModulo(degree),
                                     loglevel=logs)
     sample = modulo(value)
     zero = modulo(0)
@@ -129,7 +129,7 @@ def getBinaryPolinomialFieldInverse(value):
 
 def testTableC5():
     degree = 8
-    field = BinaryPolynomialModulo(getBinaryPolynomialFieldModulo(degree),
+    field = BinaryExtensionModulo(getBinaryExtensionFieldModulo(degree),
                                    loglevel=logs)
     ok,failed = 0,0
     for i in range(256):
@@ -156,7 +156,7 @@ def testC5():
     print("Check with the Rijndael's table c5: %s\n"%(msg))
 
 def testPolynomialInverse(degree):
-    field = BinaryPolynomialModulo(getBinaryPolynomialFieldModulo(degree),
+    field = BinaryExtensionModulo(getBinaryExtensionFieldModulo(degree),
                                    loglevel=logs)
     ok,failed = 0,0
     for i in range(2**degree):
@@ -220,7 +220,7 @@ def getRijndaelsAffineMapping(value,inverse=False):
 
 def testTablesC3and4():
     ok,failed = 0,0
-    ring = BinaryPolynomialModulo(getBinaryPolynomialRingModulo(8),
+    ring = BinaryExtensionModulo(getBinaryExtensionRingModulo(8),
                                   variable='z',loglevel=logs)
     for a in range(256):
         b = getRijndaelsAffineMapping(a)
@@ -242,7 +242,7 @@ def testAffineMapping(degree=8):
         print("Check with the Rijndael's table c3 and c4: %s\n"%(msg))
         if failed != 0:
             return
-    ring = BinaryPolynomialModulo(getBinaryPolynomialRingModulo(degree),
+    ring = BinaryExtensionModulo(getBinaryExtensionRingModulo(degree),
                                   variable='z',loglevel=logs)
     mu = ring(getMu(degree))
     inv_mu = ~mu
@@ -322,8 +322,8 @@ def testAffineMapping(degree=8):
 def FindRingMus(degree):
     '''
     '''
-    modulo = getBinaryPolynomialRingModulo(degree)
-    ring = BinaryPolynomialModulo(modulo)
+    modulo = getBinaryExtensionRingModulo(degree)
+    ring = BinaryExtensionModulo(modulo)
     idx = 0
     found = 0
     invertibles = []
@@ -372,8 +372,8 @@ def testMusAndNus(degree,mus):
        to be good pairs of polynomials.
     '''
     import numpy
-    modulo = getBinaryPolynomialRingModulo(degree)
-    ring = BinaryPolynomialModulo(modulo,variable='z')
+    modulo = getBinaryExtensionRingModulo(degree)
+    ring = BinaryExtensionModulo(modulo,variable='z')
     found = 0
     i = 0
     stats = {}

@@ -100,7 +100,8 @@ class Logger(object):
     def _arePolynomials(self,data):
         '''
         '''
-        return str(data.__type__()) == 'Polynomials.BinaryPolynomialModulo'
+        return str(data.__type__()) == 'Polynomials.BinaryExtensionModulo' or \
+            str(data.__type__()) == 'Polynomials.VectorSpaceModulo'
 
     def _areIntegers(self,data):
         '''

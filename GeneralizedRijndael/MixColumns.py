@@ -27,31 +27,31 @@
 from copy import deepcopy as _deepcopy
 from Logger import Logger as _Logger
 from Polynomials import PolynomialRing as _PolynomialRing
-from Polynomials import getBinaryPolynomialFieldModulo \
-                    as _getBinaryPolynomialFieldModulo
-from Polynomials import TwoVblePolynomialModulo as _TwoVblePolynomialModulo
-from Polynomials import BinaryPolynomialModulo as _BinaryPolynomialModulo
+from Polynomials import getBinaryExtensionFieldModulo \
+                    as _getBinaryExtensionFieldModulo
+from Polynomials import VectorSpaceModulo as _VectorSpaceModulo
+from Polynomials import BinaryExtensionModulo as _BinaryExtensionModulo
 
 class MixColumns(_Logger):
     def __init__(self,nRows,nColumns,wordSize,loglevel=_Logger._info):
         _Logger.__init__(self,loglevel)
         #---- FIXME: refactor this horrible if
         if wordSize==8:
-            polynomialModule=_getBinaryPolynomialFieldModulo(wordSize)
-            self._subfield = _BinaryPolynomialModulo(polynomialModule)
+            polynomialModule=_getBinaryExtensionFieldModulo(wordSize)
+            self._subfield = _BinaryExtensionModulo(polynomialModule)
             if nRows==4:
                 #MDS matrices (Maximum Distance Separable)
                 self.__c=[0x3,0x1,0x1,0x2]
                 self.__d=[0xB,0xD,0x9,0xE]#c(x) \otimes d(x) = 1 (mod m)
-                self._ring = _TwoVblePolynomialModulo("x^4+1",self._subfield)
+                self._ring = _VectorSpaceModulo("x^4+1",self._subfield)
             elif nRows==3:
                 self.__c=[0xD,0x1,0x1]#---- FIXME: unknown
                 self.__d=[0x3C,0xAA,0x3C]#---- FIXME: unknown
-                self._ring = _TwoVblePolynomialModulo("x^3+1",self._subfield)
+                self._ring = _VectorSpaceModulo("x^3+1",self._subfield)
             elif nRows==2:
                 self.__c=[0x2,0x3]#---- FIXME: unknown
                 self.__d=[0x2,0x3]#---- FIXME: unknown
-                self._ring = _TwoVblePolynomialModulo("x^2+1",self._subfield)
+                self._ring = _VectorSpaceModulo("x^2+1",self._subfield)
         else:
             raise Exception("(__init__)","There is no MixColumns for %d "\
                             "wordsize"%(self.__wordSize))

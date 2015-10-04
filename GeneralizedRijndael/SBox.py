@@ -25,10 +25,10 @@
 ##############################################################################
 
 from Logger import Logger as _Logger
-from Polynomials import getBinaryPolynomialFieldModulo,\
-                        getBinaryPolynomialRingModulo,\
+from Polynomials import getBinaryExtensionFieldModulo,\
+                        getBinaryExtensionRingModulo,\
                         getMu,getNu,\
-                        BinaryPolynomialModulo
+                        BinaryExtensionModulo
 
 class SBox(_Logger):
     '''This class is used from the subBytes rijndael's transformation. But it 
@@ -43,10 +43,10 @@ class SBox(_Logger):
         self._useCalc = useCalc
         self.__wordSize=wordSize
         if self._useCalc:
-            field_modulo = getBinaryPolynomialFieldModulo(wordSize)
-            self._field = BinaryPolynomialModulo(field_modulo)
-            ring_modulo = getBinaryPolynomialRingModulo(wordSize)
-            self._ring = BinaryPolynomialModulo(ring_modulo)
+            field_modulo = getBinaryExtensionFieldModulo(wordSize)
+            self._field = BinaryExtensionModulo(field_modulo)
+            ring_modulo = getBinaryExtensionRingModulo(wordSize)
+            self._ring = BinaryExtensionModulo(ring_modulo)
             #raise Exception("Not implemented")
         else:
             if wordSize==8:

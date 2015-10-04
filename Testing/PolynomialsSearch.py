@@ -183,8 +183,8 @@ class PolynomialSearch(Logger):
             raise ValueError("Out of search range")
         self._file_suffix = "PolynomialSearch_%d"%degree
         self._log2file = True
-        modulo = getBinaryPolynomialRingModulo(self._degree)
-        self._ring = BinaryPolynomialModulo(modulo,variable='z')
+        modulo = getBinaryExtensionRingModulo(self._degree)
+        self._ring = BinaryExtensionModulo(modulo,variable='z')
         self._std_average = float('NaN')
         self._mu = None
         self._inv_mu = None
