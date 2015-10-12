@@ -766,34 +766,7 @@ def VectorSpaceModulo(modulo,coefficients_class,variable='x',
             _Logger.__init__(self,loglevel)
             self._coefficientClass = coefficients_class
             self._variable = variable
-            if type(value) == VectorSpaceModuloConstructor or \
-               value.__class__ == VectorSpaceModuloConstructor:
-                self._coefficients = value.coefficients
-            elif type(value) == list:
-                if len(value) == 0:
-                    #TODO: build the neutral element of the first operation
-                    raise NotImplementedError("Not yet available")
-                firstCoefficient = value[0]
-                if str(type(firstCoefficient)).\
-                count('BinaryExtensionModuloConstructor'):
-                    for coefficient in value[1:]:
-                        if not str(type(coefficient)).\
-                        count('BinaryExtensionModuloConstructor'):
-                            raise TypeError("coefficients shall be a binary "\
-                                            "polynomial field elements")
-                        if firstCoefficient.modulo != coefficient.modulo:
-                            raise AssertionError("All the coefficients shall "\
-                                                 "be from the same field.")
-                self._coefficients = value
-                
-            elif type(value) == str:
-                self._coefficients = self.__interpretFromStr__(value)
-            #TODO: are there other representations 
-            #that a constructor can support?
-            # - list of integers: TODO
-            else:
-                raise AssertionError("The given coefficients type '%s'"\
-                                     "is not interpretable"%(type(value)))
+            self._coefficients = self.__interpretCoefficients(value)
             for coefficient in self.coefficients:
                 self._trace_stream("checking type of coefficient %r"
                                    %(coefficient))
@@ -802,15 +775,17 @@ def VectorSpaceModulo(modulo,coefficients_class,variable='x',
                                          "is not an expected '%s'"
                                          %(type(coefficient),
                                            self._coefficientClass))
-            if type(modulo) == str:
-                self._modulo = self.__interpretFromStr__(modulo)
-            else:
-                try:#Do a last try to interpret the coefficients
-                    self._modulo = int(modulo)
-                except Exception,e:
-                    raise AssertionError("The given modulo type '%s'"\
-                                         "is not interpretable"%(type(modulo)))
-            
+            self._modulo = self.__interpretCoefficients(modulo)
+#             if self.degree >= self.modulodegree:
+#                 q,r = self.__divideBy__(self._modulo)
+#                 self._coefficients = r
+        
+        def reduce(self):
+            if self.degree >= self.modulodegree:
+                q,r = self.__divideBy__(self._modulo)
+                self._coefficients = r
+                self._gr_coefficients = self.__coefficientsDegree(r)
+        
         def __str__(self):
             '''
                 Readable representation. (%s)
@@ -829,7 +804,38 @@ def VectorSpaceModulo(modulo,coefficients_class,variable='x',
                 representation.
             '''
             return self.__interpretToStr__(self._coefficients,hexSubfield=True)
-            
+        
+        def __interpretCoefficients(self,value):
+            if type(value) == VectorSpaceModuloConstructor or \
+               value.__class__ == VectorSpaceModuloConstructor:
+                return value.coefficients
+            elif type(value) == list:
+                if len(value) == 0:
+                    #TODO: build the neutral element of the first operation
+                    raise NotImplementedError("Not yet available")
+                firstCoefficient = value[0]
+                if type(firstCoefficient) == int:
+                    for i in range(len(value)):
+                        value[i] = self._coefficientClass(value[i])
+                elif str(type(firstCoefficient)).\
+                count('BinaryExtensionModuloConstructor'):
+                    for coefficient in value[1:]:
+                        if not str(type(coefficient)).\
+                        count('BinaryExtensionModuloConstructor'):
+                            raise TypeError("coefficients shall be a binary "\
+                                            "polynomial field elements")
+                        if firstCoefficient.modulo != coefficient.modulo:
+                            raise AssertionError("All the coefficients shall "\
+                                                 "be from the same field.")
+                return value
+            elif type(value) == str:
+                return self.__interpretFromStr__(value)
+            #TODO: are there other representations 
+            #that a constructor can support?
+            else:
+                raise AssertionError("The given coefficients type '%s'"\
+                                     "is not interpretable"%(type(value)))
+        
         def __interpretToStr__(self,polynomial,hexSubfield=False):
             if polynomial == 0:
                 return '0'#FIXME: the neutral element of the first operation
@@ -960,18 +966,36 @@ def VectorSpaceModulo(modulo,coefficients_class,variable='x',
                     self._trace_stream("processing degree %d without term"%(i))
                     coefficients.append(self._coefficientClass(0))
             return coefficients
+        
         @property
         def coefficients(self):
             return self._coefficients[:]#return a copy, not the same list
+        
         @property
         def modulo(self):
             return self.__interpretToStr__(self._modulo)
+        
         @property
         def degree(self):
-            return len(self._coefficients)
+            if not hasattr(self,"_gr_coefficients"):
+                self._gr_coefficients = \
+                self.__coefficientsDegree(self._coefficients)
+            return self._gr_coefficients
+        
         @property
         def modulodegree(self):
-            return len(self._modulo)-1
+            if not hasattr(self,"_gr_modulo"):
+                self._gr_modulo = self.__coefficientsDegree(self._modulo)
+            return self._gr_modulo
+        
+        def __coefficientsDegree(self,coeffList):
+            maxDegree = len(coeffList)-1
+            i = 0
+            while i < maxDegree:
+                if coeffList[i] != self._coefficientClass(0):
+                    return maxDegree-i
+                i += 1
+            return 0
         
         @property
         def isZero(self):
@@ -1002,12 +1026,12 @@ def VectorSpaceModulo(modulo,coefficients_class,variable='x',
 #             '''
 #             if self._gcd == None:
 #                 self._gcd,self._multinv,y = \
-#                                  self.__egcd__(self._coefficients,self._modulo)
+#                                  self.__egcd__(self.coefficients,self._modulo)
 #             if self._gcd == 1:
 #                 return True
 #             return False
         def __iter__(self):
-            coefficients = self._coefficients
+            coefficients = self.coefficients
             coefficients.reverse()
             return iter(coefficients)
         def iter(self):
@@ -1024,8 +1048,8 @@ def VectorSpaceModulo(modulo,coefficients_class,variable='x',
         def __eq__(self,other):# => a == b
             if other == None:
                 return False
-            for i,xi in enumerate(self._coefficients):
-                if xi != other._coefficients[i]:
+            for i,xi in enumerate(self.coefficients):
+                if xi != other.coefficients[i]:
                     return False
             return True
         
@@ -1043,15 +1067,15 @@ def VectorSpaceModulo(modulo,coefficients_class,variable='x',
         #---- #Operations
         #---- + Addition:
         def __add__(self,other):# => a+b
-            a = _copy(self.coefficients)
-            b = _copy(other.coefficients)
+            a = self.coefficients
+            b = other.coefficients
             result = [self._coefficientClass(0)]*self.modulodegree
             for i in range(self.modulodegree):
                 result[i] = a[i] + b[i]
             return VectorSpaceModuloConstructor(result)
         def __iadd__(self,other):# => a+=b
             bar = self + other
-            return VectorSpaceModuloConstructor(bar._coefficients)
+            return VectorSpaceModuloConstructor(bar.coefficients)
         def __sub__(self,other):# => a-b
             a = _copy(self.coefficients)
             b = _copy(other.coefficients)
@@ -1061,7 +1085,7 @@ def VectorSpaceModulo(modulo,coefficients_class,variable='x',
             return VectorSpaceModuloConstructor(result)
         def __isub__(self,other):# => a-=b
             bar = self - other
-            return VectorSpaceModuloConstructor(bar._coefficients)
+            return VectorSpaceModuloConstructor(bar.coefficients)
         #---- * Product
         def __mul__(self,other):# => a*b
             '''Given two polynomials ring elements with coefficients in a
@@ -1070,8 +1094,8 @@ def VectorSpaceModulo(modulo,coefficients_class,variable='x',
                       same binary polynomial ring.
                Output: The product between the two input pylinomials
             '''
-            a = _copy(self._coefficients)
-            b = _copy(other._coefficients)
+            a = self.coefficients
+            b = other.coefficients
             self._debug_stream("a * b = %s * %s"%(self.__interpretToStr__(a),
                                                   self.__interpretToStr__(b)))
             res = self.__multiply__(a,b)
@@ -1082,7 +1106,7 @@ def VectorSpaceModulo(modulo,coefficients_class,variable='x',
 
         def __imul__(self,other):# => a*=b
             bar = self * other
-            return VectorSpaceModuloConstructor(bar._coefficients)
+            return VectorSpaceModuloConstructor(bar.coefficients)
         
         def __multiply__(self,multiplicand,multiplier):
             '''Given two polynomials, proceed with a polynomial product
@@ -1123,64 +1147,66 @@ def VectorSpaceModulo(modulo,coefficients_class,variable='x',
 #             pass#TODO
 #         def _imod__(self,other):# => a%=b
 #             pass#TODO
-        def __division__(self,divident,divisor):
-            """Given 2 polynomials, divide them to return the quotient and 
-               the rest. Following the equiation:
-                  divident = divisor*quotient + rest
-               Input: <polynomial> divident,divisor
-               Output: <polynomial> quotient,rest
-            """#TODO
-            if divisor.isZero:
+        
+        def __divideBy__(self,b):
+            #import Polynomials; field = Polynomials.BinaryExtensionModulo('z^8+z^4+z^3+z+1'); vectorRing = Polynomials.VectorSpaceModulo('x^4+1',field)
+            #
+            #a = vectorRing([field(2),field(3),field(4),field(5)]); b = vectorRing([field(0),field(1),field(0),field(1)])
+            #a.__divideBy__(b.coefficients)
+            #
+            #c_x = vectorRing('(z+1)*x^3+x^2+x+(z)');d_x = vectorRing('(z^3+z+1)*x^3+(z^3+z^2+1)*x^2+(z^3+1)*x+(z^3+z^2+z)')
+            #p_x = c_x * d_x;m_x = vectorRing('x^4+1')
+            #p_x.__divideBy__(m_x.coefficients)
+            a = self.__normalizeVector__(self.coefficients)
+            b = self.__normalizeVector__(b)
+            if b == [self._coefficientClass(0)]:
                 raise ZeroDivisionError
-            quotient = 0
-            rest = divident
-            #start with a valid equation divident = divisor*quotient + rest
-            self._debug_stream("%s = %s * %s + %s"
-                               %(divident,divisor,quotient,rest))
-            shifter = divident.degree - divisor.degree
-            while rest.degree >= divisor.degree and shifter >= 0:
-                
-                    
-                VectorSpaceModuloConstructor(rest)
-                
-                if shifter > 0:
-                    temp = rest.coefficients
-                    temp.reverse()
-                    temp = temp[0:shifter]
-                else:
-                    temp = rest.coefficients
-                    temp.reverse()
-                self._debug_stream("temp = %s"%(temp))
-                substraction = divisor.coefficients
-                substraction.reverse()
-                
-#             shift = gr_divident-gr_divisor
-#             while rest.degree >= divisor.degree and shift >= 0:
-#                 #FIXME: this means deg(rest) >= deg(divisor), but it's horrible
-#                 gr_rest = rest.degree
-#                 if shift > 0:
-#                     temp = rest.coefficients[0:-shift]<<shift
-#                 else:
-#                     temp = rest
-#                 self._debug_stream("temp",temp)
-#                 subs = divisor << shift
-#                 self._debug_stream("subs",subs)
-#                 if len("{0:b}".format(temp)) == len("{0:b}".format(subs)):
-#                     bar = temp ^ subs
-#                     self._debug_stream("temp ^subs",bar)
-#                     if shift > 0:
-#                         mask = int('1'*shift,2)
-#                         quotient = quotient | 1<<(shift)
-#                         rest = bar | (divident & mask)
-#                     else:
-#                         quotient |= 1
-#                         rest = bar
-#                 self._debug_stream("quotient",quotient)
-#                 self._debug_stream("rest",rest)
-#                 gr_divident -= 1
-#                 shift = gr_divident-gr_divisor
-#             self._debug_stream("<\\division>\n")
-#             return (quotient,rest)
+            gr_a = len(a)
+            gr_b = len(b)
+            self._info_stream("Dividing a gr_a = %d by gr_b = %d"%(gr_a,gr_b))
+            if gr_a < gr_b:
+                return a,b
+            quotient = []
+            while gr_a >= gr_b:
+                self._info_stream("gr_a = %d, gr_b = %d"%(gr_a,gr_b))
+                q,r = self.__divisionStep__(a, b)
+                self._info_stream("Give %s / %s = q: %s, r=%s"%(a,b,q,r))
+                quotient.append(q)
+                if gr_a == len(r):
+                    break
+                a = r
+                gr_a = len(a)
+            self._info_stream("Finally %s/%s = %s * %r/b"%(a,b,quotient,r))
+            return quotient,r
+        
+        def __divisionStep__(self,a,b):
+            gr_b = len(b)
+            # 1.- subset a
+            bar = a[:gr_b]
+            self._info_stream("\tsubset %d elements of a: %s"%(gr_b,bar))
+            #2.- quotient
+            q = a[0]*~b[0]
+            self._info_stream("\ta/b = %s/%s = %s*%s = %s"%(a[0],b[0],a[0],~b[0],q))
+            #3.- product, additive invers and substraction
+            for i in range(len(bar)):
+                foo = b[i]*q
+                self._info_stream("\tb[%d]*q = %s*%s = %s"%(i,b[i],q,foo))
+                barfoo = bar[i]-foo
+                self._info_stream("\tbar[%d]-foo =  %s-%s = %s"%(i,bar[i],foo,barfoo))
+                bar[i] = barfoo
+            self._info_stream("\tsubstraction: %s"%(bar))
+            bar += a[gr_b:]
+            return q,self.__normalizeVector__(bar)
+        
+        def __normalizeVector__(self,v):
+            zero = self._coefficientClass(0)
+            self._info_stream("Normializing vector: %s (zero is %s)"%(v,zero))
+            while len(v) > 1 and v[0] == zero:
+                removed = v.pop(0)
+                self._info_stream("\tremoving %s, left %s"%(removed,v))
+            self._info_stream("\tNormalized vector is %s"%(v))
+            return v
+        
         #---- ~ Multiplicative inverse: TODO
         #      - operator.__inv__(a) => ~a
         def __invert__(self):# => ~a, that means like a^-1
@@ -1262,7 +1288,7 @@ class PolynomialRing(_Logger):
 def randomBinaryPolynomial(field,degree):
     return field(randint(0,2**degree))
 
-def randomSuperPolynomial(ring,ringDegree,field,fieldDegree):
+def randomVectorPolynomial(ring,ringDegree,field,fieldDegree):
     coefficients = []
     for i in range(ringDegree):
         coefficients.append(randomBinaryPolynomial(field,fieldDegree))
@@ -1272,7 +1298,7 @@ def testConstructor():
     print("Use PolynomialsTest.py for testing.")
     field = BinaryExtensionModulo('z^8+z^4+z^3+z+1',loglevel=_Logger._info)
     ring = VectorSpaceModulo("x^4+1",field,loglevel=_Logger._debug)
-    example = randomSuperPolynomial(ring,4,field,8)
+    example = randomVectorPolynomial(ring,4,field,8)
     print("Random element of the polynomial ring with coefficients in a "\
           "binary polynomial field:\n\tstring:\t%s\n\trepr:\t%r\n\thex:\t%s"
           %(example,example,hex(example)))
@@ -1283,13 +1309,13 @@ def testConstructor():
     try:
         ring = VectorSpaceModulo("z^4+1",field,variable='zs')
     except:
-        print("Constructor multichar lenght variable pass.")
+        print("Constructor multichar lenght variable:\tpass.")
     else:
         print("Alert! Build a polynomial modulo with an invalid variable name")
     try:
         ring = VectorSpaceModulo("z^4+1",field,variable='z')
     except:
-        print("Constructor with two equal variable pass.")
+        print("Constructor with two equal variable:\tpass.")
     else:
         print("Alert! Build a polynomial modulo with the same vble name for "\
               "coefficients test failed.")
@@ -1299,11 +1325,11 @@ def testAdd(a=None,b=None):
     field = BinaryExtensionModulo('z^8+z^4+z^3+z+1',loglevel=_Logger._info)
     ring = VectorSpaceModulo("x^4+1",field,loglevel=_Logger._debug)
     if a == None:
-        a = randomSuperPolynomial(ring,4,field,8)
+        a = randomVectorPolynomial(ring,4,field,8)
     elif type(a) == list:
         a = ring([field(a[i]) for i in range(len(a))])
     if b == None:
-        b = randomSuperPolynomial(ring,4,field,8)
+        b = randomVectorPolynomial(ring,4,field,8)
     elif type(b) == list:
         b = ring([field(b[i]) for i in range(len(b))])
     c = a + b
@@ -1360,6 +1386,7 @@ def productByInverse(polynomial,inverse=None):
     if inverse == None:
         inverse = ~polynomial
     rx = polynomial * inverse
+    rx.reduce()
     if rx != productNeutralElement:
         print("Alert! Does polynomials doesn't produce the neutral")
         return False
@@ -1384,9 +1411,9 @@ def testProduct(n):
 #         if not doProductTest(axlist=[3,1,1,2]): break
 
 def main():
-    #testConstructor()
-    #testAdd(a=[0xAA,0xAB,0xAC,0xAD],b=[1,1,1,1])
-    #testAdd()
+    testConstructor()
+    testAdd(a=[0xAA,0xAB,0xAC,0xAD],b=[1,1,1,1])
+    testAdd()
     testProduct(2)
 
 if __name__ == "__main__":
