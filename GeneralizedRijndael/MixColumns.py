@@ -54,44 +54,59 @@ class MixColumns(_Logger):
                 self._ring = _VectorSpaceModulo("x^2+1",self._subfield)
         else:
             raise Exception("(__init__)","There is no MixColumns for %d "\
-                            "wordsize"%(self.__wordSize))
+                            "wordsize"%(wordSize))
         self.__cx = self._ring([self._subfield(i) for i in self.__c])
         self.__dx = self._ring([self._subfield(i) for i in self.__d])
         self._nColumns = nColumns
         self.__polynomialRing=_PolynomialRing(nRows,nColumns,wordSize)
 
     def do(self,input):
-        self._info_stream("input: %s"%(printlist(input)))
+        self._debug_stream("input: %s"%(printlist(input)),
+                          operation="mixColumns")
         #First do with the first approach made
         res = self.__polynomialRing.product(self.__c,input)
+        self._warning_stream("Using the old calculation method: ",data=res,
+                             operation="mixColumns")
         #Second way with a class that implements a polynomial ring
         #with coeficients in a binary polynomial field.
         nRows = len(input)
-        output = [[self._subfield(input[r][c]) for r in range(nRows)] \
-                                      for c in range(self._nColumns)]
-        for c in range(self._nColumns):
-            self._info_stream("For column %d"%(c))
+        output = [[self._subfield(input[r][c]) \
+                    for c in range(self._nColumns)] \
+                    for r in range(nRows)]
+        self._debug_stream("output matrix is %d rows by %d columns (%dx%d)"
+                          %(len(output),len(output[0]),nRows,self._nColumns),
+                          data=output,operation="mixColumns")
+        for r in range(nRows):
             sx = self._ring([self._subfield(input[r][c]) \
-                             for r in range(len(input))])
+                             for c in range(len(input))])
             sx_ = self.__cx * sx
-            self._info_stream("\t%s * %s"%(hex(self.__cx),hex(sx)))
-            self._info_stream("\t\t= %s"%(hex(sx_)))
-#             self._info_stream("\t%s * %s"%((self.__cx,sx)))
-#             self._info_stream("\t\t= %s"%(sx_))
-            for r in range(self._nColumns):
-                self._info_stream("output[%d][%d] %s += %s : %s += %s"
+            self._debug_stream("\t%s * %s"%(hex(self.__cx),hex(sx)),
+                               operation="mixColumns")
+            self._debug_stream("\t\t= %s"%(hex(sx_)),operation="mixColumns")
+#             self._debug_stream("\t%s * %s"%((self.__cx,sx)),
+#                                operation="mixColumns")
+#             self._debug_stream("\t\t= %s"%(sx_),operation="mixColumns")
+            for c in range(self._nColumns):
+                self._debug_stream("output[%d][%d] %s += %s : %s += %s"
                                   %(r,c,hex(output[r][c]),
-                                    hex(sx_.coefficients[r]),output[r][c],
-                                    sx_.coefficients[r]))
+                                    hex(sx_.coefficients[-r]),output[r][c],
+                                    sx_.coefficients[r]),
+                                  operation="mixColumns")
                 output[r][c] += sx_.coefficients[-r]
         for c in range(self._nColumns):
             for r in range(nRows):
                 output[r][c] = output[r][c].coefficients
-        self._info_stream("output: %s"%(printlist(output)))
-        if res == output:
-            return res
-        self._error_stream("\nFailed\tinput:\t%s\n\tres:\t%s\n\toutput\t%s"
-                        %(printlist(input),printlist(res),printlist(output)))
+        self._debug_stream("output: %s"%(printlist(output)),
+                           operation="mixColumns")
+        if res != output:
+            self._warning_stream("For input:\t%s\n\told way result say:\t%s\n"\
+                                 "\tbut vector space modulo say:\t%s"
+                                 %(printlist(input),printlist(res),
+                                   printlist(output)),
+                                 operation="mixColumns")
+        return res
+        #if return 'output', then the test didn't pass.
+        #But with 'res' it does: the vector space modulo is not working well!
 
     def invert(self,input):
         res = self.__polynomialRing.product(self.__d,input)
