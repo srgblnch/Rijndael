@@ -98,6 +98,8 @@ class KeyExpansion(_Logger):
     def getKey(self):
         return self.__keyExpanded
     def getSubKey(self,start,end):
+        self._debug_stream("Requested part of the key expanded. k[%d:%d] = %s"
+                           %(start,end,self.__keyExpanded[start:end]))
         return self.__keyExpanded[start:end]
     def __rotWord(self,w):
         '''Used in the key expansion. A cyclic shift of the bytes in the word.
