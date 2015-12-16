@@ -434,7 +434,7 @@ def BinaryExtensionModulo(modulo,variable='z',loglevel=_Logger._info):
                Input: Two polynomial elements.
                Output: The quotient and rest between the two input polynomials.
             '''
-            if BinaryExtensionModuloConstructor(divisor).isZero:
+            if divisor == 0:#BinaryExtensionModuloConstructor(divisor).isZero:
                 raise ZeroDivisionError
             self._debug_stream("\n<division>")
             gr_divident = len("{0:b}".format(divident))-1
@@ -974,7 +974,8 @@ def VectorSpaceModulo(modulo,coefficients_class,variable='x',
         
         @property
         def coefficients(self):
-            return self._coefficients[:]#return a copy, not the same list
+            #return a copy, not the same list
+            return self.__normalizeVector__(self._coefficients)[:]
         
         @property
         def modulo(self):
@@ -1060,8 +1061,20 @@ def VectorSpaceModulo(modulo,coefficients_class,variable='x',
         def __eq__(self,other):# => a == b
             if other == None:
                 return False
+#             self._debug_stream("Compare equality between:\n\t%s\n\t%s"
+#                                %(self.coefficients,other.coefficients))
+            if len(self.coefficients) != len(other.coefficients):
+                self._debug_stream("Different lengths! %d != %d"
+                                   %(len(self.coefficients),
+                                     len(other.coefficients)))
+                return False
             for i,xi in enumerate(self.coefficients):
+                if i >= len(other.coefficients):
+                    self._error_stream("Ups, this should not happend")
+                    return False
                 if xi != other.coefficients[i]:
+                    self._debug_stream("%dth different: %s != %s"
+                                       %(i,xi,other.coefficients[i]))
                     return False
             return True
         
@@ -1108,8 +1121,9 @@ def VectorSpaceModulo(modulo,coefficients_class,variable='x',
             '''
             a = self.coefficients
             b = other.coefficients
-            self._debug_stream("a * b = %s * %s"%(self.__interpretToStr__(a),
-                                                  self.__interpretToStr__(b)))
+            self._debug_stream("a * b, where:\n\ta = %s\n\tb = %s"
+                               %(self.__interpretToStr__(a),
+                                 self.__interpretToStr__(b)))
             res = self.__multiply__(a,b)
             res.reverse()
             p = VectorSpaceModuloConstructor(res)
@@ -1132,10 +1146,15 @@ def VectorSpaceModulo(modulo,coefficients_class,variable='x',
             multiplier.reverse()
             result = [self._coefficientClass(0)]*self.modulodegree*2
             for i,coefficient in enumerate(multiplier):
+#                 self._debug_stream("multiplication step %d:\n%s * %s"
+#                                    %(i,multiplicand,coefficient),
+#                                    operation="VectorSpaceModulo")
                 partial = self.__multiplicationStep__(multiplicand,
                                                       coefficient,i)
-                for i in range(len(partial)):
-                    result[i] += partial[i]
+                for j in range(len(partial)):
+                    self._debug_stream("result[%d] += partial[%d] = %s += %s"
+                                       %(j,i,result[i],partial[j]))
+                    result[i] += partial[j]
             return result
         def __multiplicationStep__(self,multiplicant,coefficient,degree):
             '''Constant time function to calculate one of the steps in the 
@@ -1200,20 +1219,28 @@ def VectorSpaceModulo(modulo,coefficients_class,variable='x',
             while gr_a >= gr_b:
                 self._debug_stream("gr_a = %d, gr_b = %d"%(gr_a,gr_b))
                 q,r = self.__divisionStep__(a, b)
-                self._debug_stream("Give %s / %s = q: %s, r=%s"%(a,b,q,r))
+                self._debug_stream("Give [%s] / [%s] = q: %s, r=[%s]"
+                                   %("".join(" %s,"%e for e in a)[1:-1],
+                                     "".join(" %s,"%e for e in b)[1:-1],q,
+                                     "".join(" %s,"%e for e in r)[1:-1]))
                 quotient.append(q)
                 if gr_a == len(r):
                     break
                 a = r
                 gr_a = len(a)
-            self._debug_stream("Finally %s/%s = %s * %r/b"%(a,b,quotient,r))
+            self._debug_stream("Finally [%s]/[%s] = [%s] * %s/b"
+                                   %("".join(" %s,"%e for e in a)[1:-1],
+                                     "".join(" %s,"%e for e in b)[1:-1],
+                                     "".join(" %s,"%e for e in q)[1:-1],
+                                     "".join(" %s,"%e for e in r)[1:-1]))
             return quotient,r
         
         def __divisionStep__(self,a,b):
             gr_b = len(b)
             # 1.- subset a
             bar = a[:gr_b]
-            self._debug_stream("\tsubset %d elements of a: %s"%(gr_b,bar))
+            self._debug_stream("\tsubset %d elements of a: %s"
+                               %(gr_b,"".join(" %s,"%e for e in bar)[1:-1]))
             #2.- quotient
             q = a[0]*~b[0]
             self._debug_stream("\ta/b = %s/%s = %s*%s = %s"%(a[0],b[0],a[0],~b[0],q))
@@ -1222,19 +1249,25 @@ def VectorSpaceModulo(modulo,coefficients_class,variable='x',
                 foo = b[i]*q
                 self._debug_stream("\tb[%d]*q = %s*%s = %s"%(i,b[i],q,foo))
                 barfoo = bar[i]-foo
-                self._debug_stream("\tbar[%d]-foo =  %s-%s = %s"%(i,bar[i],foo,barfoo))
+                self._debug_stream("\tbar[%d]-foo =  %s-%s = %s"
+                                   %(i,bar[i],foo,barfoo))
                 bar[i] = barfoo
-            self._debug_stream("\tsubstraction: %s"%(bar))
+            self._debug_stream("\tsubstraction: [%s]"
+                               %("".join(" %s,"%e for e in bar)[1:-1]))
             bar += a[gr_b:]
             return q,self.__normalizeVector__(bar)
         
         def __normalizeVector__(self,v):
             zero = self._coefficientClass(0)
-            self._debug_stream("Normializing vector: %s (zero is %s)"%(v,zero))
+#             self._debug_stream("Normializing vector: [%s]"
+#                                %("".join(" %s,"%e for e in v)[1:-1]))
             while len(v) > 1 and v[0] == zero:
                 removed = v.pop(0)
-                self._debug_stream("\tremoving %s, left %s"%(removed,v))
-            self._debug_stream("\tNormalized vector is %s"%(v))
+#                 self._debug_stream("\tremoving [%s], left [%s]"
+#                                    %("".join(" %s,"%e for e in removed)[1:-1],
+#                                      "".join(" %s,"%e for e in v)[1:-1]))
+#             self._debug_stream("\tNormalized vector is [%s]"
+#                                %("".join(" %s,"%e for e in v)[1:-1]))
             return v
         
         #---- ~ Multiplicative inverse: TODO
@@ -1356,16 +1389,16 @@ class PolynomialRing(_Logger):
            Input:
            Output:
         '''
-        res=_deepcopy(sx)#---- FIXME: #[[0]*self.__nRows]*self.__nColumns
+        res = _deepcopy(sx)#---- FIXME: #[[0]*self.__nRows]*self.__nColumns
         for c in range(self.__nColumns):
-            shifted_ax=_shift(ax,self.__nRows-1)
+            shifted_ax = _shift(ax,self.__nRows-1)
             for r in range(self.__nRows):
-                res[r][c]=0
+                res[r][c] = 0
                 for rbis in range(self.__nRows):
                     a = self._field(shifted_ax[rbis])
                     b = self._field(sx[rbis][c])
-                    res[r][c]^=(a*b)._coefficients
-                shifted_ax=_shift(shifted_ax,-1)
+                    res[r][c] ^= (a*b)._coefficients
+                shifted_ax = _shift(shifted_ax,-1)
         return res
 
 
@@ -1423,7 +1456,7 @@ def testAdd(a=None,b=None):
 
 def doProductTest(axlist=None,sxlist=None):
     field = BinaryExtensionModulo('z^8+z^4+z^3+z+1',loglevel=_Logger._info)
-    ring = VectorSpaceModulo("x^4+1",field,loglevel=_Logger._info)
+    ring = VectorSpaceModulo("x^4+1",field,loglevel=_Logger._debug)
     if axlist == None:
         axlist = []
         for i in range(4):
@@ -1441,28 +1474,33 @@ def doProductTest(axlist=None,sxlist=None):
     ax = ring([field(i) for i in axlist])
     sx = ring([field(i) for i in sxlist])
     if axrandom and sxrandom:
-        print("\tTesting random pair: %s * %s"%(ax,sx))
+        print("Testing random pair: %s * %s"%(hex(ax),hex(sx)))
     elif axrandom:
-        print("\tTesting pair with first term random: %s * %s"%(ax,sx))
+        print("Testing pair with first term random: %s * %s"
+              %(hex(ax),hex(sx)))
     elif sxrandom:
-        print("\tTesting pair with second term random: %s * %s"%(ax,sx))
+        print("Testing pair with second term random: %s * %s"
+              %(hex(ax),hex(sx)))
     else:
-        print("\tTesting fixed pair: %s * %s"%(ax,sx))
+        print("Testing fixed pair: %s * %s"%(ax,sx))
+    print("\tVector representation or the pair: [%s] * [%s]"
+          %("".join(" 0x%X,"%e for e in axlist)[1:-1],
+            "".join(" 0x%X,"%e for e in sxlist)[1:-1]))
     rx = ax * sx
     bar = PolynomialRing(4,4,8)
     state = [sxlist]*4
     foo = bar.product(axlist,state)
-    #print("%s"%foo)
     foox = ring([field(i) for i in foo[0]])
     if rx != foox:
-        print("\t\tAlert rx != foox\n\t\t%s != %s"%(rx,foox))
+        print("\t\tAlert Results using VectorSpaceModulo != PolynomialRing "\
+              "implementations:\n\t\t\t%s != %s"%(hex(rx),hex(foox)))
         return False
     else:
         if sx == rx:
-            print("\t\tAlert sx == rx\n\t\t%s == %s"%(sx,rx))
+            print("\t\tAlert sx == rx\n\t\t\t%s == %s"%(sx,rx))
             return False
         else:
-            print("\t\tOK rx == foox\n\t\t%s == %s "%(rx,foox))
+            print("\t\tOK rx == foox\n\t\t\t%s == %s "%(rx,foox))
             return True
 
 def productByInverse(polynomial,inverse=None):
@@ -1472,35 +1510,46 @@ def productByInverse(polynomial,inverse=None):
     if inverse == None:
         inverse = ~polynomial
     rx = polynomial * inverse
-    rx.reduce()
+    #rx.reduce()
     if rx != productNeutralElement:
         print("Alert! Does polynomials doesn't produce the neutral")
         return False
+    else:
+        print("Polynomial product by its inverse results the neutral!")
     return True
 
 def testProduct(n):
-    print("\nTesting the product operation:")
-    field = BinaryExtensionModulo('z^8+z^4+z^3+z+1',loglevel=_Logger._info)
-    ring = VectorSpaceModulo("x^4+1",field,loglevel=_Logger._debug)
-    c_x = ring('(z+1)*x^3+x^2+x+(z)')
-    d_x = ring('(z^3+z+1)*x^3+(z^3+z^2+1)*x^2+(z^3+1)*x+(z^3+z^2+z)')
-    productByInverse(polynomial=c_x,inverse=d_x)
+    header = "Testing the product operation"
+    stars = "*"*(len(header)+1)
+    print("\n%s\n%s:\n%s\n"%(stars,header,stars))
+#     field = BinaryExtensionModulo('z^8+z^4+z^3+z+1',loglevel=_Logger._info)
+#     ring = VectorSpaceModulo("x^4+1",field,loglevel=_Logger._debug)
+#     c_x = ring('(z+1)*x^3+x^2+x+(z)')
+#     d_x = ring('(z^3+z+1)*x^3+(z^3+z^2+1)*x^2+(z^3+1)*x+(z^3+z^2+z)')
+#     productByInverse(polynomial=c_x,inverse=d_x)
+    print("="*80)
 #     sageSamples = [
 #                    ]
 #     
 #     
-#     for r in range(n):
-#         if not doProductTest(): break
+    for r in range(n):
+        if not doProductTest():
+            break
+        print("-"*80)
+    print("="*80)
 #     doProductTest(axlist=[3,1,1,2],sxlist=[0xB,0xD,0x9,0xE])
 #     for r in range(n):
 #         #if not doProductTest(axlist=[0xB,0xD,0x9,0xE]): break
 #         if not doProductTest(axlist=[3,1,1,2]): break
 
 def main():
-    testConstructor()
-    testAdd(a=[0xAA,0xAB,0xAC,0xAD],b=[1,1,1,1])
-    testAdd()
-    testProduct(2)
+    #FIXME: this should have commandline arguments to specify 
+    #what shall be tested
+    
+    #testConstructor()
+    #testAdd(a=[0xAA,0xAB,0xAC,0xAD],b=[1,1,1,1])
+    #testAdd()
+    testProduct(1)
 
 if __name__ == "__main__":
     from random import randint
