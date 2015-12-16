@@ -30,9 +30,9 @@ from ThirdLevel import Word as _Word
 class AddRoundKey(_Logger):
     def __init__(self,nRows,nColumns,wordSize,loglevel=_Logger._info):
         _Logger.__init__(self,loglevel)
-        self.__nRows=nRows
-        self.__nColumns=nColumns
-        self.__word=_Word(nRows,wordSize)
+        self.__nRows = nRows
+        self.__nColumns = nColumns
+        self.__word = _Word(nRows,wordSize)
     def do(self,input,subkey):
         '''One of the round transformation methods.
            The round key (from the PRG) list of arrays (can be thougth as a
@@ -40,12 +40,13 @@ class AddRoundKey(_Logger):
            Input: <integer arrays> state, subkey
            Output: <integer arrays> state (modified)
         '''
-        output=input
+        output = input[:]
         for j in range(self.__nColumns):
-            byteSubkey=self.__word.toList(subkey[j])
+            byteSubkey = self.__word.toList(subkey[j])
             byteSubkey.reverse()
             for i in range(self.__nRows):
-                bar=output[i][j]
-                bar^=byteSubkey[i]
-                output[i][j]=bar
+                #print("len(output[%d]) = %s"%(i,len(output[i])))
+                bar = output[i][j]
+                bar ^= byteSubkey[i]
+                output[i][j] = bar
         return output
