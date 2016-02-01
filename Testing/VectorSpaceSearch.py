@@ -62,6 +62,7 @@ class SimulatedAnheling(_Logger):
                 self.__generateVector()
             self._debug_stream("Testing: %s"%(self._vectorCandidate))
         self._info_stream("Winner: %s"%(self._vectorCandidate))
+        self._info_stream("Hex notation: %s"%(hex(self._vectorCandidate)))
         self._info_stream("%d tested vectors"%(len(self._testedVectors)))
         return self._vectorCandidate
 
@@ -119,9 +120,11 @@ def main():
     elif options.search_all != None:
         for v in range(2,8):
             for f in range(2,16):
+                print("Searching for a %d vector space size, "\
+                      "with coefficients in an %dth extension of a "\
+                      "characteristic 2 field"%(v,f))
                 searcher = SimulatedAnheling(v,f)
                 searcher.search()
-                print("\n"*3)
     else:
         print("\n\tNo default action, check help to know what can be done.\n")
 
