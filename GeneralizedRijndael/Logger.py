@@ -55,7 +55,7 @@ class Logger(object):
         '''
         '''
         object.__init__(self)
-        #super(Logger,self).__init()
+        #super(Logger,self).__init__()
         self._logLevel = loglevel
         self._when_build = _datetime.now()
         self._log2file = False
