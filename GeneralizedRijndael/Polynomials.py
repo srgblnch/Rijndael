@@ -1456,7 +1456,7 @@ def testAdd(a=None,b=None):
 
 def doProductTest(axlist=None,sxlist=None):
     field = BinaryExtensionModulo('z^8+z^4+z^3+z+1',loglevel=_Logger._info)
-    ring = VectorSpaceModulo("x^4+1",field,loglevel=_Logger._debug)
+    ring = VectorSpaceModulo("x^4+1",field,loglevel=_Logger._info)
     if axlist == None:
         axlist = []
         for i in range(4):
@@ -1473,35 +1473,38 @@ def doProductTest(axlist=None,sxlist=None):
         sxrandom = False
     ax = ring([field(i) for i in axlist])
     sx = ring([field(i) for i in sxlist])
-    if axrandom and sxrandom:
-        print("Testing random pair: %s * %s"%(hex(ax),hex(sx)))
-    elif axrandom:
-        print("Testing pair with first term random: %s * %s"
-              %(hex(ax),hex(sx)))
-    elif sxrandom:
-        print("Testing pair with second term random: %s * %s"
-              %(hex(ax),hex(sx)))
-    else:
-        print("Testing fixed pair: %s * %s"%(ax,sx))
-    print("\tVector representation or the pair: [%s] * [%s]"
-          %("".join(" 0x%X,"%e for e in axlist)[1:-1],
-            "".join(" 0x%X,"%e for e in sxlist)[1:-1]))
+#     if axrandom and sxrandom:
+#         print("Testing random pair: %s * %s"%(hex(ax),hex(sx)))
+#     elif axrandom:
+#         print("Testing pair with first term random: %s * %s"
+#               %(hex(ax),hex(sx)))
+#     elif sxrandom:
+#         print("Testing pair with second term random: %s * %s"
+#               %(hex(ax),hex(sx)))
+#     else:
+#         print("Testing fixed pair: %s * %s"%(ax,sx))
+#     print("\tVector representation or the pair: [%s] * [%s]"
+#           %("".join(" 0x%X,"%e for e in axlist)[1:-1],
+#             "".join(" 0x%X,"%e for e in sxlist)[1:-1]))
     rx = ax * sx
     bar = PolynomialRing(4,4,8)
     state = [sxlist]*4
     foo = bar.product(axlist,state)
     foox = ring([field(i) for i in foo[0]])
     if rx != foox:
-        print("\t\tAlert Results using VectorSpaceModulo != PolynomialRing "\
+        print("\t\tError!! Results using VectorSpaceModulo != PolynomialRing "\
               "implementations:\n\t\t\t%s != %s"%(hex(rx),hex(foox)))
-        return False
+        return (False,"Error")
     else:
         if sx == rx:
-            print("\t\tAlert sx == rx\n\t\t\t%s == %s"%(sx,rx))
-            return False
+            print("\t\tAlert s(x) == r(x), when r(x) = a(x) * s(x)\n"\
+                  "\t\t\tr(x) = %s = %s\n"\
+                  "\t\t\ts(x) = %s = %s\n"\
+                  "\t\t\ta(x) = %s = %s"%(hex(rx),rx,hex(sx),sx,hex(ax),ax))
+            return (False,"Alert")
         else:
-            print("\t\tOK rx == foox\n\t\t\t%s == %s "%(rx,foox))
-            return True
+            #print("\t\tOK: r(x) = %s"%hex(rx))
+            return (True,"")
 
 def productByInverse(polynomial,inverse=None):
     field = BinaryExtensionModulo('z^8+z^4+z^3+z+1',loglevel=_Logger._info)
@@ -1532,11 +1535,24 @@ def testProduct(n):
 #                    ]
 #     
 #     
+    errors = 0
+    alerts = 0
     for r in range(n):
-        if not doProductTest():
-            break
-        print("-"*80)
+#         print("Test %d"%r)
+        ok,reason = doProductTest()
+        if not ok and reason == "Error":
+            errors += 1
+        if not ok and reason == "Alert":
+            alerts += 1
+#         print("-"*80)
     print("="*80)
+    if errors > 0:
+        print("There has been %g%% errors (%d/%d)"
+              %(float(errors)/n*100,errors,n))
+    if alerts > 0:
+        print("There has been %g%% alerts (%d/%d)"
+              %(float(alerts)/n*100,alerts,n))
+    print("")
 #     doProductTest(axlist=[3,1,1,2],sxlist=[0xB,0xD,0x9,0xE])
 #     for r in range(n):
 #         #if not doProductTest(axlist=[0xB,0xD,0x9,0xE]): break
@@ -1549,7 +1565,7 @@ def main():
     #testConstructor()
     #testAdd(a=[0xAA,0xAB,0xAC,0xAD],b=[1,1,1,1])
     #testAdd()
-    testProduct(1)
+    testProduct(2000)
 
 if __name__ == "__main__":
     from random import randint
