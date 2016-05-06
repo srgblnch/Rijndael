@@ -197,3 +197,30 @@ class Logger(object):
         '''
         '''
         self._print_stream("TRACE  :"+logtext,Logger._trace,data,round,operation)
+
+
+def debug(decoratedMethod):
+    def magic(self, *args, **kwargs):
+        try:
+            argout = decoratedMethod(self, *args, **kwargs)
+            self._debug_stream("CALL %s(%s, %s): %s" % (decoratedMethod.__name__,
+                                                    args, kwargs, argout))
+        except Exception,e:
+            self._error_stream("Exception in %s() exception: %s"
+                               % (decoratedMethod.__name__, e))
+    return magic
+
+
+def trace(decoratedMethod):
+    def magic(self, *args, **kwargs):
+        try:
+            self._trace_stream("CALL %s(%s, %s)" % (decoratedMethod.__name__,
+                                                    args, kwargs))
+            argout = decoratedMethod(self, *args, **kwargs)
+            self._trace_stream("RETURN %s: %s" % decoratedMethod.__name__,
+                               argout)
+            return argout
+        except Exception,e:
+            self._error_stream("Exception in %s() exception: %s"
+                               % (decoratedMethod.__name__, e))
+    return magic

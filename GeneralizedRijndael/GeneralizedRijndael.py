@@ -27,6 +27,7 @@
 import sys
 
 from Logger import Logger as _Logger
+from Logger import debug,trace
 from Logger import levelFromMeaning as _levelFromMeaning
 from KeyExpansion import KeyExpansion as _KeyExpansion
 from SubBytes import SubBytes as _SubBytes
@@ -70,6 +71,7 @@ class GeneralizedRijndael(_Logger):
         self._mixColumns = _MixColumns(nRows,nColumns,wordSize,loglevel)
         self._addRoundKey = _AddRoundKey(nRows,nColumns,wordSize,loglevel)
 
+    #@debug
     def cipher(self,plain):
         '''plain (1d array) is copied to state matrix.
            After the inicial round addition, the state is transformed by the
@@ -120,6 +122,7 @@ class GeneralizedRijndael(_Logger):
         self._debug_stream("ciphertext",cipher)
         return cipher
 
+    #@debug
     def decipher(self,cipher):
         '''cipher (1d array) is copied to state matrix.
            The cipher round transformations are produced in the reverse order.
