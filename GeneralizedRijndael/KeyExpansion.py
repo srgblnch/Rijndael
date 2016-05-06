@@ -39,8 +39,8 @@ class KeyExpansion(_Logger):
     def __init__(self,key,
                  nRounds=10,nRows=4,nColumns=4,wordSize=8,#stardard aes
                  nKeyWords=None,sboxCalc=False,
-                 loglevel=_Logger._info):
-        _Logger.__init__(self,loglevel)
+                 loglevel=_Logger._info, *args, **kwargs):
+        super(KeyExpansion, self).__init__(*args, **kwargs)
         self.__key=key
         self.__nRounds=nRounds
         self.__nRows=nRows

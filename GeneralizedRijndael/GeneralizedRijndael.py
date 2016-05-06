@@ -46,8 +46,8 @@ class GeneralizedRijndael(_Logger):
     def __init__(self,key,
                  nRounds=10,nRows=4,nColumns=4,wordSize=8,#stardard aes
                  nKeyWords=None,sboxCalc=False,
-                 loglevel=_Logger._info):
-        _Logger.__init__(self,loglevel)
+                 loglevel=_Logger._info, *args, **kwargs):
+        super(GeneralizedRijndael, self).__init__(*args, **kwargs)
         self.__nRounds=nRounds#Num of encryption rounds {10,12,14}
         self.__nRows=nRows#Num of rows in the rectangular arrangement
         self.__nColumns=nColumns#Num of cols in the rectangular arrangement

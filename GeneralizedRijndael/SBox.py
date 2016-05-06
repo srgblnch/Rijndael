@@ -36,8 +36,8 @@ class SBox(_Logger):
        sbox and its inverse, for 8 bits word size, as well as it have two 
        other pairs of sboxes for word size 2 and 4 made on this development.
     '''
-    def __init__(self,wordSize,useCalc=True,loglevel=_Logger._info):
-        _Logger.__init__(self,loglevel)
+    def __init__(self,wordSize,useCalc=True, *args, **kwargs):
+        super(SBox, self).__init__(*args, **kwargs)
         #---- TODO: this must be able to be modified to use a sbox as a table 
         #           or as the pure calculations
         self._useCalc = useCalc

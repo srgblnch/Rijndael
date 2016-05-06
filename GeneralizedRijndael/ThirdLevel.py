@@ -106,8 +106,8 @@ def shift(l,n):
     return l[n:]+l[:n]
 
 class State(_Logger):
-    def __init__(self,nRows,nColumns,loglevel=_Logger._info):
-        _Logger.__init__(self,loglevel)
+    def __init__(self,nRows,nColumns, *args, **kwargs):
+        super(State, self).__init__(*args, **kwargs)
         self.__nRows=nRows
         self.__nColumns=nColumns
     def fromArray(self,input):

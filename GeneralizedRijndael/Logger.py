@@ -51,11 +51,10 @@ class Logger(object):
     _info    = 3
     _debug   = 4
     _trace   = 5
-    def __init__(self,loglevel):
+    def __init__(self, loglevel=_info, *args, **kwargs):
         '''
         '''
-        object.__init__(self)
-        #super(Logger,self).__init__()
+        super(Logger, self).__init__(*args, **kwargs)
         self._logLevel = loglevel
         self._when_build = _datetime.now()
         self._log2file = False

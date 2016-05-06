@@ -33,8 +33,8 @@ from Polynomials import VectorSpaceModulo as _VectorSpaceModulo
 from Polynomials import BinaryExtensionModulo as _BinaryExtensionModulo
 
 class MixColumns(_Logger):
-    def __init__(self,nRows,nColumns,wordSize,loglevel=_Logger._info):
-        _Logger.__init__(self,loglevel)
+    def __init__(self,nRows,nColumns,wordSize, *args, **kwargs):
+        super(MixColumns, self).__init__(*args, **kwargs)
         #---- FIXME: refactor this horrible if
         if wordSize==8:
             polynomialModule=_getBinaryExtensionFieldModulo(wordSize)

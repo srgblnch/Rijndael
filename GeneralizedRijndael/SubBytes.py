@@ -36,8 +36,9 @@ class SubBytes(_Logger):
        themselves specially to allow arbitrary word sizes and not only the
        original 8 bits and the two included here for 2 and 4 bits.
     '''
-    def __init__(self,wordSize,sboxCalc=False,loglevel=_Logger._info):
-        _Logger.__init__(self,loglevel)
+    def __init__(self,wordSize,sboxCalc=False,loglevel=_Logger._info,
+                 *args, **kwargs):
+        super(SubBytes, self).__init__(*args, **kwargs)
         self.__sbox=SBox(wordSize,useCalc=sboxCalc,loglevel=loglevel)
     def do(self,input):
         return self.__sbox.transform(input)

@@ -28,8 +28,8 @@ from Logger import Logger as _Logger
 from ThirdLevel import shift as _shift
 
 class ShiftRows(_Logger):
-    def __init__(self,nRows,loglevel=_Logger._info):
-        _Logger.__init__(self,loglevel)
+    def __init__(self,nRows, *args, **kwargs):
+        super(ShiftRows, self).__init__(*args, **kwargs)
         self.__nRows=nRows
     def do(self,input):
         '''One of the round transformation methods.

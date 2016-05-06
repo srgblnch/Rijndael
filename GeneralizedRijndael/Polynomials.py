@@ -62,7 +62,7 @@ def BinaryExtensionModulo(modulo,variable='z',loglevel=_Logger._info):
         raise Exception("modulo %s is not defined over %s variable"
                         %(modulo,variable))
     class BinaryExtensionModuloConstructor(_Logger):
-        def __init__(self,value):
+        def __init__(self,value, *args, **kwargs):
             '''
                 Once have the builder of elements it can be used to generate
                 objects that represents and have operations defined. The allow
@@ -83,7 +83,8 @@ def BinaryExtensionModulo(modulo,variable='z',loglevel=_Logger._info):
             #This help is shown when, from the last one
             #>>> field?
             #FIXME: improve the logging on this class
-            _Logger.__init__(self,loglevel)
+            super(BinaryExtensionModuloConstructor, self).__init__(*args,
+                                                                   **kwargs)
             self._variable = variable
             if type(value) == BinaryExtensionModuloConstructor or \
                value.__class__ == BinaryExtensionModuloConstructor:
@@ -767,8 +768,8 @@ def VectorSpaceModulo(modulo,coefficients_class,variable='x',
         ## - gcd
         ## - isInvertible()
         ## - refactoring interpreter methods
-        def __init__(self,value):
-            _Logger.__init__(self,loglevel)
+        def __init__(self,value, *args, **kwargs):
+            super(VectorSpaceModuloConstructor, self).__init__(*args, **kwargs)
             self._coefficientClass = coefficients_class
             self._variable = variable
             self._coefficients = self.__interpretCoefficients(value)
@@ -1362,8 +1363,8 @@ class PolynomialRing(_Logger):
        The coefficients on this polynomial ring are elements of a polynomial 
        field.
     '''
-    def __init__(self,nRows,nColumns,wordSize,loglevel=_Logger._info):
-        _Logger.__init__(self,loglevel)
+    def __init__(self,nRows,nColumns,wordSize, *args, **kwargs):
+        super(PolynomialRing, self).__init__(*args, **kwargs)
         self.__nRows=nRows
         self.__nColumns=nColumns
         field_modulo = getBinaryExtensionFieldModulo(wordSize)
