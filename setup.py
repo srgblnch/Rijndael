@@ -1,28 +1,26 @@
-#!/usr/bin/env python
+# ##### BEGIN GPL LICENSE BLOCK #####
+#
+#  This program is free software; you can redistribute it and/or
+#  modify it under the terms of the GNU General Public License
+#  as published by the Free Software Foundation; either version 3
+#  of the License, or (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program; if not, write to the Free Software Foundation,
+#  Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+#
+# ##### END GPL LICENSE BLOCK #####
 
-#---- licence header
-##############################################################################
-##
-## file: setup.py
-##
-## developers history & copyleft: Sergi Blanch-Torne
-##
-## Copyright 2014 (copyleft)
-##
-## This file is free software: you can redistribute it and/or modify
-## it under the terms of the GNU Lesser General Public License as published by
-## the Free Software Foundation, either version 3 of the License, or
-## (at your option) any later version.
-##
-## This file is distributed in the hope that it will be useful,
-## but WITHOUT ANY WARRANTY; without even the implied warranty of
-## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-## GNU Lesser General Public License for more details.
-##
-## You should have received a copy of the GNU Lesser General Public License
-## along with this file.  If not, see <http://www.gnu.org/licenses/>.
-##
-##############################################################################
+__author__ = "Sergi Blanch-Torne"
+__email__ = "srgblnchtrn@protonmail.ch"
+__copyright__ = "Copyright 2015 Sergi Blanch-Torne"
+__license__ = "GPLv3+"
+__status__ = "development"
 
 
 from setuptools import setup, find_packages
