@@ -28,25 +28,25 @@ __status__ = "development"
    reproducibility and algorithm review.
 '''
 
-from copy import copy,deepcopy
+from copy import copy, deepcopy
 import csv
 from datetime import datetime
 from GeneralizedRijndael.Logger import Logger
 import multiprocessing
-from numpy import array,float64
+from numpy import array, float64
 from optparse import OptionParser
 from GeneralizedRijndael.Logger import levelFromMeaning as _levelFromMeaning
 from GeneralizedRijndael.Polynomials import *
 from PolynomialsTest import setupLogging
-from sys import getrecursionlimit,setrecursionlimit
+from sys import getrecursionlimit, setrecursionlimit
 import traceback
-from time import clock,time
+from time import clock, time
 
 CEILING = 1e3
 ORDER = 10
 
 class TimeMeasurer:
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
         self._t0 = 0.0
 
     def start(self):
@@ -58,23 +58,22 @@ class TimeMeasurer:
         now = self.now
         diff = now - self._t0
         if diff < 0:
-            print("Negative: %f - %f"%(now,self._t0))
+            print("Negative: %f - %f" % (now, self._t0))
         self._t0 = 0.0
         return diff
 
 
 class TimeFromDatetime(TimeMeasurer):
-    def __init__(self):
-        #super(TimeFromDatetime,self).__init__()
-        TimeMeasurer.__init__(self)
+    def __init__(self, *args, **kwargs):
+        super(TimeFromDatetime,self).__init__(*args, **kwargs)
 
     @property
     def now(self):
-        #Use seconds + microseconds because it a diff falls in two different 
+        #Use seconds + microseconds because it a diff falls in two different
         #seconds their diff can be a negative number or, if it takes more than
         #a seconds it will be false.
         now = datetime.now()
-        return ((now.hour*60+now.minute)*60+now.second)*1e6 + now.microsecond
+        return ((now.hour*60+now.minute)*60+now.second)*1e6+now.microsecond
 
     @property
     def unit(self):
@@ -82,9 +81,8 @@ class TimeFromDatetime(TimeMeasurer):
 
 
 class TimeFromClock(TimeMeasurer):
-    def __init__(self):
-        #super(TimeFromClock,self).__init__()
-        TimeMeasurer.__init__(self)
+    def __init__(self, *args, **kwargs):
+        super(TimeFromClock,self).__init__(*args, **kwargs)
 
     @property
     def now(self):
@@ -101,12 +99,12 @@ class TimeFromClock(TimeMeasurer):
 
 
 class OutputFile(Logger):
-    def __init__(self,name,logLevel=Logger._info):
-        Logger.__init__(self,logLevel)
+    def __init__(self, name, *args, **kwargs):
+        super(OutputFile, self).__init__(*args, **kwargs)
         self._file_suffix = name
         self._file_extension = "csv"
-        
-    def write(self,incommingdata):
+
+    def write(self, incommingdata):
         data = deepcopy(incommingdata)
         fileName = self._when_build.strftime("%Y%m%d_%H%M%S")
         fileName = "%s_%s.%s"%(fileName,self._file_suffix,self._file_extension)
