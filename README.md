@@ -55,7 +55,7 @@ can have. With:
 
 ```python
 >>> from random import randint
->>> k = randint(0,2**128-1)
+>>> k = randint(0, 2**128-1)
 >>> rijndael128 = GeneralizedRijndael.GeneralizedRijndael(k)
 ```
 
@@ -67,7 +67,7 @@ The test vectors from the Rijndael's standard can be used. But also something
 more, on the fly like:
 
 ```python
->>> m = randint(0,2**128-1); c = rijndael128.cipher(m); c
+>>> m = randint(0, 2**128-1); c = rijndael128.cipher(m); c
 23544119155075312493179623650411912571L
 >>> m == rijndael128.decipher(c)
 True
@@ -75,12 +75,47 @@ True
 To have different Rijndael's standard sizes, the constructor shall be used:
 
 ```python
->>> k = randint(0,2**192-1)
->>> rijndael192 = GeneralizedRijndael.GeneralizedRijndael(k,nRounds=12,nKeyWords=6)
+>>> k = randint(0, 2**192-1)
+>>> rijndael192 = GeneralizedRijndael.GeneralizedRijndael(k, nRounds=12, nKeyWords=6)
 >>> k = randint(0,2**256-1)
->>> rijndael256 = GeneralizedRijndael.GeneralizedRijndael(k,nRounds=14,nKeyWords=8)
+>>> rijndael256 = GeneralizedRijndael.GeneralizedRijndael(k, nRounds=14, nKeyWords=8)
+```
+
+And the non-standarized but present in the original proposal with *160* and 
+*224* bits on the key size:
+
+```python
+>>> k = randint(0, 2**160-1)
+>>> rijndael160 = GeneralizedRijndael.GeneralizedRijndael(k, nRounds=11, nKeyWords=5)
+>>> k = randint(0, 2**224-1)
+>>> rijndael224 = GeneralizedRijndael.GeneralizedRijndael(k, nRounds=13, nKeyWords=7)
 ```
 
 Many other sizes can be used. But with wordsizes different the *8*, the 
 parameter *sboxCalc* shall be set to True. Otherwise you'll have an exception
 because there aren't sboxes for any other size than 8.
+
+Continuing with examples, it can be used to have block of *256* bits together 
+with a key of the same size:
+
+```python
+>>> k = randint(0, 2**256-1)
+>>> rijndael256_2 = GeneralizedRijndael.GeneralizedRijndael(k, nRounds=14, nKeyWords=8, nColumns=8)
+>>> m = randint(0, 2**256-1); c = rijndael256_2.cipher(m); m == rijndael256_2.decipher(c)
+```
+
+Or doubling the current limits of the standard with blocks of *256* bits and 
+key of 512.
+
+```python
+>>> k = randint(0, 2**512-1)
+>>> rijndael256k512 = GeneralizedRijndael.GeneralizedRijndael(k, nRounds=28, nKeyWords=16, nColumns=8)
+>>> m = randint(0, 2**256-1); c = rijndael256k512.cipher(m); m == rijndael256k512.decipher(c)
+```
+
+But here is where this gemeralization takes its sense. To have 512 bits in the
+key, they can use *4* rows with the *16* like in the example (it uses 8 bits 
+words). But those *521* bits can be achived with *8* rows and *8* columns.
+
+This code is still under development, not only for its cryptoanalysis, but also 
+because not all the parameter combination are already available.
