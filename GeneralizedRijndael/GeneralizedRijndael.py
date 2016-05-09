@@ -40,7 +40,8 @@ from version import *
 
 class GeneralizedRijndael(_Logger):
     '''
-        TODO: describe & little howto
+        Object that, once created and initialised (parameters and secret key)
+        can receive the request to cipher some input or decipher it.
     '''
     def __init__(self, key,
                  nRounds=10, nRows=4, nColumns=4, wordSize=8,  # stardard aes
@@ -48,9 +49,9 @@ class GeneralizedRijndael(_Logger):
                  loglevel=_Logger._info, *args, **kwargs):
         super(GeneralizedRijndael, self).__init__(*args, **kwargs)
         # Num of encryption rounds {10,12,14}
-        self.__nRounds = nRound
+        self.__nRounds = nRounds
         # Num of rows in the rectangular arrangement
-        self.__nRows = nRow
+        self.__nRows = nRows
         # Num of cols in the rectangular arrangement
         self.__nColumns = nColumns
         # in bits, AES is 8 bits word
@@ -65,15 +66,21 @@ class GeneralizedRijndael(_Logger):
                               self.__wordSize, self.__nKeyWords,
                               self.__nColumns*self.__nRows*self.__wordSize,
                               self.__nKeyWords*self.__nRows*self.__wordSize))
-        self._keyExpander = _KeyExpansion(key, self.__nRounds, self.__nRows,
-                                          self.__nColumns, self.__wordSize,
-                                          self.__nKeyWords, sboxCalc, loglevel)
-        self._subBytes = _SubBytes(wordSize, sboxCalc, loglevel)
-        self._shiftRows = _ShiftRows(nRows, loglevel)
-        self._mixColumns = _MixColumns(nRows, nColumns, wordSize, loglevel)
-        self._addRoundKey = _AddRoundKey(nRows, nColumns, wordSize, loglevel)
+        self.__keyExpanderObj = _KeyExpansion(key, self.__nRounds,
+                                              self.__nRows, self.__nColumns,
+                                              self.__wordSize,
+                                              self.__nKeyWords, sboxCalc,
+                                              loglevel)
+        self.__subBytesObj = _SubBytes(wordSize, sboxCalc, loglevel)
+        self.__shiftRowsObj = _ShiftRows(nRows, loglevel)
+        self.__mixColumnsObj = _MixColumns(nRows, nColumns, wordSize, loglevel)
+        self.__addRoundKeyObj = _AddRoundKey(nRows, nColumns, wordSize,
+                                             loglevel)
+        self.__state = None  # FIXME: this memory is not protected and shall be
+        self.__round = None
 
-    # @debug
+    # ---- Interface methods
+
     def cipher(self, plain):
         '''plain (1d array) is copied to state matrix.
            After the inicial round addition, the state is transformed by the
@@ -82,52 +89,20 @@ class GeneralizedRijndael(_Logger):
            Input: <integer> plainText
            Output: <integer> cipherText
         '''
-        self._debug_stream("plaintext", plain)
-        plain = _Long(self.__wordSize).toArray(plain, self.__nColumns *
-                                               self.__nRows * self.__wordSize)
-        # TODO: check the plain have the size to be ciphered
-        self._debug_stream("plaintext array", plain)
-        # FIXME: State should be protected in memory
-        #        to avoid side channel attacks
-        state = _State(self.__nRows, self.__nColumns, self._logLevel).\
-            fromArray(plain)
-        self._debug_stream("state", state)
-        state = self._addRoundKey.do(state, self._keyExpander.getSubKey
-                                     (0, self.__nColumns))  # w[0,Nb-1]
-        self._debug_stream("state", state, 0, "cipher->addRoundKey()\t")
-        for r in range(1, self.__nRounds):  # [1..Nr-1] step 1
-            state = self._subBytes.do(state)
-            self._debug_stream("state", state, r, "cipher->subBytes()\t")
-            state = self._shiftRows.do(state)
-            self._debug_stream("state", state, r, "cipher->shiftRows()\t")
-            state = self._mixColumns.do(state)
-            self._debug_stream("state", state, r, "cipher->mixColumns()\t")
-            state = self._addRoundKey.do(state, self._keyExpander.getSubKey
-                                         ((r*self.__nColumns),
-                                          (r+1)*(self.__nColumns)))
-            self._debug_stream("state", state, r, "cipher->addRoundKey()\t")
-        state = self._subBytes.do(state)
-        self._debug_stream("state", state, self.__nRounds,
-                           "cipher->subBytes()\t")
-        state = self._shiftRows.do(state)
-        self._debug_stream("state", state, self.__nRounds,
-                           "cipher->shiftRows()\t")
-        state = self._addRoundKey.do(state, self._keyExpander.getSubKey
-                                     ((self.__nRounds * self.__nColumns),
-                                      (self.__nRounds+1)*(self.__nColumns)))
-        self._debug_stream("state", state, self.__nRounds,
-                           "cipher->addRoundKey()\t")
-        cipher = _State(self.__nRows, self.__nColumns,
-                        self._logLevel).toArray(state)
-        self._debug_stream("ciphertext array", cipher)
-        cipher = _Long(self.__wordSize).fromArray(cipher,
-                                                  self.__nColumns *
-                                                  self.__nRows *
-                                                  self.__wordSize)
-        self._debug_stream("ciphertext", cipher)
-        return cipher
+        self.__convertInput2State(plain)
+        self.__round = 0
+        self.__addRoundKey()  # w[0,Nb-1]
+        for self.__round in range(1, self.__nRounds):  # [1..Nr-1] step 1
+            self.__subBytes()
+            self.__shiftRows()
+            self.__mixColumns()
+            self.__addRoundKey()
+        self.__round = self.__nRounds
+        self.__subBytes()
+        self.__shiftRows()
+        self.__addRoundKey()
+        return self.__convertState2output()
 
-    # @debug
     def decipher(self, cipher):
         '''cipher (1d array) is copied to state matrix.
            The cipher round transformations are produced in the reverse order.
@@ -135,48 +110,88 @@ class GeneralizedRijndael(_Logger):
            Input: <integer> cipherText
            Output: <integer> plainText
         '''
-        self._debug_stream("ciphered", cipher)
-        cipher = _Long(self.__wordSize).toArray(cipher, self.__nColumns *
-                                                self.__nRows * self.__wordSize)
-        # TODO: check the cipher have the size to be deciphered
-        self._debug_stream("ciphered array", cipher)
-        # FIXME: State should be protected in memory
-        #        to avoid side channel attacks
-        state = _State(self.__nRows, self.__nColumns,
-                       self._logLevel).fromArray(cipher)
-        self._debug_stream("state", state)
-        state = self._addRoundKey.do(state, self._keyExpander.getSubKey
-                                     ((self.__nRounds * self.__nColumns),
-                                      (self.__nRounds+1) * (self.__nColumns)))
-        self._debug_stream("state", state, self.__nRounds,
-                           "decipher->addRoundKey()\t")
-        for r in range(self.__nRounds-1, 0, -1):  # [Nr-1..1] step -1
-            state = self._shiftRows.invert(state)
-            self._debug_stream("state", state, r, "decipher->invShiftRows()\t")
-            state = self._subBytes.invert(state)
-            self._debug_stream("state", state, r, "decipher->invSubBytes()\t")
-            state = self._addRoundKey.do(state, self._keyExpander.getSubKey
-                                         ((r*self.__nColumns),
-                                          (r+1)*(self.__nColumns)))
-            self._debug_stream("state", state, r, "decipher->addRoundKey()\t")
-            state = self._mixColumns.invert(state)
-            self._debug_stream("state", state, r,
-                               "decipher->invMixColumns()\t")
-        state = self._shiftRows.invert(state)
-        self._debug_stream("state", state, 0, "decipher->invShiftRows()\t")
-        state = self._subBytes.invert(state)
-        self._debug_stream("state", state, 0, "decipher->invSubBytes()\t")
-        state = self._addRoundKey.do(state, self._keyExpander.getSubKey
-                                     (0, self.__nColumns))
-        self._debug_stream("state", state, 0, "decipher->addRoundKey()\t")
-        plain = _State(self.__nRows, self.__nColumns,
-                       self._logLevel).toArray(state)
-        self._debug_stream("deciphered array", plain)
-        plain = _Long(self.__wordSize).fromArray(plain, self.__nColumns *
+        self.__convertInput2State(cipher)
+        self.__round = self.__nRounds
+        self.__addRoundKey()
+        # [Nr-1..1] step -1
+        for self.__round in range(self.__nRounds-1, 0, -1):
+            self.__invShiftRows()
+            self.__invSubBytes()
+            self.__addRoundKey()
+            self.__invMixColumns()
+        self.__round = 0
+        self.__invShiftRows()
+        self.__invSubBytes()
+        self.__addRoundKey()
+        return self.__convertState2output()
+
+    # ---- Rijndael Operations
+
+    def __subBytes(self):
+        self.__state = self.__subBytesObj.do(self.__state)
+        self._debug_stream("state", self.__state, self.__round,
+                           "cipher->subBytes()\t")
+
+    def __invSubBytes(self):
+        self.__subBytesObj.invert(self.__state)
+        self._debug_stream("state", self.__state, self.__round,
+                           "decipher->invSubBytes()\t")
+
+    def __shiftRows(self):
+        self.__state = self.__shiftRowsObj.do(self.__state)
+        self._debug_stream("state", self.__state, self.__round,
+                           "cipher->shiftRows()\t")
+
+    def __invShiftRows(self):
+        self.__state = self.__shiftRowsObj.invert(self.__state)
+        self._debug_stream("state", self.__state, self.__round,
+                           "decipher->invShiftRows()\t")
+
+    def __mixColumns(self):
+        self.__state = self.__mixColumnsObj.do(self.__state)
+        self._debug_stream("state", self.__state, self.__round,
+                           "cipher->mixColumns()\t")
+
+    def __invMixColumns(self):
+        self.__state = self.__mixColumnsObj.invert(self.__state)
+        self._debug_stream("state", self.__state, self.__round,
+                           "decipher->invMixColumns()\t")
+
+    def __addRoundKey(self):
+        self.__state = self.__addRoundKeyObj.do(self.__state,
+                                                self.__keyExpanderObj.getSubKey
+                                                ((self.__round *
+                                                  self.__nColumns),
+                                                 (self.__round+1) *
+                                                 (self.__nColumns)))
+        self._debug_stream("state", self.__state, self.__round,
+                           "cipher->addRoundKey()\t")
+
+    # ---- Data conversions
+
+    def __convertInput2State(self, argin):
+        self._debug_stream("argin: %s" % (argin))
+        # TODO: check the argin have the size to be ciphered/deciphered
+        anArray = _Long(self.__wordSize).toArray(argin,
+                                                 self.__nColumns *
                                                  self.__nRows *
                                                  self.__wordSize)
-        self._debug_stream("deciphered", plain)
-        return plain
+        self.__state = _State(self.__nRows, self.__nColumns, self._logLevel).\
+            fromArray(anArray)
+
+    def __convertState2output(self):
+        anArray = _State(self.__nRows, self.__nColumns,
+                         self._logLevel).toArray(self.__state)
+        argout = _Long(self.__wordSize).fromArray(anArray,
+                                                  self.__nColumns *
+                                                  self.__nRows *
+                                                  self.__wordSize)
+        self._debug_stream("argout: %s" % argout)
+        return argout
+
+
+# ---- Test and console execution area
+
 
 from optparse import OptionParser
 
