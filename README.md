@@ -45,7 +45,7 @@ Extras
 ```python
 >>> import GeneralizedRijndael
 >>> GeneralizedRijndael.version()
-'0.2.0-0'
+'0.2.1-1'
 ```
 
 The main constructor available in this module is 
