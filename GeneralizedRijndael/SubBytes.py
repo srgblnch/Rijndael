@@ -25,21 +25,24 @@ __status__ = "development"
 from Logger import Logger as _Logger
 from SBox import SBox
 
+
 class SubBytes(_Logger):
-    '''This class is made to do the subBytes Rijndael's non-linear 
+    '''This class is made to do the subBytes Rijndael's non-linear
        substitution to provide confusion to the ciphertext, and its inverse.
-       It uses a secondary object SBox as a builder pattern to allow the 
+       It uses a secondary object SBox as a builder pattern to allow the
        transformation from this operation.
        FIXME: The precalculated SBoxes shall be replaced by the calculations
        themselves specially to allow arbitrary word sizes and not only the
        original 8 bits and the two included here for 2 and 4 bits.
     '''
-    def __init__(self,wordSize,sboxCalc=False,loglevel=_Logger._info,
+    def __init__(self, wordSize, sboxCalc=False, loglevel=_Logger._info,
                  *args, **kwargs):
         super(SubBytes, self).__init__(*args, **kwargs)
-        self.__sbox=SBox(wordSize,useCalc=sboxCalc,loglevel=loglevel)
-    def do(self,input):
+        self.__sbox = SBox(wordSize, useCalc=sboxCalc, loglevel=loglevel)
+
+    def do(self, input):
         return self.__sbox.transform(input)
-    def invert(self,input):
-        return self.__sbox.transform(input,invert=True)
-        #It's the same but different sbox
+
+    def invert(self, input):
+        return self.__sbox.transform(input, invert=True)
+        # It's the same but different sbox

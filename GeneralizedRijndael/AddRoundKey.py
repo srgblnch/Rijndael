@@ -25,13 +25,15 @@ __status__ = "development"
 from Logger import Logger as _Logger
 from ThirdLevel import Word as _Word
 
+
 class AddRoundKey(_Logger):
-    def __init__(self,nRows,nColumns,wordSize, *args, **kwargs):
+    def __init__(self, nRows, nColumns, wordSize, *args, **kwargs):
         super(AddRoundKey, self).__init__(*args, **kwargs)
         self.__nRows = nRows
         self.__nColumns = nColumns
-        self.__word = _Word(nRows,wordSize)
-    def do(self,input,subkey):
+        self.__word = _Word(nRows, wordSize)
+
+    def do(self, input, subkey):
         '''One of the round transformation methods.
            The round key (from the PRG) list of arrays (can be thougth as a
            matrix), is bitwise XORted with the state matrix.
@@ -43,7 +45,6 @@ class AddRoundKey(_Logger):
             byteSubkey = self.__word.toList(subkey[j])
             byteSubkey.reverse()
             for i in range(self.__nRows):
-                #print("len(output[%d]) = %s"%(i,len(output[i])))
                 bar = output[i][j]
                 bar ^= byteSubkey[i]
                 output[i][j] = bar

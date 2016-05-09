@@ -32,4 +32,4 @@ from SubBytes import SubBytes
 from SBox import SBox
 import ThirdLevel as _ThirdLevel
 import Polynomials
-from version import version,VERSION
+from version import version, VERSION

@@ -25,28 +25,31 @@ __status__ = "development"
 from Logger import Logger as _Logger
 from ThirdLevel import shift as _shift
 
+
 class ShiftRows(_Logger):
-    def __init__(self,nRows, *args, **kwargs):
+    def __init__(self, nRows, *args, **kwargs):
         super(ShiftRows, self).__init__(*args, **kwargs)
-        self.__nRows=nRows
-    def do(self,input):
+        self.__nRows = nRows
+
+    def do(self, input):
         '''One of the round transformation methods.
-           cyclical left shift of the row 'i' of the state matrix by 'i' 
+           cyclical left shift of the row 'i' of the state matrix by 'i'
            positions s[r][c] = s[r][c+shift(r,nColumns) mod nColumns]
            for 0<r<nRows and 0<=c<nColumns.
            Input: <integer arrays> state
            Output: <integer arrays> state (modified)
         '''
-        output=[]
+        output = []
         for i in range(self.__nRows):
-            output.append(_shift(input[i],i))
+            output.append(_shift(input[i], i))
         return output
-    def invert(self,input):
+
+    def invert(self, input):
         '''Inverse of the shiftRows() method.
            Input: <integer arrays> state
            Output: <integer arrays> state (modified)
         '''
-        output=[]
+        output = []
         for i in range(self.__nRows):
-            output.append(_shift(input[i],-i))
+            output.append(_shift(input[i], -i))
         return output

@@ -22,15 +22,18 @@ __copyright__ = "Copyright 2015 Sergi Blanch-Torne"
 __license__ = "GPLv3+"
 __status__ = "development"
 
-_MAJOR_VERSION=0
-_MINOR_VERSION=2
-_BUILD_VERSION=1
-_REVISION_VERSION=1
+
+_MAJOR_VERSION = 0
+_MINOR_VERSION = 2
+_BUILD_VERSION = 1
+_REVISION_VERSION = 1
+
 
 def VERSION():
-    return (_MAJOR_VERSION,_MINOR_VERSION,
-            _BUILD_VERSION,_REVISION_VERSION)
+    return (_MAJOR_VERSION, _MINOR_VERSION,
+            _BUILD_VERSION, _REVISION_VERSION)
+
 
 def version():
-    return '%d.%d.%d-%d'%(_MAJOR_VERSION,_MINOR_VERSION,
-                          _BUILD_VERSION,_REVISION_VERSION)
+    return '%d.%d.%d-%d' % (_MAJOR_VERSION, _MINOR_VERSION,
+                            _BUILD_VERSION, _REVISION_VERSION)
