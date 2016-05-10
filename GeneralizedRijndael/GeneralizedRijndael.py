@@ -79,6 +79,16 @@ class GeneralizedRijndael(_Logger):
         self.__state = None  # FIXME: this memory is not protected and shall be
         self.__round = None
 
+    def __str__(self):
+        parentesis = "%d, %d, %d, %d" % (self.__nRounds, self.__nRows,\
+                                           self.__nColumns, self.__wordSize)
+        if self.__nKeyWords != self.__nColumns:
+            parentesis += ", %d" % (self.__nKeyWords)
+        return "Rijndael(%s)" % (parentesis)
+
+    def __repr__(self):
+        return self.__str__()
+
     # ---- Interface methods
 
     def cipher(self, plain):
