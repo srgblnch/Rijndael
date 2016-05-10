@@ -60,6 +60,12 @@ class GeneralizedRijndael(_Logger):
             self.__nKeyWords = nColumns
         else:
             self.__nKeyWords = nKeyWords  # Usually {4,6,8}
+        minRounds = max(self.__nKeyWords,self.__nColumns) + 6
+        if self.__nRounds < minRounds:
+            self._warning_stream(" Perhaps this is not enough rounds: "
+                                 "max(N_k,N_c)+6 = max(%d,%d)+6 = %d"
+                                 % (self.__nKeyWords, self.__nColumns,
+                                    minRounds))
         self._debug_stream("Initialising GeneralizedRijndael "
                            "(%d,%d,%d,%d,%d): block=%dbits key=%dbits"
                            % (self.__nRounds, self.__nRows, self.__nColumns,
