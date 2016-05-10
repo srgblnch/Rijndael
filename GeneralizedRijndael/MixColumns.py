@@ -112,7 +112,7 @@ class MixColumns(_Logger):
 
     def getVectorSpaceModulo(self):
         return self.__cx.modulo
-    
+
     def getCx(self):
         return self.__cx
 

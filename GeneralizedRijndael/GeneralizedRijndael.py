@@ -44,12 +44,18 @@ class GeneralizedRijndael(_Logger):
         can receive the request to cipher some input or decipher it.
     '''
     def __init__(self, key,
-                 nRounds=10, nRows=4, nColumns=4, wordSize=8,  # stardard aes
+                 nRounds=None, nRows=4, nColumns=4, wordSize=8,  # stardard aes
                  nKeyWords=None, sboxCalc=False,
                  loglevel=_Logger._info, *args, **kwargs):
         super(GeneralizedRijndael, self).__init__(*args, **kwargs)
         # Num of encryption rounds {10,12,14}
-        self.__nRounds = nRounds
+        if nRounds is None:
+            if nKeyWords is not None:
+                self.__nRounds = max(nKeyWords, nColumns) + 6
+            else:
+                self.__nRounds = nColumns + 6
+        else:
+            self.__nRounds = nRounds
         # Num of rows in the rectangular arrangement
         self.__nRows = nRows
         # Num of cols in the rectangular arrangement
@@ -60,7 +66,7 @@ class GeneralizedRijndael(_Logger):
             self.__nKeyWords = nColumns
         else:
             self.__nKeyWords = nKeyWords  # Usually {4,6,8}
-        minRounds = max(self.__nKeyWords,self.__nColumns) + 6
+        minRounds = max(self.__nKeyWords, self.__nColumns) + 6
         if self.__nRounds < minRounds:
             self._warning_stream(" Perhaps this is not enough rounds: "
                                  "max(N_k,N_c)+6 = max(%d,%d)+6 = %d"
@@ -86,8 +92,8 @@ class GeneralizedRijndael(_Logger):
         self.__round = None
 
     def __str__(self):
-        parentesis = "%d, %d, %d, %d" % (self.__nRounds, self.__nRows,\
-                                           self.__nColumns, self.__wordSize)
+        parentesis = "%d, %d, %d, %d" % (self.__nRounds, self.__nRows,
+                                         self.__nColumns, self.__wordSize)
         if self.__nKeyWords != self.__nColumns:
             parentesis += ", %d" % (self.__nKeyWords)
         return "Rijndael(%s)" % (parentesis)
