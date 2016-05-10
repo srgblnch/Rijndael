@@ -101,7 +101,7 @@ Or doubling the current limits of the standard with blocks of *256* bits and key
 
 ```python
 >>> k = randint(0, 2**512-1)
->>> rijndael256k512 = GeneralizedRijndael.GeneralizedRijndael(k, nRounds=28, nKeyWords=16, nColumns=8)
+>>> rijndael256k512 = GeneralizedRijndael.GeneralizedRijndael(k, nRounds=22, nKeyWords=16, nColumns=8)
 >>> rijndael256k512.blockSize, rijndael256k512.keySize
  (256, 512)
 >>> m = randint(0, 2**256-1); c = rijndael256k512.cipher(m); m == rijndael256k512.decipher(c)
@@ -111,7 +111,7 @@ Or reduce the block size having a bigger key size than in the standard:
 
 ```python
 >>> k = randint(0, 2**512-1)
->>> rijndael32k512 = GeneralizedRijndael.GeneralizedRijndael(k, nRounds=28, nKeyWords=32, nColumns=2, nRows=2)
+>>> rijndael32k512 = GeneralizedRijndael.GeneralizedRijndael(k, nRounds=38, nKeyWords=32, nColumns=2, nRows=2)
 >>> rijndael32k512.blockSize, rijndael32k512.keySize
  (32, 512)
 >>> m = randint(0, 2**32-1); c = rijndael32k512.cipher(m); m == rijndael32k512.decipher(c)
