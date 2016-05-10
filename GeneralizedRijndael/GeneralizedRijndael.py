@@ -45,13 +45,13 @@ class GeneralizedRijndael(_Logger):
     '''
     def __init__(self, key,
                  nRounds=None, nRows=4, nColumns=4, wordSize=8,  # stardard aes
-                 nKeyWords=None, sboxCalc=False,
+                 nKeyColumns=None, sboxCalc=False,
                  loglevel=_Logger._info, *args, **kwargs):
         super(GeneralizedRijndael, self).__init__(*args, **kwargs)
         # Num of encryption rounds {10,12,14}
         if nRounds is None:
-            if nKeyWords is not None:
-                self.__nRounds = max(nKeyWords, nColumns) + 6
+            if nKeyColumns is not None:
+                self.__nRounds = max(nKeyColumns, nColumns) + 6
             else:
                 self.__nRounds = nColumns + 6
         else:
@@ -62,26 +62,26 @@ class GeneralizedRijndael(_Logger):
         self.__nColumns = nColumns
         # in bits, AES is 8 bits word
         self.__wordSize = wordSize
-        if nKeyWords is None:
-            self.__nKeyWords = nColumns
+        if nKeyColumns is None:
+            self.__nKeyColumns = nColumns
         else:
-            self.__nKeyWords = nKeyWords  # Usually {4,6,8}
-        minRounds = max(self.__nKeyWords, self.__nColumns) + 6
+            self.__nKeyColumns = nKeyColumns  # Usually {4,6,8}
+        minRounds = max(self.__nKeyColumns, self.__nColumns) + 6
         if self.__nRounds < minRounds:
             self._warning_stream(" Perhaps this is not enough rounds: "
                                  "max(N_k,N_c)+6 = max(%d,%d)+6 = %d"
-                                 % (self.__nKeyWords, self.__nColumns,
+                                 % (self.__nKeyColumns, self.__nColumns,
                                     minRounds))
         self._debug_stream("Initialising GeneralizedRijndael "
                            "(%d,%d,%d,%d,%d): block=%dbits key=%dbits"
                            % (self.__nRounds, self.__nRows, self.__nColumns,
-                              self.__wordSize, self.__nKeyWords,
+                              self.__wordSize, self.__nKeyColumns,
                               self.__nColumns*self.__nRows*self.__wordSize,
-                              self.__nKeyWords*self.__nRows*self.__wordSize))
+                              self.__nKeyColumns*self.__nRows*self.__wordSize))
         self.__keyExpanderObj = _KeyExpansion(key, self.__nRounds,
                                               self.__nRows, self.__nColumns,
                                               self.__wordSize,
-                                              self.__nKeyWords, sboxCalc,
+                                              self.__nKeyColumns, sboxCalc,
                                               loglevel)
         self.__subBytesObj = _SubBytes(wordSize, sboxCalc, loglevel)
         self.__shiftRowsObj = _ShiftRows(nRows, loglevel)
@@ -94,8 +94,8 @@ class GeneralizedRijndael(_Logger):
     def __str__(self):
         parentesis = "%d, %d, %d, %d" % (self.__nRounds, self.__nRows,
                                          self.__nColumns, self.__wordSize)
-        if self.__nKeyWords != self.__nColumns:
-            parentesis += ", %d" % (self.__nKeyWords)
+        if self.__nKeyColumns != self.__nColumns:
+            parentesis += ", %d" % (self.__nKeyColumns)
         return "Rijndael(%s)" % (parentesis)
 
     def __repr__(self):
@@ -121,7 +121,7 @@ class GeneralizedRijndael(_Logger):
 
     @property
     def nKeyColumns(self):
-        return self.__nKeyWords
+        return self.__nKeyColumns
 
     @property
     def blockSize(self):
@@ -129,7 +129,7 @@ class GeneralizedRijndael(_Logger):
 
     @property
     def keySize(self):
-        return self.__wordSize * self.__nKeyWords * self.__nRows
+        return self.__wordSize * self.__nKeyColumns * self.__nRows
 
     @property
     def sboxField(self):
@@ -337,7 +337,7 @@ def main():
                              nRows=options.rows,
                              nColumns=options.columns,
                              wordSize=options.wordsize,
-                             nKeyWords=options.kolumns,
+                             nKeyColumns=options.kolumns,
                              sboxCalc=options.calculate_sbox,
                              loglevel=_levelFromMeaning(options.log_level))
     if not options.only_keyexpansion:

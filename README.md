@@ -62,11 +62,11 @@ To have different Rijndael's standard sizes, the constructor shall be used:
 
 ```python
 >>> k = randint(0, 2**192-1)
->>> rijndael192 = GeneralizedRijndael.GeneralizedRijndael(k, nKeyWords=6)
+>>> rijndael192 = GeneralizedRijndael.GeneralizedRijndael(k, nKeyColumns=6)
 >>> rijndael192.blockSize, rijndael192.keySize, rijndael192.nRounds
  (128, 192, 12)
 >>> k = randint(0,2**256-1)
->>> rijndael256 = GeneralizedRijndael.GeneralizedRijndael(k, nKeyWords=8)
+>>> rijndael256 = GeneralizedRijndael.GeneralizedRijndael(k, nKeyColumns=8)
 >>> rijndael256.blockSize, rijndael256.keySize, rijndael256.nRounds
  (128, 256, 14)
 ```
@@ -76,11 +76,11 @@ And the non-standardised but present in the original proposal with *160* and
 
 ```python
 >>> k = randint(0, 2**160-1)
->>> rijndael160 = GeneralizedRijndael.GeneralizedRijndael(k, nKeyWords=5)
+>>> rijndael160 = GeneralizedRijndael.GeneralizedRijndael(k, nKeyColumns=5)
 >>> rijndael160.blockSize, rijndael160.keySize, rijndael160.nRounds
  (128, 160, 11)
 >>> k = randint(0, 2**224-1)
->>> rijndael224 = GeneralizedRijndael.GeneralizedRijndael(k, nKeyWords=7)
+>>> rijndael224 = GeneralizedRijndael.GeneralizedRijndael(k, nKeyColumns=7)
 >>> rijndael224.blockSize, rijndael224.keySize, rijndael224.nRounds
  (128, 224, 13)
 ```
@@ -91,7 +91,7 @@ Continuing with examples, it can be used to have block of *256* bits together wi
 
 ```python
 >>> k = randint(0, 2**256-1)
->>> rijndael256k256 = GeneralizedRijndael.GeneralizedRijndael(k, nKeyWords=8, nColumns=8)
+>>> rijndael256k256 = GeneralizedRijndael.GeneralizedRijndael(k, nKeyColumns=8, nColumns=8)
 >>> rijndael256k256.blockSize, rijndael256k256.keySize, rijndael256k256.nRounds
  (256, 256, 14)
 >>> m = randint(0, 2**256-1); c = rijndael256k256.cipher(m); m == rijndael256k256.decipher(c)
@@ -101,7 +101,7 @@ Or doubling the current limits of the standard with blocks of *256* bits and key
 
 ```python
 >>> k = randint(0, 2**512-1)
->>> rijndael256k512 = GeneralizedRijndael.GeneralizedRijndael(k, nKeyWords=16, nColumns=8)
+>>> rijndael256k512 = GeneralizedRijndael.GeneralizedRijndael(k, nKeyColumns=16, nColumns=8)
 >>> rijndael256k512.blockSize, rijndael256k512.keySize, rijndael256k512.nRounds
  (256, 512, 22)
 >>> m = randint(0, 2**256-1); c = rijndael256k512.cipher(m); m == rijndael256k512.decipher(c)
@@ -111,7 +111,7 @@ Or reduce the block size having a bigger key size than in the standard:
 
 ```python
 >>> k = randint(0, 2**512-1)
->>> rijndael32k512 = GeneralizedRijndael.GeneralizedRijndael(k, nKeyWords=32, nColumns=2, nRows=2)
+>>> rijndael32k512 = GeneralizedRijndael.GeneralizedRijndael(k, nKeyColumns=32, nColumns=2, nRows=2)
 >>> rijndael32k512.blockSize, rijndael32k512.keySize, rijndael32k512.nRounds
  (32, 512, 38)
 >>> m = randint(0, 2**32-1); c = rijndael32k512.cipher(m); m == rijndael32k512.decipher(c)
