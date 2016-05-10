@@ -52,9 +52,13 @@ class KeyExpansion(_Logger):
         self.__word = _Word(nRows, wordSize)
         self.__keyExpanded = [None]*self.__nKeyWords
         self._debug_stream("key", key, operation="keyExpansion()\t")
-        key = _Long(self.__wordSize).toArray(key,
-                                             self.__nKeyWords * self.__nRows *
-                                             self.__wordSize)
+        try:
+            key = _Long(self.__wordSize).toArray(key,
+                                                 self.__nKeyWords * 
+                                                 self.__nRows *
+                                                 self.__wordSize)
+        except:
+            raise Exception("Key length doesn't fit with the matrix size")
         self._debug_stream("key array", key, operation="keyExpansion()\t")
         for i in range(self.__nKeyWords):
             subkey = key[(self.__nRows*i):(self.__nRows*i)+self.__nRows]
