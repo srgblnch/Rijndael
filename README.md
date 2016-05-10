@@ -1,7 +1,7 @@
 Generalizing the Rijndael
 =========================
 
-**Development Status :: 1 - Planning**
+**Development Status :: 2 - Pre-Alpha**
 
 This is just a probe of concept. You **MUST NOT** use this code in production projects.
 
