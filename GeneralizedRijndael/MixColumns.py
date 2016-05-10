@@ -110,6 +110,18 @@ class MixColumns(_Logger):
         res = self.__polynomialRing.product(self.__d, input)
         return res
 
+    def getVectorSpaceModulo(self):
+        return self.__cx.modulo
+    
+    def getCx(self):
+        return self.__cx
+
+    def getDx(self):
+        return self.__dx
+
+    def getSubfieldModulo(self):
+        return self.__cx._coefficients[0].modulo
+
 
 def printlist(l):
     if type(l) == list:

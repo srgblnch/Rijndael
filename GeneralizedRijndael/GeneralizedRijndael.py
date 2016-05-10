@@ -87,7 +87,69 @@ class GeneralizedRijndael(_Logger):
         return "Rijndael(%s)" % (parentesis)
 
     def __repr__(self):
-        return self.__str__()
+        return "%s" % (self.__str__())
+
+    # ---- Readonly configuration
+
+    @property
+    def nRounds(self):
+        return self.__nRounds
+
+    @property
+    def nRows(self):
+        return self.__nRows
+
+    @property
+    def nColumns(self):
+        return self.__nColumns
+
+    @property
+    def wordSize(self):
+        return self.__wordSize
+
+    @property
+    def nKeyColumns(self):
+        return self.__nKeyWords
+
+    @property
+    def blockSize(self):
+        return self.__wordSize * self.__nColumns * self.__nRows
+
+    @property
+    def keySize(self):
+        return self.__wordSize * self.__nKeyWords * self.__nRows
+
+    @property
+    def sboxField(self):
+        return self.__subBytesObj.getField()
+
+    @property
+    def sboxRing(self):
+        return self.__subBytesObj.getRing()
+
+    @property
+    def sboxMu(self):
+        return self.__subBytesObj.getMu()
+
+    @property
+    def sboxNu(self):
+        return self.__subBytesObj.getNu()
+
+    @property
+    def mixColumnsVectorSpaceModule(self):
+        return self.__mixColumnsObj.getVectorSpaceModulo()
+
+    @property
+    def mixColumnsCx(self):
+        return self.__mixColumnsObj.getCx()
+
+    @property
+    def mixColumnsDx(self):
+        return self.__mixColumnsObj.getDx()
+
+    @property
+    def mixColumnsSubfield(self):
+        return self.__mixColumnsObj.getSubfieldModulo()
 
     # ---- Interface methods
 

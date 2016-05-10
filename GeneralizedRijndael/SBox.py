@@ -61,6 +61,30 @@ class SBox(_Logger):
                                 "There is no Sbox for %d wordsize"
                                 % (self.__wordSize))
 
+    def getField(self):
+        if self._useCalc:
+            return self._field
+        else:
+            return "z^8+z^4+z^3+z+1 (the Rijndael's original)"
+
+    def getRing(self):
+        if self._useCalc:
+            return self._ring
+        else:
+            return "z^8+1 (the Rijndael's original)"
+
+    def getMu(self):
+        if self._useCalc:
+            return self._ring(getMu(self.__wordSize))
+        else:
+            return "z^4+z^3+z^2+z+1 (the Rijndael's original)"
+
+    def getNu(self):
+        if self._useCalc:
+            return self._ring(getNu(self.__wordSize))
+        else:
+            return "z^6+z^5+z+1 (the Rijndael's original)"
+
     def transform(self, state, invert=False):
         '''Given the content of one cell of the state matrix, 'divide' in 2
            halfs. The upper is understood as the row and the lower as the
@@ -115,15 +139,15 @@ class SBox(_Logger):
     def _sbox_call_(self, value):
         g = ~self._field(value)
         ax = self._ring(g._coefficients)
-        mu = self._ring(getMu(self.__wordSize))
-        nu = self._ring(getNu(self.__wordSize))
+        mu = self.getMu()
+        nu = self.getNu()
         bx = (mu.__matrix_product__(ax))+nu
         return bx._coefficients
 
     def _invertsbox_call_(self, value):
         bx = self._ring(value)
-        inv_mu = ~self._ring(getMu(self.__wordSize))
-        nu = self._ring(getNu(self.__wordSize))
+        inv_mu = ~self.getMu()
+        nu = self.getNu()
         ax = inv_mu.__matrix_product__(bx-nu)
         element = ~self._field(ax._coefficients)
         return element._coefficients

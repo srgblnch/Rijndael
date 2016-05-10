@@ -46,3 +46,15 @@ class SubBytes(_Logger):
     def invert(self, input):
         return self.__sbox.transform(input, invert=True)
         # It's the same but different sbox
+
+    def getField(self):
+        return self.__sbox.getField()
+
+    def getRing(self):
+        return self.__sbox.getRing()
+
+    def getMu(self):
+        return self.__sbox.getMu()
+
+    def getNu(self):
+        return self.__sbox.getNu()
