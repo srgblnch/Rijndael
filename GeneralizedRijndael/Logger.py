@@ -35,25 +35,31 @@ def levelFromMeaning(value):
                 'warning': Logger._warning,
                 'info': Logger._info,
                 'debug': Logger._debug,
-                'trace': Logger._trace}
-        [value.lower()]
+                'trace': Logger._trace}[value.lower()]
     except:
         print("Not recognized log level '%s', using default 'info' level."
               % (value))
         return Logger._info
 
 
+_ERROR = 1
+_WARNING = 2
+_INFO = 3
+_DEBUG = 4
+_TRACE = 5
+
+
 # TODO: document the methods
 class Logger(object):
     '''
     '''
-    _error = 1
-    _warning = 2
-    _info = 3
-    _debug = 4
-    _trace = 5
+    _error = _ERROR
+    _warning = _WARNING
+    _info = _INFO
+    _debug = _DEBUG
+    _trace = _TRACE
 
-    def __init__(self, loglevel=_info, *args, **kwargs):
+    def __init__(self, loglevel=_INFO, *args, **kwargs):
         '''
         '''
         super(Logger, self).__init__(*args, **kwargs)

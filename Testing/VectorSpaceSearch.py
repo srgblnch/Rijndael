@@ -32,7 +32,6 @@ from GeneralizedRijndael.Logger import Logger as _Logger
 from GeneralizedRijndael.Logger import levelFromMeaning as _levelFromMeaning
 from GeneralizedRijndael.Polynomials import *
 from optparse import OptionParser
-from PolynomialsTest import setupLogging
 from random import random, randint
 import sys
 
@@ -61,7 +60,7 @@ class SimulatedAnheling(_Logger):
         self.__generateVector()
         while not self.__test():
             self._debug_stream("Discard %s" % (self._vectorCandidate))
-            if random() > 0.1:  # get a closer candidate
+            if random() > 0.9:  # get a closer candidate
                 self.__getNextVector()
             else:  # jump to a different area of the search space
                 self.__generateVector()
@@ -121,19 +120,27 @@ def main():
     parser = OptionParser()
     cmdArgs(parser)
     (options, args) = parser.parse_args()
-    setupLogging(options.loglevel)
+    logLevel = _levelFromMeaning(options.loglevel)
     if options.search is not None:
         vectorSize, fieldSize = extractPair(options.search)
-        searcher = SimulatedAnheling(vectorSize, fieldSize)
+        searcher = SimulatedAnheling(vectorSize, fieldSize, logLevel)
         searcher.search()
     elif options.search_all is not None:
+        results = {}
         for v in range(2, 8):
+            if v not in results:
+                results[v] = {}
             for f in range(2, 16):
                 print("Searching for a %d vector space size, "
                       "with coefficients in an %dth extension of a "
                       "characteristic 2 field" % (v, f))
                 searcher = SimulatedAnheling(v, f)
-                searcher.search()
+                results[v][f] = searcher.search()
+        print("summary:")
+        for v in results.keys():
+            print("\tWith %d columns (vector space):" % v)
+            for f in results[v].keys():
+                print("\t\tWordsize %d: %s" % (f, hex(results[v][f])))
     else:
         print("\n\tNo default action, check help to know what can be done.\n")
 
