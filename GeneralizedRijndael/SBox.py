@@ -37,8 +37,8 @@ class SBox(_Logger):
     '''
     def __init__(self, wordSize, useCalc=True, *args, **kwargs):
         super(SBox, self).__init__(*args, **kwargs)
-        # ---- TODO: this must be able to be modified to use a sbox as a table
-        #            or as the pure calculations
+        # TODO: this must be able to be modified to use a sbox as a table ----
+        #       or as the pure calculations
         self._useCalc = useCalc
         self.__wordSize = wordSize
         if self._useCalc:

@@ -101,7 +101,7 @@ class GeneralizedRijndael(_Logger):
     def __repr__(self):
         return "%s" % (self.__str__())
 
-    # ---- Readonly configuration
+    # Readonly configuration ----
 
     @property
     def nRounds(self):
@@ -163,7 +163,7 @@ class GeneralizedRijndael(_Logger):
     def mixColumnsSubfield(self):
         return self.__mixColumnsObj.getSubfieldModulo()
 
-    # ---- Interface methods
+    # Interface methods ----
 
     def cipher(self, plain):
         '''plain (1d array) is copied to state matrix.
@@ -209,7 +209,7 @@ class GeneralizedRijndael(_Logger):
         self.__addRoundKey()
         return self.__convertState2output()
 
-    # ---- Rijndael Operations
+    # Rijndael Operations ----
 
     def __subBytes(self):
         self.__state = self.__subBytesObj.do(self.__state)
@@ -251,7 +251,7 @@ class GeneralizedRijndael(_Logger):
         self._debug_stream("state", self.__state, self.__round,
                            "cipher->addRoundKey()\t")
 
-    # ---- Data conversions
+    # Data conversions ----
 
     def __convertInput2State(self, argin):
         self._debug_stream("argin: %s" % (argin))
@@ -274,7 +274,7 @@ class GeneralizedRijndael(_Logger):
         return argout
 
 
-# ---- Test and console execution area
+# Test and console execution area ----
 
 
 from optparse import OptionParser

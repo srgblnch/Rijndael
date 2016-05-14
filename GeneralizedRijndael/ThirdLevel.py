@@ -102,7 +102,7 @@ class Long:
 
 
 def shift(l, n):
-    # ---- Binary doesn't need a class
+    # Binary doesn't need a class ----
     '''cyclic rotation of the list 'l' y 'n' elements.
        Positive n's means left, negative n's means right.
        Input:
@@ -123,9 +123,9 @@ class State(_Logger):
            Input: <integer array> 1d
            Output: <integer arrays> 2d
         '''
-        # ---- FIXME: what happens if the size of input is not r*c?
-        #             if exceeds, the rest are ignored;
-        #             if not enough, empty cells
+        # FIXME: what happens if the size of input is not r*c? ----
+        #        if exceeds, the rest are ignored;
+        #        if not enough, empty cells
         state = [None] * self.__nRows
         for i in range(len(input)):
             row = i % self.__nRows

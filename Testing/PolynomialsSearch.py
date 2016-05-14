@@ -328,7 +328,7 @@ class PolynomialSearch(Logger):
         return self._classifyByIndividualWeights(classification, weights)
 
     #####
-    # ---- restriction 2 submethods
+    # restriction 2 submethods ----
     def _classifyByIndividualWeights(self, classification, weights):
         halfdegree = self._degree//2
         goodWeight = []
@@ -368,7 +368,7 @@ class PolynomialSearch(Logger):
                 i += 1
         self._info_stream("\tR2b: left %d candidates" % (len(goodWeight)))
         return goodWeight
-    # ---- done restriction 2 submethods
+    # done restriction 2 submethods ----
     #####
 
     def _restriction3(self, goodWeight):
@@ -424,7 +424,7 @@ class PolynomialSearch(Logger):
         self._selectTheWinner(finalists)
 
     #####
-    # ---- restriction 3 submethods
+    # restriction 3 submethods ----
     def _ExpandPairs2Triples(self, goodWeight, goalWeight):
         goalThreshold = goalWeight
         candidates = {}
@@ -752,7 +752,7 @@ class PolynomialSearch(Logger):
         cm = inv_mu.__matrix_product__(b-nu)
         diff_m = tmeasurer.stop()
         return c, diff_r, cm, diff_m
-    # ---- done restriction 3 submethods
+    # done restriction 3 submethods ----
     #####
 
 

@@ -34,7 +34,7 @@ from Polynomials import BinaryExtensionModulo as _BinaryExtensionModulo
 class MixColumns(_Logger):
     def __init__(self, nRows, nColumns, wordSize, *args, **kwargs):
         super(MixColumns, self).__init__(*args, **kwargs)
-        # ---- FIXME: refactor this horrible if
+        # FIXME: refactor this horrible if ----
         if wordSize == 8:
             polynomialModule = _getBinaryExtensionFieldModulo(wordSize)
             self._subfield = _BinaryExtensionModulo(polynomialModule)

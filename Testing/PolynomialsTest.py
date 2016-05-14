@@ -29,9 +29,9 @@ __status__ = "development"
 from GeneralizedRijndael.Logger import levelFromMeaning as _levelFromMeaning
 from GeneralizedRijndael.Polynomials import *
 
-# ---- ## Begin testing area
+# ## Begin testing area ----
 
-# ---- # Test degree 8 polynomial field and ring
+# # Test degree 8 polynomial field and ring ----
 
 
 def testBinaryPolynomial(value, field=True):
@@ -97,7 +97,7 @@ def testBinaryPolynomial(value, field=True):
     print("\n")
 
 
-# ---- # Test the table C5
+# # Test the table C5 ----
 
 
 def getBinaryPolinomialFieldInverse(value):
@@ -516,7 +516,7 @@ def findRingInverses(ringSize):
     return found, mus, invmu_itself, modulo
 
 
-# ---- ## End testing area
+# ## End testing area ----
 
 
 def cmdArgs(parser):
