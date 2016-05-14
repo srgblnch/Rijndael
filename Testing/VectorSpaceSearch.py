@@ -63,7 +63,7 @@ class SimulatedAnheling(_Logger):
         self.__generateVector()
         while not self.__test():
             self._debug_stream("Discard %s" % (self._vectorCandidate))
-            if random() < self._testNextVSGenNew: 
+            if random() < self._testNextVSGenNew:
                 self.__getNextVector()
                 # get a closer candidate
                 self._testNextVSGenNew -= 0.01
@@ -102,11 +102,11 @@ class SimulatedAnheling(_Logger):
         oldCandidate = self._vectorCandidate
         oldCoefficients = oldCandidate.coefficients
         newCandidate = None
-        while newCandidate == None:
+        while newCandidate is None:
             newCoefficients = []
             for each in oldCoefficients:
                 value = each.coefficients
-                newCoefficients.append(self._field(value+randint(0,1)))
+                newCoefficients.append(self._field(value+randint(0, 1)))
                 newCandidate = self._vectorSpace(newCoefficients)
             if newCandidate in self._testedVectors:
                 self._debug_stream("Discard next, already tested")

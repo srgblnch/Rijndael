@@ -54,7 +54,7 @@ class KeyExpansion(_Logger):
         self._debug_stream("key", key, operation="keyExpansion()\t")
         try:
             key = _Long(self.__wordSize).toArray(key,
-                                                 self.__nKeyWords * 
+                                                 self.__nKeyWords *
                                                  self.__nRows *
                                                  self.__wordSize)
         except:

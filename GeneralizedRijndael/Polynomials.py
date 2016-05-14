@@ -312,8 +312,8 @@ def BinaryExtensionModulo(modulo, variable='z', loglevel=_Logger._info):
         # operator.__le__(a,b) => a<=b
         # operator.__gt__(a,b) => a>b
         # operator.__ge__(a,b) => a>=b
-        # ---- #Operations
-        # ---- + Addition
+        # #Operations ----
+        # + Addition ----
 
         @checkTypes
         def __add__(self, other):  # => a+b
@@ -328,7 +328,7 @@ def BinaryExtensionModulo(modulo, variable='z', loglevel=_Logger._info):
         def __pos__(self):  # => +a
             return self
 
-        # ---- - Substraction
+        # - Substraction ----
 
         def __neg__(self):  # => -a
             return self
@@ -343,7 +343,7 @@ def BinaryExtensionModulo(modulo, variable='z', loglevel=_Logger._info):
             bar = self - other
             return BinaryExtensionModuloConstructor(bar._coefficients)
 
-        # ---- * Product
+        # * Product ----
 
         @checkTypes
         def __mul__(self, other):  # => a*b
@@ -479,7 +479,7 @@ def BinaryExtensionModulo(modulo, variable='z', loglevel=_Logger._info):
                                % (bin(bits), bin(mirror)))
             return mirror
 
-        # ---- /% Division
+        # /% Division ----
 
         def __division__(self, divident, divisor):
             '''
@@ -547,8 +547,8 @@ def BinaryExtensionModulo(modulo, variable='z', loglevel=_Logger._info):
             q, r = self.__division__(self._coefficients, other._coefficients)
             return BinaryExtensionModuloConstructor(r)
 
-        # ---- ~ Multiplicative inverse
-        #        - operator.__inv__(a) => ~a
+        # ~ Multiplicative inverse ----
+        # - operator.__inv__(a) => ~a
 
         def __egcd__(self, a, b):
             '''Extended Euclidean gcd (Greatest Common Divisor) Algorithm
@@ -598,6 +598,12 @@ def BinaryExtensionModulo(modulo, variable='z', loglevel=_Logger._info):
             gcd, x, y = self.__egcd__(a, b)
             return gcd
 
+        # ~ Multiplicative inverse: ----
+        #        - operator.__inv__(a) => ~a
+        def __invert__(self):  # => ~a, that means like a^-1
+            res = self.__multiplicativeInverse__()
+            return BinaryExtensionModuloConstructor(res)
+
         def __multiplicativeInverse__(self):
             '''Multiplicative inverse based on ...
                Input: <integer> a (polynomial bit representation)
@@ -622,11 +628,7 @@ def BinaryExtensionModulo(modulo, variable='z', loglevel=_Logger._info):
             else:
                 return self._multinv  # % self._modulo
 
-        def __invert__(self):  # => ~a, that means like a^-1
-            res = self.__multiplicativeInverse__()
-            return BinaryExtensionModuloConstructor(res)
-
-        # ---- <<>> Shifts
+        # <<>> Shifts ----
         def __lshift__(self, n):  # => <<
             return BinaryExtensionModuloConstructor(self._coefficients << n)
 
@@ -670,7 +672,7 @@ def BinaryExtensionModulo(modulo, variable='z', loglevel=_Logger._info):
             second = (self._coefficients << (maxbits-(n % maxbits))
                       & 2**maxbits-1)
             return first | second
-        # ---- End class BinaryExtensionModuloConstructor
+        # End class BinaryExtensionModuloConstructor ----
     return BinaryExtensionModuloConstructor
 
 
@@ -986,7 +988,7 @@ def VectorSpaceModulo(modulo, coefficients_class, variable='x',
                 self._trace_stream("To be process: %r" % (string[i:]))
                 while string[i] == ' ' or i == len(string):
                     i += 1  # ignore any &nbsp;
-                # ---- Coefficient area
+                # Coefficient area ----
                 if string[i] == '(':
                     closer = string.find(')', i)
                     coefficient = string[i+1:closer]
@@ -1007,12 +1009,12 @@ def VectorSpaceModulo(modulo, coefficients_class, variable='x',
                     self._trace_stream("No coefficient specified, "
                                        "it means a '1'")
                     coefficient = '1'
-                # ---- variable area
+                # variable area ----
                 if string[i] != self._variable:
                     self._trace_stream("Searching the variable %r != %s"
                                        % (string[i], self._variable))
                     i += 1
-                # ---- exponent area
+                # exponent area ----
                 if i == len(string):
                     terms[0] = coefficient
                     self._trace_stream("Parsing finish! final terms dict: %s"
@@ -1181,8 +1183,8 @@ def VectorSpaceModulo(modulo, coefficients_class, variable='x',
         def is_not(self, other):  # => a != b
             return self != other
 
-        # ---- #Operations
-        # ---- + Addition:
+        # #Operations ----
+        # + Addition: ----
         def __add__(self, other):  # => a+b
             a = self.coefficients
             b = other.coefficients
@@ -1207,7 +1209,7 @@ def VectorSpaceModulo(modulo, coefficients_class, variable='x',
             bar = self - other
             return VectorSpaceModuloConstructor(bar.coefficients)
 
-        # ---- * Product
+        # * Product ----
         def __mul__(self, other):  # => a*b
             '''Given two polynomials ring elements with coefficients in a
                binary polynomial field, calculate their product.
@@ -1264,7 +1266,7 @@ def VectorSpaceModulo(modulo, coefficients_class, variable='x',
                 line[i+degree] = multiplicant[i] * coefficient
             return line
 
-        # ---- /% Division:
+        # /% Division: ----
         def __div__(self, other):  # => a/b
             q, r = self.__divideBy__(other.coefficients)
             return VectorSpaceModuloConstructor(q)
@@ -1362,10 +1364,11 @@ def VectorSpaceModulo(modulo, coefficients_class, variable='x',
                 removed = v.pop(0)
             return v
 
-        # ---- ~ Multiplicative inverse: TODO
-        #        - operator.__inv__(a) => ~a
+        # ~ Multiplicative inverse: ----
+        # - operator.__inv__(a) => ~a
         def __invert__(self):  # => ~a, that means like a^-1
-            pass  # TODO
+            res = self.__multiplicativeInverse__()
+            return BinaryExtensionModuloConstructor(res)
 
         def __multiplicativeInverse__(self):
             pass  # TODO
@@ -1433,7 +1436,7 @@ def VectorSpaceModulo(modulo, coefficients_class, variable='x',
             self._debug_stream("h: %s" % h)
             return d, g, h
 
-        # ---- <<>> Shifts
+        # <<>> Shifts ----
         def __lshift__(self, n):  # => a << n
             return VectorSpaceModuloConstructor(self.coefficients +
                                                 [self._coefficientClass(0)]*n)
@@ -1458,7 +1461,7 @@ def VectorSpaceModulo(modulo, coefficients_class, variable='x',
             l = len(self._coefficients)
             return VectorSpaceModuloConstructor(self._coefficients[l-n:] +
                                                 self._coefficients[:l-n])
-        # ---- End class VectorSpaceModuloConstructor
+        # End class VectorSpaceModuloConstructor ----
     return VectorSpaceModuloConstructor
 
 
@@ -1495,7 +1498,7 @@ class PolynomialRing(_Logger):
            Input:
            Output:
         '''
-        res = _deepcopy(sx)  # ---- FIXME: #[[0]*self.__nRows]*self.__nColumns
+        res = _deepcopy(sx)  # FIXME: #[[0]*self.__nRows]*self.__nColumns ----
         for c in range(self.__nColumns):
             shifted_ax = _shift(ax, self.__nRows-1)
             for r in range(self.__nRows):
@@ -1508,7 +1511,7 @@ class PolynomialRing(_Logger):
         return res
 
 
-# ---- Testing
+# Testing ----
 
 
 def randomBinaryPolynomial(field, degree):
