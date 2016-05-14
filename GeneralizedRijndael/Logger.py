@@ -37,8 +37,9 @@ def levelFromMeaning(value):
                 'debug': Logger._debug,
                 'trace': Logger._trace}[value.lower()]
     except:
-        print("Not recognized log level '%s', using default 'info' level."
-              % (value))
+        if value is not None:
+            print("Not recognized log level '%s', using default 'info' level."
+                  % (value))
         return Logger._info
 
 

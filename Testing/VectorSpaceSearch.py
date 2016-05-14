@@ -35,42 +35,59 @@ from optparse import OptionParser
 from random import random, randint
 import sys
 
+from time import sleep  # FIXME: to be removed
+
 
 class SimulatedAnheling(_Logger):
-    def __init__(self, vectorSpaceSize, fieldSize, logLevel=_Logger._info,
-                 *args, **kwargs):
+    def __init__(self, vectorSpaceSize, fieldSize, *args, **kwargs):
         super(SimulatedAnheling, self).__init__(*args, **kwargs)
         self._fieldSize = fieldSize
         fieldModulo = getBinaryExtensionFieldModulo(fieldSize)
         self._field = BinaryExtensionModulo(fieldModulo, variable='z',
-                                            loglevel=logLevel)
+                                            loglevel=self.logLevel)
         self._info_stream("Build the field modulo m(z)=%s"
                           % (self._field(0).modulo))
         self._vectorSpaceSize = vectorSpaceSize
         vectorModulo = "x^%d+1" % (vectorSpaceSize)
         self._vectorSpace = VectorSpaceModulo(vectorModulo, self._field,
-                                              loglevel=logLevel)
+                                              loglevel=self.logLevel)
         zeroVector = [0]*self._vectorSpaceSize
         self._info_stream("Build the vector space modulo l(x)=%s"
                           % (self._vectorSpace(zeroVector).modulo))
         self._vectorCandidate = None
-        self._testedVectors = []  # FIXME: improve the way this is check
+        self._testedVectors = []  # FIXME: improve the way this is checked
+        self._testNextVSGenNew = 0.99
 
     def search(self):
+        inTheArea = 0
         self.__generateVector()
         while not self.__test():
             self._debug_stream("Discard %s" % (self._vectorCandidate))
-            if random() > 0.9:  # get a closer candidate
+            if random() < self._testNextVSGenNew: 
                 self.__getNextVector()
-            else:  # jump to a different area of the search space
+                # get a closer candidate
+                self._testNextVSGenNew -= 0.01
+                # reduce this probability to stay in this area
+                inTheArea += 1
+            else:
+                self._info_stream("After %d nears, jump to a newer area"
+                                  % inTheArea)
                 self.__generateVector()
-            self._debug_stream("Testing: %s" % (self._vectorCandidate))
+                # jump to a different area of the search space
+                self._testNextVSGenNew = 0.99
+                # reset this probability of the region search
+                inTheArea = 0
+            self._debug_stream("Testing: %s" % (hex(self._vectorCandidate)))
         self._info_stream("Winner: %s" % (self._vectorCandidate))
         self._info_stream("Hex notation: %s" % (hex(self._vectorCandidate)))
         self._info_stream("%d tested vectors" % (len(self._testedVectors)))
         return self._vectorCandidate
 
     def __generateVector(self):
+        '''Generate a new fresh vector at random, checking it hasn't been
+           already tested.
+        '''
+        self._debug_stream("Jump to a newer area in the search space.")
         while self._vectorCandidate is None or \
                 self._vectorCandidate in self._testedVectors:
             vector = [self._field(randint(0, 2**self._fieldSize))
@@ -80,14 +97,30 @@ class SimulatedAnheling(_Logger):
                                % (self._vectorCandidate))
 
     def __getNextVector(self):
-        # TODO
-        self.__generateVector()
+        self._debug_stream("Move a bit in side the current region of the "
+                           "search space")
+        oldCandidate = self._vectorCandidate
+        oldCoefficients = oldCandidate.coefficients
+        newCandidate = None
+        while newCandidate == None:
+            newCoefficients = []
+            for each in oldCoefficients:
+                value = each.coefficients
+                newCoefficients.append(self._field(value+randint(0,1)))
+                newCandidate = self._vectorSpace(newCoefficients)
+            if newCandidate in self._testedVectors:
+                self._debug_stream("Discard next, already tested")
+                newCandidate = None
+        self._vectorCandidate = newCandidate
 
     def __test(self):
-        # TODO:
-        self._debug_stream("%d tested vectors" % (len(self._testedVectors)))
+        # self._debug_stream("%d tested vectors" % (len(self._testedVectors)))
+        # TODO: Check if it is invertible
+        # TODO: What other requerements can be made for those candidates?
         self._testedVectors.append(self._vectorCandidate)
-        return random() > 0.9
+        return random() > 0.995
+        # FIXME: once there are decision constrains for the candidates,
+        #        remove this random choser
 
 
 def extractPair(pairStr):
