@@ -22,10 +22,11 @@ __copyright__ = "Copyright 2015 Sergi Blanch-Torne"
 __license__ = "GPLv3+"
 __status__ = "development"
 
-from Logger import Logger as _Logger
-from ThirdLevel import shift as _shift
 from copy import copy as _copy
 from copy import deepcopy as _deepcopy
+from Logger import Logger as _Logger
+from random import randint
+from ThirdLevel import shift as _shift
 
 
 def BinaryExtensionModulo(modulo, variable='z', loglevel=_Logger._info):
@@ -865,6 +866,7 @@ def VectorSpaceModulo(modulo, coefficients_class, variable='x',
             if self.degree >= self.modulodegree:
                 q, r = self.__divideBy__(self._modulo)
                 self._coefficients = r
+            self._gcd = None
 
         def reduce(self):
             if self.degree >= self.modulodegree:
@@ -1067,6 +1069,13 @@ def VectorSpaceModulo(modulo, coefficients_class, variable='x',
             return self.__normalizeVector__(self._coefficients)[:]
 
         @property
+        def extendedCoefficients(self):
+            coefficients = self._coefficients[:]
+            while len(coefficients) < self.modulodegree:
+                coefficients = [self._coefficientClass(0)] + coefficients
+            return coefficients
+
+        @property
         def modulo(self):
             return self.__interpretToStr__(self._modulo)
 
@@ -1186,8 +1195,8 @@ def VectorSpaceModulo(modulo, coefficients_class, variable='x',
         # #Operations ----
         # + Addition: ----
         def __add__(self, other):  # => a+b
-            a = self.coefficients
-            b = other.coefficients
+            a = self.extendedCoefficients
+            b = other.extendedCoefficients
             result = [self._coefficientClass(0)]*self.modulodegree
             for i in range(self.modulodegree):
                 result[i] = a[i] + b[i]
@@ -1198,8 +1207,8 @@ def VectorSpaceModulo(modulo, coefficients_class, variable='x',
             return VectorSpaceModuloConstructor(bar.coefficients)
 
         def __sub__(self, other):  # => a-b
-            a = _copy(self.coefficients)
-            b = _copy(other.coefficients)
+            a = self.extendedCoefficients
+            b = other.extendedCoefficients
             result = [self._coefficientClass(0)]*self.modulodegree
             for i in range(self.modulodegree):
                 result[i] = a[i] - b[i]
@@ -1371,7 +1380,28 @@ def VectorSpaceModulo(modulo, coefficients_class, variable='x',
             return BinaryExtensionModuloConstructor(res)
 
         def __multiplicativeInverse__(self):
-            pass  # TODO
+            '''Multiplicative inverse based on ...
+               Input: <integer> a (polynomial bit representation)
+                      <integer> m (modulo polynomial)
+               Output: <integer> a^-1: a*a^-1 = 1 (mod m)
+               This it the first of the two transformations for the SBoxes
+               in the subBytes operation, the one called called g.
+            '''
+            if self._coefficients == 0:  # FIXME: is this true?
+                return self
+            if self._gcd is None:
+                self._gcd, self._multinv, y = \
+                    self.__egcd__(self._coefficients, self._modulo)
+            self._debug_stream("gcd", self._gcd)
+            self._debug_stream("x", self._multinv)
+            if self._gcd != 1:
+                bar = self.__interpretToStr__(self._coefficients)
+                foo = self.__interpretToStr__(self._modulo)
+                raise ArithmeticError("The inverse of %s modulo %s "
+                                      "doens't exist!"
+                                      % (bar, foo))
+            else:
+                return self._multinv  # % self._modulo
 
         def __gcd__(self, other):
             a = self.coefficients
@@ -1401,11 +1431,18 @@ def VectorSpaceModulo(modulo, coefficients_class, variable='x',
             self._debug_stream("h2: %s" % h2)
 
             def addArrayElements(x, y):
-                if len(x) > len(y):
-                    y = [self._coefficientClass(0)]*(len(y)-len(x))+y
-                for i in range(len(x)):
-                    x[i] += y[i]
-                return x
+                try:
+                    if len(x) > len(y):
+                        y = [self._coefficientClass(0)]*(len(x)-len(y))+y
+                    elif len(x) < len(y):
+                        x = [self._coefficientClass(0)]*(len(y)-len(x))+x
+                    for i in range(len(x)):
+                        x[i] += y[i]
+                    return x
+                except Exception as e:
+                    self._error_stream("\nlen(x) = %d\nlen(y) = %d\n%s"
+                                       % (len(x), len(y), e))
+                    raise e
 
             def operate(r, s, r_name, s_name, j):
                 bar = s + [self._coefficientClass(0)]*j
