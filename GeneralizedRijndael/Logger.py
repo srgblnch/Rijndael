@@ -43,6 +43,7 @@ def levelFromMeaning(value):
         return Logger._info
 
 
+_SILENCE = 0
 _ERROR = 1
 _WARNING = 2
 _INFO = 3
@@ -54,6 +55,7 @@ _TRACE = 5
 class Logger(object):
     '''
     '''
+    _silence = _SILENCE
     _error = _ERROR
     _warning = _WARNING
     _info = _INFO
@@ -83,10 +85,10 @@ class Logger(object):
     def logLevel(self, level):
         if type(level) == str:
             self._logLevel = levelFromMeaning(level)
-        if type(level) == int and 1 >= level >= 5:
+        elif type(level) == int and self._silence <= level <= self._trace:
             self._logLevel = level
         else:
-            self._logLevel = self._info
+            self._warning_stream("Not understood the logLevel %s" % level)
 
     @property
     def log2file(self):

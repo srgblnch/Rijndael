@@ -1232,7 +1232,6 @@ def VectorSpaceModulo(modulo, coefficients_class, variable='x',
                                % (self.__interpretToStr__(a),
                                   self.__interpretToStr__(b)))
             res = self.__multiply__(a, b)
-            res.reverse()
             p = VectorSpaceModuloConstructor(res)
             self._debug_stream("c = %s" % (p))
             return p
@@ -1252,13 +1251,21 @@ def VectorSpaceModulo(modulo, coefficients_class, variable='x',
             multiplicand.reverse()
             multiplier.reverse()
             result = [self._coefficientClass(0)]*self.modulodegree*2
+            self._debug_stream("multiplicand: %s" % multiplicand)
+            self._debug_stream("multiplier: %s" % multiplier)
             for i, coefficient in enumerate(multiplier):
+                self._debug_stream("%dth multiplier coefficient: %s"
+                                   % (i, coefficient))
                 partial = self.__multiplicationStep__(multiplicand,
                                                       coefficient, i)
+                self._debug_stream("partial %d: %s" % (i, partial))
                 for j in range(len(partial)):
-                    self._debug_stream("result[%d] += partial[%d] = %s += %s"
-                                       % (j, i, result[i], partial[j]))
-                    result[i] += partial[j]
+                    # self._debug_stream("result[%d] += partial[%d] = %s += %s"
+                    #                    % (j, i, result[i], partial[j]))
+                    result[j] += partial[j]
+                self._debug_stream("Accumulated in the result (step %d): %s"
+                                   % (i, result))
+            result.reverse()
             return result
 
         def __multiplicationStep__(self, multiplicant, coefficient, degree):
