@@ -16,3 +16,5 @@ var/
 *.egg
 
 *.pyc
+.project
+.pydevproject
