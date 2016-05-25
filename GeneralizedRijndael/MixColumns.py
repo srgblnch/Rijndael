@@ -60,6 +60,22 @@ class MixColumns(_Logger):
         self._nColumns = nColumns
         self.__polynomialRing = _PolynomialRing(nRows, nColumns, wordSize)
 
+    @property
+    def VectorSpaceModule(self):
+        return _deepcopy(self.__cx.modulo)
+
+    @property
+    def Subfield(self):
+        return _deepcopy(self.__cx._coefficients[0].modulo)
+    
+    @property
+    def Cx(self):
+        return _deepcopy(self.__cx)
+
+    @property
+    def Dx(self):
+        return _deepcopy(self.__dx)
+
     def do(self, input):
         self._debug_stream("input: %s" % (printlist(input)),
                            operation="mixColumns")
@@ -109,18 +125,6 @@ class MixColumns(_Logger):
     def invert(self, input):
         res = self.__polynomialRing.product(self.__d, input)
         return res
-
-    def getVectorSpaceModulo(self):
-        return self.__cx.modulo
-
-    def getCx(self):
-        return self.__cx
-
-    def getDx(self):
-        return self.__dx
-
-    def getSubfieldModulo(self):
-        return self.__cx._coefficients[0].modulo
 
 
 def printlist(l):

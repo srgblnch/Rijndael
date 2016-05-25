@@ -22,6 +22,7 @@ __copyright__ = "Copyright 2015 Sergi Blanch-Torne"
 __license__ = "GPLv3+"
 __status__ = "development"
 
+from copy import deepcopy as _deepcopy
 from Logger import Logger as _Logger
 from SBox import SBox
 
@@ -40,21 +41,25 @@ class SubBytes(_Logger):
         super(SubBytes, self).__init__(*args, **kwargs)
         self.__sbox = SBox(wordSize, useCalc=sboxCalc, loglevel=loglevel)
 
+    @property
+    def Field(self):
+        return _deepcopy(self.__sbox.getField())
+
+    @property
+    def Ring(self):
+        return _deepcopy(self.__sbox.getRing())
+
+    @property
+    def Mu(self):
+        return _deepcopy(self.__sbox.getMu())
+
+    @property
+    def Nu(self):
+        return _deepcopy(self.__sbox.getNu())
+
     def do(self, input):
         return self.__sbox.transform(input)
 
     def invert(self, input):
         return self.__sbox.transform(input, invert=True)
         # It's the same but different sbox
-
-    def getField(self):
-        return self.__sbox.getField()
-
-    def getRing(self):
-        return self.__sbox.getRing()
-
-    def getMu(self):
-        return self.__sbox.getMu()
-
-    def getNu(self):
-        return self.__sbox.getNu()

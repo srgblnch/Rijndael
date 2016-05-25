@@ -1285,6 +1285,7 @@ def VectorSpaceModulo(modulo, coefficients_class, variable='x',
         # /% Division: ----
         def __div__(self, other):  # => a/b
             q, r = self.__divideBy__(other.coefficients)
+            self._debug_stream("q = %s" % q)
             return VectorSpaceModuloConstructor(q)
 
         def __idiv__(self, other):  # => a/=b
@@ -1320,7 +1321,9 @@ def VectorSpaceModulo(modulo, coefficients_class, variable='x',
             # >>> p_x = c_x * d_x
             # 1 (mod x^4+1)
             a = self.__normalizeVector__(self.coefficients)
+            a.reverse()
             b = self.__normalizeVector__(b)
+            b.reverse()
             if b == [self._coefficientClass(0)]:
                 raise ZeroDivisionError
             gr_a = len(a)
@@ -1342,11 +1345,9 @@ def VectorSpaceModulo(modulo, coefficients_class, variable='x',
                     break
                 a = r
                 gr_a = len(a)
+            quotient.reverse()
             self._debug_stream("Finally [%s]/[%s] = [%s] * %s/b"
-                               % ("".join(" %s," % e for e in a)[1:-1],
-                                  "".join(" %s," % e for e in b)[1:-1],
-                                  "".join(" %s," % e for e in q)[1:-1],
-                                  "".join(" %s," % e for e in r)[1:-1]))
+                               % (a, b, quotient, r))
             return quotient, r
 
         def __divisionStep__(self, a, b):

@@ -35,7 +35,7 @@ Extras
 ```python
 >>> import GeneralizedRijndael
 >>> GeneralizedRijndael.version()
-'0.2.1-4'
+'0.2.1-5'
 ```
 
 The main constructor available in this module is *GeneralizedRijndael.GeneralizedRijndael*. A little help in the *docstring* shall be made soon, but there can be listed the arguments that this constructor can have. With:
@@ -49,6 +49,41 @@ The main constructor available in this module is *GeneralizedRijndael.Generalize
 ```
 
 The *rijndael* object is configured, with a **non secure** random key, like a standard *rijndael 128*: a block size of 128 (with a state matrix of 4x4 cells with 8 bits on each) and a key with the same size and 10 rounds process.
+
+Information about the build object can be read using some python properties (like the block size, key size and number of rounds has been shown in the previous sample code):
+
+Columns, rows and wordsize:
+```python
+>>> rijndael128.nColumns, rijndael128.nRows, rijndael128.wordSize
+(4, 4, 8)
+```
+
+Number of columns for the key:
+
+```python
+>>> rijndael128.nKeyColumns
+4
+```
+
+Or deeper details about the *SBOX*:
+
+```python
+rijndael128.sbox.Field, rijndael128.sbox.Ring, rijndael128.sbox.Mu, rijndael128.sbox.NuOut
+("z^8+z^4+z^3+z+1 (the Rijndael's original)",
+ "z^8+1 (the Rijndael's original)",
+ "z^4+z^3+z^2+z+1 (the Rijndael's original)",
+ "z^6+z^5+z+1 (the Rijndael's original)")
+```
+
+And details about the *MixColumns* maths:
+
+```python
+rijndael128.mixColumns.VectorSpaceModule, rijndael128.mixColumns.Subfield, rijndael128.mixColumns.Cx, rijndael128.mixColumns.Dx
+('x^4+1',
+ 'z^8+z^4+z^3+z+1',
+ (z+1)*x^3+x^2+x+(z) (mod x^4+1),
+ (z^3+z+1)*x^3+(z^3+z^2+1)*x^2+(z^3+1)*x+(z^3+z^2+z) (mod x^4+1))
+```
 
 The test vectors from the Rijndael's standard can be used. But also something more, on the fly like:
 

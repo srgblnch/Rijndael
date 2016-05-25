@@ -132,36 +132,12 @@ class GeneralizedRijndael(_Logger):
         return self.__wordSize * self.__nKeyColumns * self.__nRows
 
     @property
-    def sboxField(self):
-        return self.__subBytesObj.getField()
+    def sbox(self):
+        return self.__subBytesObj
 
     @property
-    def sboxRing(self):
-        return self.__subBytesObj.getRing()
-
-    @property
-    def sboxMu(self):
-        return self.__subBytesObj.getMu()
-
-    @property
-    def sboxNu(self):
-        return self.__subBytesObj.getNu()
-
-    @property
-    def mixColumnsVectorSpaceModule(self):
-        return self.__mixColumnsObj.getVectorSpaceModulo()
-
-    @property
-    def mixColumnsCx(self):
-        return self.__mixColumnsObj.getCx()
-
-    @property
-    def mixColumnsDx(self):
-        return self.__mixColumnsObj.getDx()
-
-    @property
-    def mixColumnsSubfield(self):
-        return self.__mixColumnsObj.getSubfieldModulo()
+    def mixColumns(self):
+        return self.__mixColumnsObj
 
     # Interface methods ----
 
@@ -289,8 +265,9 @@ def understandInteger(value):
         elif value.startswith('0'):  # first check hexadecimal and binary
             return int(value, 8)
         else:
-            return int(value)
+            return int(value)  # last try is to interpret as decimal
     except Exception as e:
+        print("Cannot interpret %s as an integer (%e)" % (value, e))
         return None
 
 
