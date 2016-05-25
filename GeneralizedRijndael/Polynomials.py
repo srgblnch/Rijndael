@@ -854,14 +854,14 @@ def VectorSpaceModulo(modulo, coefficients_class, variable='x',
             self._coefficientClass = coefficients_class
             self._variable = variable
             self._coefficients = self.__interpretCoefficients(value)
-            for coefficient in self.coefficients:
-                self._trace_stream("checking type of coefficient %r"
-                                   % (coefficient))
-                if type(coefficient) != self._coefficientClass:
-                    raise AssertionError("The given coefficient type '%s'"
-                                         "is not an expected '%s'"
-                                         % (type(coefficient),
-                                            self._coefficientClass))
+#             for coefficient in self.coefficients:
+#                 self._trace_stream("checking type of coefficient %r"
+#                                    % (coefficient))
+#                 if type(coefficient) != self._coefficientClass:
+#                     raise AssertionError("The given coefficient type '%s'"
+#                                          "is not an expected '%s'"
+#                                          % (type(coefficient),
+#                                             self._coefficientClass))
             self._modulo = self.__interpretCoefficients(modulo)
             if self.degree >= self.modulodegree:
                 q, r = self.__divideBy__(self._modulo)
@@ -918,6 +918,15 @@ def VectorSpaceModulo(modulo, coefficients_class, variable='x',
                         if firstCoefficient.modulo != coefficient.modulo:
                             raise AssertionError("All the coefficients shall "
                                                  "be from the same field.")
+                else:
+                    try:
+                        for i in range(len(value)):
+                            value[i] = self._coefficientClass(int(value[i]))
+                    except:
+                        raise AssertionError("The given coefficient type '%s'"
+                                             "is not an expected '%s'"
+                                             % (type(value[i]),
+                                                self._coefficientClass))
                 return value
             elif type(value) == str:
                 return self.__interpretFromStr__(value)
