@@ -70,11 +70,11 @@ class MixColumns(_Logger):
     
     @property
     def Cx(self):
-        return _deepcopy(self.__cx)
+        return hex(self.__cx)
 
     @property
     def Dx(self):
-        return _deepcopy(self.__dx)
+        return hex(self.__dx)
 
     def do(self, input):
         self._debug_stream("input: %s" % (printlist(input)),

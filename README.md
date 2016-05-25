@@ -81,8 +81,8 @@ And details about the *MixColumns* maths:
 rijndael128.mixColumns.VectorSpaceModule, rijndael128.mixColumns.Subfield, rijndael128.mixColumns.Cx, rijndael128.mixColumns.Dx
 ('x^4+1',
  'z^8+z^4+z^3+z+1',
- (z+1)*x^3+x^2+x+(z) (mod x^4+1),
- (z^3+z+1)*x^3+(z^3+z^2+1)*x^2+(z^3+1)*x+(z^3+z^2+z) (mod x^4+1))
+ '0x3x^3+x^2+x+0x2',
+ '0xBx^3+0xDx^2+0x9x+0xE'
 ```
 
 The test vectors from the Rijndael's standard can be used. But also something more, on the fly like:
