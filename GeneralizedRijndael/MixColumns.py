@@ -61,13 +61,13 @@ class MixColumns(_Logger):
         self.__polynomialRing = _PolynomialRing(nRows, nColumns, wordSize)
 
     @property
-    def VectorSpaceModule(self):
+    def VectorSpaceModulo(self):
         return _deepcopy(self.__cx.modulo)
 
     @property
-    def Subfield(self):
+    def SubfieldModulo(self):
         return _deepcopy(self.__cx._coefficients[0].modulo)
-    
+
     @property
     def Cx(self):
         return hex(self.__cx)
