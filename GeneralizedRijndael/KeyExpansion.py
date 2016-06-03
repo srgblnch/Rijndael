@@ -18,7 +18,7 @@
 
 __author__ = "Sergi Blanch-Torne"
 __email__ = "srgblnchtrn@protonmail.ch"
-__copyright__ = "Copyright 2015 Sergi Blanch-Torne"
+__copyright__ = "Copyright 2013 Sergi Blanch-Torne"
 __license__ = "GPLv3+"
 __status__ = "development"
 
