@@ -18,7 +18,7 @@
 
 __author__ = "Sergi Blanch-Torne"
 __email__ = "srgblnchtrn@protonmail.ch"
-__copyright__ = "Copyright 2015 Sergi Blanch-Torne"
+__copyright__ = "Copyright 2013 Sergi Blanch-Torne"
 __license__ = "GPLv3+"
 __status__ = "development"
 
@@ -1182,7 +1182,7 @@ def VectorSpaceModulo(modulo, coefficients_class, variable='x',
             if other is None:
                 return False
             if len(self.coefficients) != len(other.coefficients):
-                self._debug_stream("In == operator Different lengths! %d != %d"
+                self._trace_stream("In == operator Different lengths! %d != %d"
                                    % (len(self.coefficients),
                                       len(other.coefficients)))
                 return False
@@ -1426,93 +1426,68 @@ def VectorSpaceModulo(modulo, coefficients_class, variable='x',
                        <list> x (polynomial coefficients representation)
                        <list> y (polynomial coefficients representation)
             '''
-            zero = self.__zero()
-            #self._debug_stream("zero: %s" % zero)
-            u = a  # VectorSpaceModuloConstructor(a, loglevel=self.logLevel)
-            v = b  # VectorSpaceModuloConstructor(b, loglevel=self.logLevel)
-            g1 = [self._coefficientClass(1)]*self.modulodegree#self.__one().coefficients
-            g2 = [self._coefficientClass(0)]*self.modulodegree#self.__zero().coefficients
-            h1 = [self._coefficientClass(0)]*self.modulodegree#self.__zero().coefficients
-            h2 = [self._coefficientClass(1)]*self.modulodegree#self.__one().coefficients
-            self._debug_stream("u: %s" % u)
-            self._debug_stream("v: %s" % v)
-            self._debug_stream("g1: %s" % g1)
-            self._debug_stream("g2: %s" % g2)
-            self._debug_stream("h1: %s" % h1)
-            self._debug_stream("h2: %s" % h2)
+            u = self.__normalizeVector__(a)
+            deg_u = len(u)
+            v = self.__normalizeVector__(b)
+            deg_v = len(v)
+            g1 = [self._coefficientClass(1)]
+            g2 = [self._coefficientClass(0)]
+            h1 = [self._coefficientClass(0)]
+            h2 = [self._coefficientClass(1)]
+            def product(r, s):
+                result = [self._coefficientClass(0)]*(len(r)+len(s))
+                for i in range(len(s)-1,-1,-1):  # [len(s),...,0)]
+                    for j in range(len(r)-1,-1,-1):  # [len(r),...,0)]
+                        result[i+j] += s[i]*r[j]
+                return result
+            def add(r, s):
+                while len(r) < len(s):
+                    r = [self._coefficientClass(0)] + r
+                while len(r) > len(s):
+                    s = [self._coefficientClass(0)] + s
+                if len(r) == len(s):
+                    result = [self._coefficientClass(0)]*len(s)
+                    for i in range(len(result)):
+                        result[i] = r[i] + s[i]
+                return result
+            def normalise(lst):
+                self._debug_stream("normaliseing %s" % (lst))
+                shortedLst = VectorSpaceModuloConstructor(lst).coefficients
+                # element = self.__normalizeVector__(shortedLst)
+                self._debug_stream("normalised %s" % (shortedLst))
+                return shortedLst
             i = 0
-            def lshift(lst,n):
-                result = lst+[self._coefficientClass(0)]*n
-                self._debug_stream("\t%s << %d = %s" % (lst, n, result))
-                return result
-            def add(l1, l2):
-                maxlen = max(len(l1),len(l2))
-                while len(l1) < maxlen:
-                    l1 = [self._coefficientClass(0)]+l1
-                while len(l2) < maxlen:
-                    l2 = [self._coefficientClass(0)]+l2
-                result = [self._coefficientClass(0)]*maxlen
-                for i in range(len(result)):
-                    result[i] = l1[i] + l2[i]
-                self._debug_stream("\t%s + %s = %s" % (l1, l2, result))
-                return result
-            def uZero(u):
-                return VectorSpaceModuloConstructor(u) == zero
-#                 zero = self._coefficientClass(0)
-#                 for i in range(len(u)):
-#                     if u[i] != zero:
-#                         return False
-#                 return True
-            while not uZero(u):#VectorSpaceModuloConstructor(u) != zero:
-                j = len(v) - len(u)# u.degree - v.degree
-                self._debug_stream("__egcd__iteration %d (%d)" % (i, j))
-                if j <= 0:
-                    self._debug_stream("j <= 0 (%d) swapping vbles" % j)
-                    u, v = v, u  # u <-> v
-                    g1, g2 = g2, g1  # g1 <-> g2
-                    h1, h2 = h2, h1  # h1 <-> h2
-                    j = -j
-                    self._debug_stream("u: %s" % u)
-                    self._debug_stream("v: %s" % v)
-                    self._debug_stream("g1: %s" % g1)
-                    self._debug_stream("g2: %s" % g2)
-                    self._debug_stream("h1: %s" % h1)
-                    self._debug_stream("h2: %s" % h2)
-                self._debug_stream("u += v << j")
-                u = add(u, lshift(v,j))
-                self._debug_stream("g1 += g2 << j")
-                g1 = add(g1, lshift(g2,j))
-                self._debug_stream("h1 += h2 << j")
-                h1 = add(h1, lshift(h2,j))
+            while u != [self._coefficientClass(0)]:
+                self._debug_stream("Iteration %s" % (i))
+                self._debug_stream("> u: %s" % (u))
+                self._debug_stream("> v: %s" % (v))
+                self._debug_stream("> g1: %s, g2: %s" % (g1, g2))
+                self._debug_stream("> h1: %s, h2: %s" % (h1, h2))
+                j = deg_u - deg_v
+                if j < 0:
+                    u, v = v, u
+                    g1, g2 = g2, g1
+                    h1, h2 = h2, h1
+                x_j = [self._coefficientClass(1)]+[self._coefficientClass(0)]*j
+                u = add(u, product(x_j,v))
+                g1 = add(g1, product(x_j,g2))
+                h1 = add(h1, product(x_j,h2))
                 i += 1
-                self._debug_stream("u: %s" % u)
-                self._debug_stream("v: %s" % v)
-                self._debug_stream("g1: %s" % g1)
-                self._debug_stream("g2: %s" % g2)
-                self._debug_stream("h1: %s" % h1)
-                self._debug_stream("h2: %s" % h2)
-#                 u = VectorSpaceModuloConstructor(u).coefficients
-#                 v = VectorSpaceModuloConstructor(v).coefficients
-#                 g1 = VectorSpaceModuloConstructor(g1).coefficients
-#                 g2 = VectorSpaceModuloConstructor(g2).coefficients
-#                 h1 = VectorSpaceModuloConstructor(h1).coefficients
-#                 h2 = VectorSpaceModuloConstructor(h2).coefficients
-#                 self._debug_stream("u: %s" % u)
-#                 self._debug_stream("v: %s" % v)
-#                 self._debug_stream("g1: %s" % g1)
-#                 self._debug_stream("g2: %s" % g2)
-#                 self._debug_stream("h1: %s" % h1)
-#                 self._debug_stream("h2: %s" % h2)
-                sleep(1)
-                print("\n"*1)
-            # d, g, h = v, g2, h2
+                u = normalise(u)
+                v = normalise(v)
+                g1 = normalise(g1)
+                g2 = normalise(g2)
+                h1 = normalise(h1)
+                h2 = normalise(h2)
+            self._debug_stream("Iteration %s end" % (i-1))
+            self._debug_stream("< u: %s" % (u))
+            self._debug_stream("< v: %s" % (v))
+            self._debug_stream("< g1: %s, g2: %s" % (g1, g2))
+            self._debug_stream("< h1: %s, h2: %s" % (h1, h2))
             d = VectorSpaceModuloConstructor(v)
-            self._debug_stream("d = %s (v = %s)" % (d, v))
             g = VectorSpaceModuloConstructor(g2)
-            self._debug_stream("g = %s (g2 = %s)" % (g, g2))
             h = VectorSpaceModuloConstructor(h2)
-            self._debug_stream("h = %s (h2 = %s)" % (h, h2))
-            return d, g, h
+            return d,g,h
 
         # <<>> Shifts ----
         def __lshift__(self, n):  # => a << n
