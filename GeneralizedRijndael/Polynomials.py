@@ -226,12 +226,12 @@ def BinaryExtensionModulo(modulo, variable='z', loglevel=_Logger._info):
             return self.__interpretToStr__(self._coefficients)
 
         def __repr__(self):
-            # FIXME: temporal
-#             '''Unambiguous representation. (%r)
-#             '''
-#             return "%s (mod %s)"\
-#                 % (self.__interpretToStr__(self._coefficients),
-#                    self.__interpretToStr__(self._modulo))
+            # FIXME: temporally remove the modulo to clear egcd debugging
+            '''Unambiguous representation. (%r)
+            '''
+            # return "%s (mod %s)"\
+            #     % (self.__interpretToStr__(self._coefficients),
+            #        self.__interpretToStr__(self._modulo))
             return self.__str__()
 
         def __bin__(self):
@@ -839,13 +839,16 @@ def VectorSpaceModulo(modulo, coefficients_class, variable='x',
             representation with polynomial notation.
 
             Argument:
-            - value: (mandatory) the list of coefficients.
+            - value: (mandatory) string representation of the polynomial or
+                     the list of coefficients with Less Significant Coefficient
+                     First (the position 0 in the list corresponds with
+                     coefficient with zero degree).
 
             Example:
             >>> import Polynomials
             >>> field = Polynomials.BinaryExtensionModulo('z^8+z^4+z^3+z+1')
             >>> vectorRing = Polynomials.VectorSpaceModulo('x^4+1',field)
-            >>> vectorRing([field(3),field(9),field(6),field(1)])
+            >>> vectorRing([field(1),field(6),field(9),field(3)])
             (z+1)*x^3+(z^3+1)*x^2+(z^2+z)*x+1 (mod x^4+1)
         '''
         # This help is shown when, from the last one
@@ -908,20 +911,15 @@ def VectorSpaceModulo(modulo, coefficients_class, variable='x',
                 return value.coefficients
             elif type(value) == list:
                 if len(value) == 0:
-                    # TODO: build the neutral element of the first operation
-                    raise NotImplementedError("Not yet available")
-                firstCoefficient = value[0]
-                if type(firstCoefficient) == int:
+                    return [self._coefficientClass(0)]
+                if all([type(coefficient) == int for coefficient in value]):
                     for i in range(len(value)):
                         value[i] = self._coefficientClass(value[i])
-                elif str(type(firstCoefficient)).\
-                        count('BinaryExtensionModuloConstructor'):
-                    for coefficient in value[1:]:
-                        if not str(type(coefficient)).\
-                                count('BinaryExtensionModuloConstructor'):
-                            raise TypeError("coefficients shall be a binary "
-                                            "polynomial field elements")
-                        if firstCoefficient.modulo != coefficient.modulo:
+                elif all([str(type(coefficient)).
+                          count('BinaryExtensionModuloConstructor')
+                          for coefficient in value]):
+                    for coefficient in value[:-1]:
+                        if value[-1].modulo != coefficient.modulo:
                             raise AssertionError("All the coefficients shall "
                                                  "be from the same field.")
                 else:
@@ -948,7 +946,7 @@ def VectorSpaceModulo(modulo, coefficients_class, variable='x',
             else:
                 terms = []  # coefficients representations list
                 for idx, coefficient in enumerate(polynomial):
-                    exponent = len(polynomial)-idx-1
+                    exponent = idx
                     # FIXME: those nested 'ifs' can be simplified
                     if exponent == 0:
                         if coefficient == self._coefficientClass(0):
@@ -988,6 +986,7 @@ def VectorSpaceModulo(modulo, coefficients_class, variable='x',
                                 terms.append("+(%s)*%s^%d"
                                              % (coefficient, self._variable,
                                                 exponent))
+                terms.reverse()
                 collect = ''.join(["%s" % (term) for term in terms])
                 if len(collect) == 0:
                     return '0'  # neutral of the first operation
@@ -1067,7 +1066,7 @@ def VectorSpaceModulo(modulo, coefficients_class, variable='x',
             degrees.sort()
             degree = degrees[-1]
             coefficients = []
-            for i in range(degree, -1, -1):
+            for i in range(degree+1):
                 if i in terms:
                     self._trace_stream("processing degree %d term %s"
                                        % (i, terms[i]))
@@ -1084,11 +1083,17 @@ def VectorSpaceModulo(modulo, coefficients_class, variable='x',
             return self.__normalizeVector__(self._coefficients)[:]
 
         @property
-        def extendedCoefficients(self):
+        def expandedCoefficients(self):
             coefficients = self._coefficients[:]
-            while len(coefficients) < self.modulodegree:
-                coefficients = [self._coefficientClass(0)] + coefficients
+            zerosNeeded = self.modulodegree-len(coefficients)
+            coefficients += [self._coefficientClass(0)]*zerosNeeded
             return coefficients
+
+        def __normalizeVector__(self, v):
+            zero = self._coefficientClass(0)
+            while len(v) > 1 and v[-1] == zero:
+                removed = v.pop()
+            return v
 
         @property
         def modulo(self):
@@ -1108,13 +1113,12 @@ def VectorSpaceModulo(modulo, coefficients_class, variable='x',
             return self._gr_modulo
 
         def __coefficientsDegree(self, coeffList):
-            maxDegree = len(coeffList)-1
-            i = 0
-            while i < maxDegree:
-                if coeffList[i] != self._coefficientClass(0):
-                    return maxDegree-i
-                i += 1
-            return 0
+            degree = len(coeffList)-1
+            while degree > 0:
+                if coeffList[degree] != self._coefficientClass(0):
+                    break
+                degree -= 1
+            return degree
 
         @property
         def isZero(self):
@@ -1123,6 +1127,7 @@ def VectorSpaceModulo(modulo, coefficients_class, variable='x',
                 if coefficient != self._coefficientClass(0):
                     return False
                     # FIXME: would be good to make it time constant
+                    #        because its for cryptography.
             return True
 
         def __zero(self):
@@ -1132,21 +1137,17 @@ def VectorSpaceModulo(modulo, coefficients_class, variable='x',
         @property
         def isOne(self):
             '''Neutral element of the second operation, product.'''
-            coefficients = self.coefficients
-            coefficients.reverse()
-            for degree, coefficient in enumerate(coefficients):
-                if degree == 0:
-                    search = self._coefficientClass(1)
-                else:
-                    search = self._coefficientClass(0)
-                if coefficient != search:
+            for degree, coefficient in enumerate(self.coefficients):
+                search = 1 if degree == 0 else 0
+                if coefficient != self._coefficientClass(search):
                     return False
                 # FIXME: would be good to make it time constant
+                #        because its for cryptography.
             return True
 
         def __one(self):
             zeros = [self._coefficientClass(0)]*(self.modulodegree-1)
-            one = zeros+[self._coefficientClass(1)]
+            one = [self._coefficientClass(1)] + zeros
             return VectorSpaceModuloConstructor(one, loglevel=self.logLevel)
 #         @property
 #         def isInvertible(self):
@@ -1161,24 +1162,22 @@ def VectorSpaceModulo(modulo, coefficients_class, variable='x',
 #             return False
 
         def __iter__(self):
-            coefficients = self.coefficients
-            coefficients.reverse()
-            return iter(coefficients)
+            return iter(self.coefficients)
 
         def iter(self):
             return self.__iter__()
 
         def __getitem__(self, n):
-            coefficients = self.coefficients
-            ceofficients.reverse()
-            if n < len(coefficients):
-                return coefficients[n]
+            if n < len(self.coefficients):
+                return self.coefficients[n]
             raise OverflowError("No coefficient with this degree")
 
         def __type__(self):
             return self.__class__
 
         def __eq__(self, other):  # => a == b
+            # FIXME: would be good to make it time constant
+            #        because its for cryptography.
             if other is None:
                 return False
             if len(self.coefficients) != len(other.coefficients):
@@ -1212,8 +1211,8 @@ def VectorSpaceModulo(modulo, coefficients_class, variable='x',
         # #Operations ----
         # + Addition: ----
         def __add__(self, other):  # => a+b
-            a = self.extendedCoefficients
-            b = other.extendedCoefficients
+            a = self.expandedCoefficients
+            b = other.expandedCoefficients
             result = [self._coefficientClass(0)]*self.modulodegree
             for i in range(self.modulodegree):
                 result[i] = a[i] + b[i]
@@ -1225,8 +1224,8 @@ def VectorSpaceModulo(modulo, coefficients_class, variable='x',
                                                 loglevel=self.logLevel)
 
         def __sub__(self, other):  # => a-b
-            a = self.extendedCoefficients
-            b = other.extendedCoefficients
+            a = self.expandedCoefficients
+            b = other.expandedCoefficients
             result = [self._coefficientClass(0)]*self.modulodegree
             for i in range(self.modulodegree):
                 result[i] = a[i] - b[i]
@@ -1238,6 +1237,7 @@ def VectorSpaceModulo(modulo, coefficients_class, variable='x',
                                                 loglevel=self.logLevel)
 
         # * Product ----
+        # TODO: __rmul__() for something like a scalar product (n * Polynomial)
         def __mul__(self, other):  # => a*b
             '''Given two polynomials ring elements with coefficients in a
                binary polynomial field, calculate their product.
@@ -1268,24 +1268,19 @@ def VectorSpaceModulo(modulo, coefficients_class, variable='x',
                Output: <coefficients list> result
             '''
             # reverse to match index and exponent.
-            multiplicand.reverse()
-            multiplier.reverse()
             result = [self._coefficientClass(0)]*self.modulodegree*2
             self._debug_stream("multiplicand: %s" % multiplicand)
             self._debug_stream("multiplier: %s" % multiplier)
             for i, coefficient in enumerate(multiplier):
                 self._debug_stream("%dth multiplier coefficient: %s"
-                                   % (i, coefficient))
+                                   % (i+1, coefficient))
                 partial = self.__multiplicationStep__(multiplicand,
                                                       coefficient, i)
-                self._debug_stream("partial %d: %s" % (i, partial))
+                self._debug_stream("partial %d: %s" % (i+1, partial))
                 for j in range(len(partial)):
-                    # self._debug_stream("result[%d] += partial[%d] = %s += %s"
-                    #                    % (j, i, result[i], partial[j]))
                     result[j] += partial[j]
                 self._debug_stream("Accumulated in the result (step %d): %s"
                                    % (i, result))
-            result.reverse()
             return result
 
         def __multiplicationStep__(self, multiplicant, coefficient, degree):
@@ -1323,9 +1318,7 @@ def VectorSpaceModulo(modulo, coefficients_class, variable='x',
         def __divideBy__(self, b):
             zero = self._coefficientClass(0)
             a = self.__normalizeVector__(self.coefficients)
-            a.reverse()
             b = self.__normalizeVector__(b)
-            b.reverse()
             # with this, dividend and divisor are lists
             # where the index in the table of each of the coefficients
             # say the corresponding degree.
@@ -1333,14 +1326,14 @@ def VectorSpaceModulo(modulo, coefficients_class, variable='x',
                 raise ZeroDivisionError
             gr_a = len(a)-1
             gr_b = len(b)-1
-            self._debug_stream("Dividing a: %s (gr_a = %d) "
-                               "by b = %s (gr_b = %d)" % (a, gr_a, b, gr_b))
+            self._debug_stream("Dividing\n\ta: %s (gr_a = %d) "
+                               "\n\tb = %s (gr_b = %d)" % (a, gr_a, b, gr_b))
             if gr_a < gr_b:
                 return a, b  # dividend smaller than the divisor
             quotient = []  # it will stack and no need to reverse.
             while gr_a >= gr_b:
                 q, r = self.__divisionStep__(a, gr_a, b, gr_b)
-                self._debug_stream("Give [%s] / [%s] = q: %s, r=[%s]"
+                self._debug_stream("Give [%s] / [%s] =\n\tq = %s,\n\tr = [%s]"
                                    % ("".join(" %s," % e for e in a)[1:-1],
                                       "".join(" %s," % e for e in b)[1:-1], q,
                                       "".join(" %s," % e for e in r)[1:-1]))
@@ -1361,7 +1354,8 @@ def VectorSpaceModulo(modulo, coefficients_class, variable='x',
             zero = self._coefficientClass(0)
             # 1.- quotient
             q = a[-1]*~b[-1]
-            self._debug_stream("\ta[%d]/b[%d] = %s/%s = %s*%s = %s"
+            self._debug_stream("Quotient step: a[%d]/b[%d] = %s / %s = "
+                               "%s * %s = %s"
                                % (gr_a, gr_b, a[-1], b[-1], a[-1], ~b[-1], q))
             gr_q = gr_a-gr_b
             toSubstract = [zero]*gr_q
@@ -1373,12 +1367,6 @@ def VectorSpaceModulo(modulo, coefficients_class, variable='x',
             if remainder[-1] == zero:
                 remainder.pop()
             return q, remainder
-
-        def __normalizeVector__(self, v):
-            zero = self._coefficientClass(0)
-            while len(v) > 1 and v[0] == zero:
-                removed = v.pop(0)
-            return v
 
         # ~ Multiplicative inverse: ----
         # - operator.__inv__(a) => ~a
@@ -1426,20 +1414,21 @@ def VectorSpaceModulo(modulo, coefficients_class, variable='x',
                        <list> x (polynomial coefficients representation)
                        <list> y (polynomial coefficients representation)
             '''
-            u = self.__normalizeVector__(a)
-            deg_u = len(u)
-            v = self.__normalizeVector__(b)
-            deg_v = len(v)
-            g1 = [self._coefficientClass(1)]
-            g2 = [self._coefficientClass(0)]
-            h1 = [self._coefficientClass(0)]
-            h2 = [self._coefficientClass(1)]
-            def product(r, s):
-                result = [self._coefficientClass(0)]*(len(r)+len(s))
-                for i in range(len(s)-1,-1,-1):  # [len(s),...,0)]
-                    for j in range(len(r)-1,-1,-1):  # [len(r),...,0)]
-                        result[i+j] += s[i]*r[j]
+            # Auxiliar functions ---
+            def printDebug(header, op=""):
+                if len(header) > 0:
+                    self._debug_stream(header)
+                self._debug_stream("%s u: %s" % (op, u))
+                self._debug_stream("%s v: %s" % (op, v))
+                self._debug_stream("%s g1: %s, g2: %s" % (op, g1, g2))
+                self._debug_stream("%s h1: %s, h2: %s\n" % (op, h1, h2))
+
+            def shift(r, i):
+                result = r + [self._coefficientClass(0)]*i
+                self._debug_stream("\t%s << %d = %s" % (r, i, result))
+                # return VectorSpaceModuloConstructor(result).coefficients
                 return result
+
             def add(r, s):
                 while len(r) < len(s):
                     r = [self._coefficientClass(0)] + r
@@ -1449,45 +1438,50 @@ def VectorSpaceModulo(modulo, coefficients_class, variable='x',
                     result = [self._coefficientClass(0)]*len(s)
                     for i in range(len(result)):
                         result[i] = r[i] + s[i]
+                self._debug_stream("\t%s + %s = %s" % (r, s, result))
+                # return VectorSpaceModuloConstructor(result).coefficients
                 return result
-            def normalise(lst):
-                self._debug_stream("normaliseing %s" % (lst))
-                shortedLst = VectorSpaceModuloConstructor(lst).coefficients
-                # element = self.__normalizeVector__(shortedLst)
-                self._debug_stream("normalised %s" % (shortedLst))
-                return shortedLst
+
+            def operate(r, s, j, tag_r, tag_s):
+                # r = r + x^j * s = r + s << j
+                self._debug_stream("%s = %s + (x^%d * %s) = %s + (%s << %d)"
+                                   % (tag_r, tag_r, j, tag_s, tag_r, tag_s, j))
+                return add(r, shift(s, j))
+
+            # The Extended Euclidean Greatest Common Divisor algorithm ---
+            zero = [self._coefficientClass(0)]
+            u = self.__normalizeVector__(a)
+            deg_u = len(u)
+            v = self.__normalizeVector__(b)
+            deg_v = len(v)
+            g1 = [self._coefficientClass(1)]
+            g2 = [self._coefficientClass(0)]
+            h1 = [self._coefficientClass(0)]
+            h2 = [self._coefficientClass(1)]
+            printDebug("initial values")
             i = 0
-            while u != [self._coefficientClass(0)]:
-                self._debug_stream("Iteration %s" % (i))
-                self._debug_stream("> u: %s" % (u))
-                self._debug_stream("> v: %s" % (v))
-                self._debug_stream("> g1: %s, g2: %s" % (g1, g2))
-                self._debug_stream("> h1: %s, h2: %s" % (h1, h2))
+            while VectorSpaceModuloConstructor(u).coefficients != zero:
+                printDebug("Iteration %s" % (i), ">")
+                deg_u = len(u)
+                deg_v = len(v)
                 j = deg_u - deg_v
                 if j < 0:
                     u, v = v, u
                     g1, g2 = g2, g1
                     h1, h2 = h2, h1
-                x_j = [self._coefficientClass(1)]+[self._coefficientClass(0)]*j
-                u = add(u, product(x_j,v))
-                g1 = add(g1, product(x_j,g2))
-                h1 = add(h1, product(x_j,h2))
+                    j = -j
+                    printDebug("j < 0: swap vbles", "\t-")
+                u = operate(u, v, j, "u", "v")
+                g1 = operate(g1, g2, j, "g1", "g2")
+                h1 = operate(h1, h2, j, "h1", "h2")
+                printDebug("", "<")
                 i += 1
-                u = normalise(u)
-                v = normalise(v)
-                g1 = normalise(g1)
-                g2 = normalise(g2)
-                h1 = normalise(h1)
-                h2 = normalise(h2)
-            self._debug_stream("Iteration %s end" % (i-1))
-            self._debug_stream("< u: %s" % (u))
-            self._debug_stream("< v: %s" % (v))
-            self._debug_stream("< g1: %s, g2: %s" % (g1, g2))
-            self._debug_stream("< h1: %s, h2: %s" % (h1, h2))
+                sleep(1)
+            printDebug("END at iteration %s" % (i-1), "")
             d = VectorSpaceModuloConstructor(v)
             g = VectorSpaceModuloConstructor(g2)
             h = VectorSpaceModuloConstructor(h2)
-            return d,g,h
+            return d, g, h
 
         # <<>> Shifts ----
         def __lshift__(self, n):  # => a << n
