@@ -341,7 +341,7 @@ def BinaryExtensionModulo(modulo, variable='z', loglevel=_Logger._info):
             return self
 
         def __sub__(self, other):  # => a-b
-            bar = -other
+            # bar = -other it is itself
             a = _copy(self.coefficients)
             b = _copy(other.coefficients)
             return BinaryExtensionModuloConstructor(a ^ b)
@@ -1439,10 +1439,10 @@ def PolynomialRingModulo(modulo, coefficients_class, variable='x',
                Input: <list> a (little endian list of coefficients)
                       <list> b (little endian list of coefficients)
                Output: <list> gcd (little endian list of coefficients)
-                       <list> x (little endian list of coefficients)
-                       <list> y (little endian list of coefficients)
-               The binary polynomials x, y are for the Bézout's identity:
-               $x(x)$, $y(x)$ such that $a(x)\times x(x)+b(x)\times y(x)=g(x)$
+                       <list> u (little endian list of coefficients)
+                       <list> v (little endian list of coefficients)
+               The binary polynomials x, y are for the B\'ezout's identity:
+               $u(x)$, $v(x)$ such that $a(x)\times u(x)+b(x)\times v(x)=g(x)$
 
                 \STATE $r_0 = a$\qquad $r_1 = b$
                 \STATE $s_0 = 1$\qquad $s_1 = 0$
@@ -1473,19 +1473,48 @@ def PolynomialRingModulo(modulo, coefficients_class, variable='x',
             t.append([self._coefficientClass(1)])
             i = 1
             while r[i] != zero:
+                self._info_stream("Iteration %d" % i)
+                # q = r_{i-1} / r_{i}
                 quotient, reminder = self.__divideBy__(r[-2], r[-1])
-                # qri = self.__multiply__(q, r[-1])
-                # r.append(self.__substraction__(r[-2], qri))
+                qStr = self.__interpretToStr__(quotient, hexSubfield=True)
+                self._info_stream("\tquotient: %s" % qStr)
+                # r_{i+1} = r_{i-1} - q*r_{i}
                 r.append(reminder)
+                rStr = self.__interpretToStr__(r[-1], hexSubfield=True)
+                self._info_stream("\tremainder: %s" % rStr)
+                # s_{i+1} = s_{i-1} - q*s_{i}
+                sStr = self.__interpretToStr__(s[-1], hexSubfield=True) 
                 qsi = self.__multiply__(quotient, s[-1])
+                qsiStr = self.__interpretToStr__(qsi, hexSubfield=True)
+                self._info_stream("\t\tq*s[i]: %s * %s = %s"
+                                  % (qStr, sStr, qsiStr))
                 s.append(self.__substraction__(s[-2], qsi))
+                sStr = self.__interpretToStr__(s[-1], hexSubfield=True)
+                self._info_stream("\ts: %s - %s = %s"
+                                  % (self.__interpretToStr__(s[-3], hexSubfield=True),
+                                     self.__interpretToStr__(qsi, hexSubfield=True),
+                                     sStr))
+                # t_{i+1} = t_{i-1} - q*t_{i}
+                tStr = self.__interpretToStr__(t[-1], hexSubfield=True)
                 qti = self.__multiply__(quotient, t[-1])
+                qtiStr = self.__interpretToStr__(qti, hexSubfield=True)
+                self._info_stream("\t\tq*t[i]: %s * %s = %s"
+                                  % (qStr, tStr, qtiStr))
                 t.append(self.__substraction__(t[-2], qti))
+                tStr = self.__interpretToStr__(t[-1], hexSubfield=True)
+                self._info_stream("\tt: %s" % tStr)
                 i += 1
-                sleep(1)
             g = r[i-1]
             u = s[i-1]
             v = t[i-1]
+            self._info_stream("Bezout's identity:"
+                              " a(x) * u(x) + b(x) * v(x) = g(x)")
+            self._info_stream("\t%s * %s + %s * %s = %s"
+                              % (self.__interpretToStr__(a, hexSubfield=True),
+                                 self.__interpretToStr__(u, hexSubfield=True),
+                                 self.__interpretToStr__(b, hexSubfield=True),
+                                 self.__interpretToStr__(v, hexSubfield=True),
+                                 self.__interpretToStr__(g, hexSubfield=True)))
             return g, u, v
 
         # <<>> Shifts ----
