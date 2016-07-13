@@ -27,7 +27,7 @@ from Logger import Logger as _Logger
 from Polynomials import PolynomialRing as _PolynomialRing
 from Polynomials import getBinaryExtensionFieldModulo \
     as _getBinaryExtensionFieldModulo
-from Polynomials import VectorSpaceModulo as _VectorSpaceModulo
+from Polynomials import PolynomialRingModulo as _PolynomialRingModulo
 from Polynomials import BinaryExtensionModulo as _BinaryExtensionModulo
 
 
@@ -43,15 +43,15 @@ class MixColumns(_Logger):
                 self.__c = [0x3, 0x1, 0x1, 0x2]
                 self.__d = [0xB, 0xD, 0x9, 0xE]
                 # c(x) \otimes d(x) = 1 (mod m)
-                self._ring = _VectorSpaceModulo("x^4+1", self._subfield)
+                self._ring = _PolynomialRingModulo("x^4+1", self._subfield)
             elif nRows == 3:
                 self.__c = [0xD, 0x1, 0x1]  # FIXME: unknown
                 self.__d = [0x3C, 0xAA, 0x3C]  # FIXME: unknown
-                self._ring = _VectorSpaceModulo("x^3+1", self._subfield)
+                self._ring = _PolynomialRingModulo("x^3+1", self._subfield)
             elif nRows == 2:
                 self.__c = [0x2, 0x3]  # FIXME: unknown
                 self.__d = [0x2, 0x3]  # FIXME: unknown
-                self._ring = _VectorSpaceModulo("x^2+1", self._subfield)
+                self._ring = _PolynomialRingModulo("x^2+1", self._subfield)
         else:
             raise Exception("(__init__)", "There is no MixColumns for %d "
                             "wordsize" % (wordSize))
@@ -61,7 +61,7 @@ class MixColumns(_Logger):
         self.__polynomialRing = _PolynomialRing(nRows, nColumns, wordSize)
 
     @property
-    def VectorSpaceModulo(self):
+    def PolynomialRingModulo(self):
         return _deepcopy(self.__cx.modulo)
 
     @property

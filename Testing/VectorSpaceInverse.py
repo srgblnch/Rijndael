@@ -3,7 +3,7 @@ import GeneralizedRijndael
 fieldModulo = GeneralizedRijndael.Polynomials.getBinaryExtensionFieldModulo(8)
 field = GeneralizedRijndael.Polynomials.BinaryExtensionModulo(fieldModulo,
                                                               variable='z')
-vSpace = GeneralizedRijndael.Polynomials.VectorSpaceModulo('x^4+1', field)
+vSpace = GeneralizedRijndael.Polynomials.PolynomialRingModulo('x^4+1', field)
 # a = vSpace([3,3,3,3])
 # b = vSpace([0,0,0,3])
 # a.logLevel = 4

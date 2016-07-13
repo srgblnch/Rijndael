@@ -793,15 +793,15 @@ def getNu(wordSize, official=False):
     return Mu
 
 
-def VectorSpaceModulo(modulo, coefficients_class, variable='x',
+def PolynomialRingModulo(modulo, coefficients_class, variable='x',
                       loglevel=_Logger._info):
     '''
-        VectorSpaceModulo is a builder for (\mathbb{F}_{2^w})^l (or
-        (GF(2^w))^l in another notation) elements. This vector space is made
-        by l elements of a finite field or ring of characteristic 2 with an
-        extension degree w. This vector space is canstructed modulo a
-        polynomial with l degree producing a field or a ring depending or the
-        irreducibility or not of this modulo.
+        PolynomialRingModulo is a builder for (\mathbb{F}_{2^w})^l (or
+        (GF(2^w))^l in another notation) elements. This is a polynomial made
+        by l elements of a finite field of characteristic 2 with an
+        extension degree w. This polynomial is made modulo a polynomial with
+        l degree producing ring. But it could generate a field depending on
+        the irreducibility or not of its modulo.
 
         Arguments:
         - modulo: (mandatory) an string representation of a polynomial
@@ -817,7 +817,7 @@ def VectorSpaceModulo(modulo, coefficients_class, variable='x',
         Example:
         >>> import Polynomials
         >>> field = Polynomials.BinaryExtensionModulo('z^8+z^4+z^3+z+1')
-        >>> vectorRing = Polynomials.VectorSpaceModulo('x^4+1',field)
+        >>> polynomialRing = Polynomials.PolynomialRingModulo('x^4+1',field)
     '''
     if len(variable) != 1:
         raise NameError("The indeterminate must be a single character.")
@@ -830,7 +830,7 @@ def VectorSpaceModulo(modulo, coefficients_class, variable='x',
         raise Exception("modulo %s is not defined over %s variable"
                         % (modulo, variable))
 
-    class VectorSpaceModuloConstructor(_Logger):
+    class PolynomialRingModuloConstructor(_Logger):
         '''
             Once have the builder of elements it can be used to generate
             objects that represents and have operations defined. The allow
@@ -847,8 +847,8 @@ def VectorSpaceModulo(modulo, coefficients_class, variable='x',
             Example:
             >>> import Polynomials
             >>> field = Polynomials.BinaryExtensionModulo('z^8+z^4+z^3+z+1')
-            >>> vectorRing = Polynomials.VectorSpaceModulo('x^4+1',field)
-            >>> vectorRing([field(1),field(6),field(9),field(3)])
+            >>> polynomialRing = Polynomials.PolynomialRingModulo('x^4+1',field)
+            >>> polynomialRing([field(1),field(6),field(9),field(3)])
             (z+1)*x^3+(z^3+1)*x^2+(z^2+z)*x+1 (mod x^4+1)
         '''
         # This help is shown when, from the last one
@@ -857,7 +857,7 @@ def VectorSpaceModulo(modulo, coefficients_class, variable='x',
         # - isInvertible()
         # - refactoring interpreter methods
         def __init__(self, value, *args, **kwargs):
-            super(VectorSpaceModuloConstructor, self).__init__(*args, **kwargs)
+            super(PolynomialRingModuloConstructor, self).__init__(*args, **kwargs)
             self._coefficientClass = coefficients_class
             self._variable = variable
             self._coefficients = self.__interpretCoefficients(value)
@@ -898,8 +898,8 @@ def VectorSpaceModulo(modulo, coefficients_class, variable='x',
                                            hexSubfield=True)
 
         def __interpretCoefficients(self, value):
-            if type(value) == VectorSpaceModuloConstructor or \
-               value.__class__ == VectorSpaceModuloConstructor:
+            if type(value) == PolynomialRingModuloConstructor or \
+               value.__class__ == PolynomialRingModuloConstructor:
                 return value.coefficients
             elif type(value) == list:
                 if len(value) == 0:
@@ -1072,7 +1072,7 @@ def VectorSpaceModulo(modulo, coefficients_class, variable='x',
         @property
         def coefficients(self):
             # return a copy, not the same list
-            return self.__normalizeVector__(self._coefficients)[:]
+            return self.__normalizePolynomial__(self._coefficients)[:]
 
         @property
         def expandedCoefficients(self):
@@ -1081,7 +1081,7 @@ def VectorSpaceModulo(modulo, coefficients_class, variable='x',
             coefficients += [self._coefficientClass(0)]*zerosNeeded
             return coefficients
 
-        def __normalizeVector__(self, v):
+        def __normalizePolynomial__(self, v):
             zero = self._coefficientClass(0)
             while len(v) > 1 and v[-1] == zero:
                 # Remember is little endian: the most significant coefficient
@@ -1129,7 +1129,7 @@ def VectorSpaceModulo(modulo, coefficients_class, variable='x',
 
         def __zero(self):
             zero = [self._coefficientClass(0)]*self.modulodegree
-            return VectorSpaceModuloConstructor(zero, loglevel=self.logLevel)
+            return PolynomialRingModuloConstructor(zero, loglevel=self.logLevel)
 
         @property
         def isOne(self):
@@ -1145,7 +1145,7 @@ def VectorSpaceModulo(modulo, coefficients_class, variable='x',
         def __one(self):
             zeros = [self._coefficientClass(0)]*(self.modulodegree-1)
             one = [self._coefficientClass(1)] + zeros
-            return VectorSpaceModuloConstructor(one, loglevel=self.logLevel)
+            return PolynomialRingModuloConstructor(one, loglevel=self.logLevel)
 #         @property
 #         def isInvertible(self):
 #             '''Show if the element is invertible modulo for the product
@@ -1209,11 +1209,11 @@ def VectorSpaceModulo(modulo, coefficients_class, variable='x',
         # + Addition: ----
         def __add__(self, other):  # => a+b
             result = self.__addition__(self.coefficients, other.coefficients)
-            return VectorSpaceModuloConstructor(result, loglevel=self.logLevel)
+            return PolynomialRingModuloConstructor(result, loglevel=self.logLevel)
 
         def __iadd__(self, other):  # => a+=b
             result = self.__addition__(self.coefficients, other.coefficients)
-            return VectorSpaceModuloConstructor(result, loglevel=self.logLevel)
+            return PolynomialRingModuloConstructor(result, loglevel=self.logLevel)
 
         def __addition__(self, addend1, addend2):
             size = max(self.modulodegree, len(remainded))
@@ -1225,18 +1225,18 @@ def VectorSpaceModulo(modulo, coefficients_class, variable='x',
                 [self._coefficientClass(0)]*(size-len(addend2))
             for i in range(size):
                 result[i] = addend1[i] + addend2[i]
-            result = self.__normalizeVector__(result)
+            result = self.__normalizePolynomial__(result)
             return result
 
         def __sub__(self, other):  # => a-b
             result = self.__substraction__(self.coefficients,
                                            other.coefficients)
-            return VectorSpaceModuloConstructor(result, loglevel=self.logLevel)
+            return PolynomialRingModuloConstructor(result, loglevel=self.logLevel)
 
         def __isub__(self, other):  # => a-=b
             result = self.__substraction__(self.coefficients,
                                            other.coefficients)
-            return VectorSpaceModuloConstructor(result, loglevel=self.logLevel)
+            return PolynomialRingModuloConstructor(result, loglevel=self.logLevel)
 
         def __substraction__(self, remainded, substractor):
             size = max(self.modulodegree, len(remainded))
@@ -1248,7 +1248,7 @@ def VectorSpaceModulo(modulo, coefficients_class, variable='x',
                 [self._coefficientClass(0)] * (size-len(substractor))
             for i in range(size):
                 result[i] = remainded[i] - substractor[i]
-            result = self.__normalizeVector__(result)
+            result = self.__normalizePolynomial__(result)
             return result
 
         # * Product ----
@@ -1266,13 +1266,13 @@ def VectorSpaceModulo(modulo, coefficients_class, variable='x',
                                % (self.__interpretToStr__(a),
                                   self.__interpretToStr__(b)))
             res = self.__multiply__(a, b)
-            p = VectorSpaceModuloConstructor(res, loglevel=self.logLevel)
+            p = PolynomialRingModuloConstructor(res, loglevel=self.logLevel)
             self._debug_stream("c = %s" % (p))
             return p
 
         def __imul__(self, other):  # => a*=b
             bar = self * other
-            return VectorSpaceModuloConstructor(bar.coefficients,
+            return PolynomialRingModuloConstructor(bar.coefficients,
                                                 loglevel=self.logLevel)
 
         def __multiply__(self, multiplicand, multiplier):
@@ -1292,7 +1292,7 @@ def VectorSpaceModulo(modulo, coefficients_class, variable='x',
                                                       coefficient, i)
                 for j in range(len(partial)):
                     result[j] += partial[j]
-            result = self.__normalizeVector__(result)
+            result = self.__normalizePolynomial__(result)
             self._debug_stream("Result: %s" % result)
             return result
 
@@ -1308,31 +1308,31 @@ def VectorSpaceModulo(modulo, coefficients_class, variable='x',
             for i in range(len(multiplicant)):
                 # shift: i+ degree
                 line[i+degree] = multiplicant[i] * coefficient
-            line = self.__normalizeVector__(line)
+            line = self.__normalizePolynomial__(line)
             return line
 
         # /% Division: ----
         def __div__(self, other):  # => a/b
             q, r = self.__divideBy__(self.coefficients, other.coefficients)
             self._debug_stream("q = %s" % q)
-            return VectorSpaceModuloConstructor(q, loglevel=self.logLevel)
+            return PolynomialRingModuloConstructor(q, loglevel=self.logLevel)
 
         def __idiv__(self, other):  # => a/=b
             q, r = self.__divideBy__(self.coefficients, other.coefficients)
-            return VectorSpaceModuloConstructor(q, loglevel=self.logLevel)
+            return PolynomialRingModuloConstructor(q, loglevel=self.logLevel)
 
         def __mod__(self, other):  # => a%b
             q, r = self.__divideBy__(self.coefficients, other.coefficients)
-            return VectorSpaceModuloConstructor(r, loglevel=self.logLevel)
+            return PolynomialRingModuloConstructor(r, loglevel=self.logLevel)
 
         def _imod__(self, other):  # => a%=b
             q, r = self.__divideBy__(self.coefficients, other.coefficients)
-            return VectorSpaceModuloConstructor(r, loglevel=self.logLevel)
+            return PolynomialRingModuloConstructor(r, loglevel=self.logLevel)
 
         def __divideBy__(self, numerator, denominator):
             zero = self._coefficientClass(0)
-            a = self.__normalizeVector__(numerator)
-            b = self.__normalizeVector__(denominator)
+            a = self.__normalizePolynomial__(numerator)
+            b = self.__normalizePolynomial__(denominator)
             # with this, dividend and divisor are lists
             # where the index in the table of each of the coefficients
             # say the corresponding degree.
@@ -1406,8 +1406,8 @@ def VectorSpaceModulo(modulo, coefficients_class, variable='x',
             if self._gcd is None:
                 gcd, multinv, _ = \
                     self.__egcd__(self._modulo, self._coefficients)
-                self._gcd = VectorSpaceModuloConstructor(gcd)
-                self._multinv = VectorSpaceModuloConstructor(multinv)
+                self._gcd = PolynomialRingModuloConstructor(gcd)
+                self._multinv = PolynomialRingModuloConstructor(multinv)
             self._debug_stream("gcd = %s" % self._gcd)
             self._debug_stream("x = %s" % self._multinv)
             if self._gcd != self.__one():
@@ -1425,7 +1425,7 @@ def VectorSpaceModulo(modulo, coefficients_class, variable='x',
             a = self.coefficients
             b = other.coefficients
             gcd, x, y = self.__egcd__(a, b)
-            return VectorSpaceModuloConstructor(gcd)
+            return PolynomialRingModuloConstructor(gcd)
 
         def __egcd__(self, a, b):
             '''https://en.wikipedia.org/wiki/Polynomial_greatest_common_divisor#B.C3.A9zout.27s_identity_and_extended_GCD_algorithm
@@ -1484,14 +1484,14 @@ def VectorSpaceModulo(modulo, coefficients_class, variable='x',
         # <<>> Shifts ----
         def __lshift__(self, n):  # => a << n
             shifted = \
-                VectorSpaceModuloConstructor(self.coefficients +
+                PolynomialRingModuloConstructor(self.coefficients +
                                              [self._coefficientClass(0)]*n,
                                              loglevel=self.logLevel)
             self._debug_stream("%s << %d = %s" % (self, n, shifted))
             return shifted
 
         def __rshift__(self, n):  # => a >> n
-            shifted = VectorSpaceModuloConstructor(self.coefficients
+            shifted = PolynomialRingModuloConstructor(self.coefficients
                                                    [:len(self.coefficients)-n],
                                                    loglevel=self.logLevel)
             self._debug_stream("%s >> %d = %s" % (self, n, shifted))
@@ -1499,21 +1499,21 @@ def VectorSpaceModulo(modulo, coefficients_class, variable='x',
 
         def __ilshift__(self, n):  # => <<=
             shifted = \
-                VectorSpaceModuloConstructor(self.coefficients +
+                PolynomialRingModuloConstructor(self.coefficients +
                                              [self._coefficientClass(0)]*n,
                                              loglevel=self.logLevel)
             self._debug_stream("%s <<= %d = %s" % (self, n, shifted))
             return shifted
 
         def __irshift__(self, n):  # => >>=
-            shifted = VectorSpaceModuloConstructor(self.coefficients
+            shifted = PolynomialRingModuloConstructor(self.coefficients
                                                    [:len(self.coefficients)-n],
                                                    loglevel=self.logLevel)
             self._debug_stream("%s >>= %d = %s" % (self, n, shifted))
             return shifted
 
         def _cyclic_lshift_(self, n):
-            shifted = VectorSpaceModuloConstructor(self._coefficients[n:] +
+            shifted = PolynomialRingModuloConstructor(self._coefficients[n:] +
                                                    self._coefficients[:n],
                                                    loglevel=self.logLevel)
             self._debug_stream("%s <<> %d = %s" % (self, n, shifted))
@@ -1521,13 +1521,13 @@ def VectorSpaceModulo(modulo, coefficients_class, variable='x',
 
         def _cyclic_rshift_(self, n):
             l = len(self._coefficients)
-            shifted = VectorSpaceModuloConstructor(self._coefficients[l-n:] +
+            shifted = PolynomialRingModuloConstructor(self._coefficients[l-n:] +
                                                    self._coefficients[:l-n],
                                                    loglevel=self.logLevel)
             self._debug_stream("%s <>> %d = %s" % (self, n, shifted))
             return shifted
-        # End class VectorSpaceModuloConstructor ----
-    return VectorSpaceModuloConstructor
+        # End class PolynomialRingModuloConstructor ----
+    return PolynomialRingModuloConstructor
 
 
 class PolynomialRing(_Logger):
@@ -1583,7 +1583,7 @@ def randomBinaryPolynomial(field, degree):
     return field(randint(0, 2**degree))
 
 
-def randomVectorPolynomial(ring, ringDegree, field, fieldDegree):
+def randomPolynomial(ring, ringDegree, field, fieldDegree):
     coefficients = []
     for i in range(ringDegree):
         coefficients.append(randomBinaryPolynomial(field, fieldDegree))
@@ -1593,8 +1593,8 @@ def randomVectorPolynomial(ring, ringDegree, field, fieldDegree):
 def testConstructor():
     print("Use PolynomialsTest.py for testing.")
     field = BinaryExtensionModulo('z^8+z^4+z^3+z+1', loglevel=_Logger._info)
-    ring = VectorSpaceModulo("x^4+1", field, loglevel=_Logger._debug)
-    example = randomVectorPolynomial(ring, 4, field, 8)
+    ring = PolynomialRingModulo("x^4+1", field, loglevel=_Logger._debug)
+    example = randomPolynomial(ring, 4, field, 8)
     print("Random element of the polynomial ring with coefficients in a "
           "binary polynomial field:\n\tstring:\t%s\n\trepr:\t%r\n\thex:\t%s"
           % (example, example, hex(example)))
@@ -1603,13 +1603,13 @@ def testConstructor():
           "when there is no coefficient:\n\tstring:\t%s\n\trepr:\t%r"
           "\n\thex:\t%s" % (example, example, hex(example)))
     try:
-        ring = VectorSpaceModulo("z^4+1", field, variable='zs')
+        ring = PolynomialRingModulo("z^4+1", field, variable='zs')
     except:
         print("Constructor multichar lenght variable:\tpass.")
     else:
         print("Alert! Build a polynomial modulo with an invalid variable name")
     try:
-        ring = VectorSpaceModulo("z^4+1", field, variable='z')
+        ring = PolynomialRingModulo("z^4+1", field, variable='z')
     except:
         print("Constructor with two equal variable:\tpass.")
     else:
@@ -1619,13 +1619,13 @@ def testConstructor():
 
 def testAdd(a=None, b=None):
     field = BinaryExtensionModulo('z^8+z^4+z^3+z+1', loglevel=_Logger._info)
-    ring = VectorSpaceModulo("x^4+1", field, loglevel=_Logger._debug)
+    ring = PolynomialRingModulo("x^4+1", field, loglevel=_Logger._debug)
     if a is None:
-        a = randomVectorPolynomial(ring, 4, field, 8)
+        a = randomPolynomial(ring, 4, field, 8)
     elif type(a) == list:
         a = ring([field(a[i]) for i in range(len(a))])
     if b is None:
-        b = randomVectorPolynomial(ring, 4, field, 8)
+        b = randomPolynomial(ring, 4, field, 8)
     elif type(b) == list:
         b = ring([field(b[i]) for i in range(len(b))])
     c = a + b
@@ -1634,7 +1634,7 @@ def testAdd(a=None, b=None):
 
 def doProductTest(axlist=None, sxlist=None):
     field = BinaryExtensionModulo('z^8+z^4+z^3+z+1', loglevel=_Logger._info)
-    ring = VectorSpaceModulo("x^4+1", field, loglevel=_Logger._info)
+    ring = PolynomialRingModulo("x^4+1", field, loglevel=_Logger._info)
     if axlist is None:
         axlist = []
         for i in range(4):
@@ -1670,7 +1670,7 @@ def doProductTest(axlist=None, sxlist=None):
     foo = bar.product(axlist, state)
     foox = ring([field(i) for i in foo[0]])
     if rx != foox:
-        print("\t\tError!! Results using VectorSpaceModulo != PolynomialRing "
+        print("\t\tError!! Results using PolynomialRingModulo != PolynomialRing "
               "implementations:\n\t\t\t%s != %s" % (hex(rx), hex(foox)))
         return (False, "Error")
     else:
@@ -1688,7 +1688,7 @@ def doProductTest(axlist=None, sxlist=None):
 
 def productByInverse(polynomial, inverse=None):
     field = BinaryExtensionModulo('z^8+z^4+z^3+z+1', loglevel=_Logger._info)
-    ring = VectorSpaceModulo("x^4+1", field, loglevel=_Logger._info)
+    ring = PolynomialRingModulo("x^4+1", field, loglevel=_Logger._info)
     productNeutralElement = ring([field(1)])
     if inverse is None:
         inverse = ~polynomial
@@ -1707,7 +1707,7 @@ def testProduct(n):
     stars = "*"*(len(header)+1)
     print("\n%s\n%s:\n%s\n" % (stars, header, stars))
 #     field = BinaryExtensionModulo('z^8+z^4+z^3+z+1', loglevel=_Logger._info)
-#     ring = VectorSpaceModulo("x^4+1", field, loglevel=_Logger._debug)
+#     ring = PolynomialRingModulo("x^4+1", field, loglevel=_Logger._debug)
 #     c_x = ring('(z+1)*x^3+x^2+x+(z)')
 #     d_x = ring('(z^3+z+1)*x^3+(z^3+z^2+1)*x^2+(z^3+1)*x+(z^3+z^2+z)')
 #     productByInverse(polynomial=c_x, inverse=d_x)
