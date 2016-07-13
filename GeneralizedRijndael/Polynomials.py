@@ -794,7 +794,7 @@ def getNu(wordSize, official=False):
 
 
 def PolynomialRingModulo(modulo, coefficients_class, variable='x',
-                      loglevel=_Logger._info):
+                         loglevel=_Logger._info):
     '''
         PolynomialRingModulo is a builder for (\mathbb{F}_{2^w})^l (or
         (GF(2^w))^l in another notation) elements. This is a polynomial made
@@ -847,7 +847,8 @@ def PolynomialRingModulo(modulo, coefficients_class, variable='x',
             Example:
             >>> import Polynomials
             >>> field = Polynomials.BinaryExtensionModulo('z^8+z^4+z^3+z+1')
-            >>> polynomialRing = Polynomials.PolynomialRingModulo('x^4+1',field)
+            >>> polynomialRing = Polynomials.PolynomialRingModulo('x^4+1',
+                                                                  field)
             >>> polynomialRing([field(1),field(6),field(9),field(3)])
             (z+1)*x^3+(z^3+1)*x^2+(z^2+z)*x+1 (mod x^4+1)
         '''
@@ -857,7 +858,8 @@ def PolynomialRingModulo(modulo, coefficients_class, variable='x',
         # - isInvertible()
         # - refactoring interpreter methods
         def __init__(self, value, *args, **kwargs):
-            super(PolynomialRingModuloConstructor, self).__init__(*args, **kwargs)
+            super(PolynomialRingModuloConstructor,
+                  self).__init__(*args, **kwargs)
             self._coefficientClass = coefficients_class
             self._variable = variable
             self._coefficients = self.__interpretCoefficients(value)
@@ -1129,7 +1131,8 @@ def PolynomialRingModulo(modulo, coefficients_class, variable='x',
 
         def __zero(self):
             zero = [self._coefficientClass(0)]*self.modulodegree
-            return PolynomialRingModuloConstructor(zero, loglevel=self.logLevel)
+            return PolynomialRingModuloConstructor(zero,
+                                                   loglevel=self.logLevel)
 
         @property
         def isOne(self):
@@ -1209,11 +1212,13 @@ def PolynomialRingModulo(modulo, coefficients_class, variable='x',
         # + Addition: ----
         def __add__(self, other):  # => a+b
             result = self.__addition__(self.coefficients, other.coefficients)
-            return PolynomialRingModuloConstructor(result, loglevel=self.logLevel)
+            return PolynomialRingModuloConstructor(result,
+                                                   loglevel=self.logLevel)
 
         def __iadd__(self, other):  # => a+=b
             result = self.__addition__(self.coefficients, other.coefficients)
-            return PolynomialRingModuloConstructor(result, loglevel=self.logLevel)
+            return PolynomialRingModuloConstructor(result,
+                                                   loglevel=self.logLevel)
 
         def __addition__(self, addend1, addend2):
             size = max(self.modulodegree, len(remainded))
@@ -1231,12 +1236,14 @@ def PolynomialRingModulo(modulo, coefficients_class, variable='x',
         def __sub__(self, other):  # => a-b
             result = self.__substraction__(self.coefficients,
                                            other.coefficients)
-            return PolynomialRingModuloConstructor(result, loglevel=self.logLevel)
+            return PolynomialRingModuloConstructor(result,
+                                                   loglevel=self.logLevel)
 
         def __isub__(self, other):  # => a-=b
             result = self.__substraction__(self.coefficients,
                                            other.coefficients)
-            return PolynomialRingModuloConstructor(result, loglevel=self.logLevel)
+            return PolynomialRingModuloConstructor(result,
+                                                   loglevel=self.logLevel)
 
         def __substraction__(self, remainded, substractor):
             size = max(self.modulodegree, len(remainded))
@@ -1273,7 +1280,7 @@ def PolynomialRingModulo(modulo, coefficients_class, variable='x',
         def __imul__(self, other):  # => a*=b
             bar = self * other
             return PolynomialRingModuloConstructor(bar.coefficients,
-                                                loglevel=self.logLevel)
+                                                   loglevel=self.logLevel)
 
         def __multiply__(self, multiplicand, multiplier):
             '''Given two polynomials, proceed with a polynomial product
@@ -1485,45 +1492,49 @@ def PolynomialRingModulo(modulo, coefficients_class, variable='x',
         def __lshift__(self, n):  # => a << n
             shifted = \
                 PolynomialRingModuloConstructor(self.coefficients +
-                                             [self._coefficientClass(0)]*n,
-                                             loglevel=self.logLevel)
+                                                [self._coefficientClass(0)]*n,
+                                                loglevel=self.logLevel)
             self._debug_stream("%s << %d = %s" % (self, n, shifted))
             return shifted
 
         def __rshift__(self, n):  # => a >> n
-            shifted = PolynomialRingModuloConstructor(self.coefficients
-                                                   [:len(self.coefficients)-n],
-                                                   loglevel=self.logLevel)
+            shifted = \
+                PolynomialRingModuloConstructor(self.coefficients
+                                                [:len(self.coefficients)-n],
+                                                loglevel=self.logLevel)
             self._debug_stream("%s >> %d = %s" % (self, n, shifted))
             return shifted
 
         def __ilshift__(self, n):  # => <<=
             shifted = \
                 PolynomialRingModuloConstructor(self.coefficients +
-                                             [self._coefficientClass(0)]*n,
-                                             loglevel=self.logLevel)
+                                                [self._coefficientClass(0)]*n,
+                                                loglevel=self.logLevel)
             self._debug_stream("%s <<= %d = %s" % (self, n, shifted))
             return shifted
 
         def __irshift__(self, n):  # => >>=
-            shifted = PolynomialRingModuloConstructor(self.coefficients
-                                                   [:len(self.coefficients)-n],
-                                                   loglevel=self.logLevel)
+            shifted = \
+                PolynomialRingModuloConstructor(self.coefficients
+                                                [:len(self.coefficients)-n],
+                                                loglevel=self.logLevel)
             self._debug_stream("%s >>= %d = %s" % (self, n, shifted))
             return shifted
 
         def _cyclic_lshift_(self, n):
-            shifted = PolynomialRingModuloConstructor(self._coefficients[n:] +
-                                                   self._coefficients[:n],
-                                                   loglevel=self.logLevel)
+            shifted = \
+                PolynomialRingModuloConstructor(self._coefficients[n:] +
+                                                self._coefficients[:n],
+                                                loglevel=self.logLevel)
             self._debug_stream("%s <<> %d = %s" % (self, n, shifted))
             return shifted
 
         def _cyclic_rshift_(self, n):
             l = len(self._coefficients)
-            shifted = PolynomialRingModuloConstructor(self._coefficients[l-n:] +
-                                                   self._coefficients[:l-n],
-                                                   loglevel=self.logLevel)
+            shifted = \
+                PolynomialRingModuloConstructor(self._coefficients[l-n:] +
+                                                self._coefficients[:l-n],
+                                                loglevel=self.logLevel)
             self._debug_stream("%s <>> %d = %s" % (self, n, shifted))
             return shifted
         # End class PolynomialRingModuloConstructor ----
@@ -1670,7 +1681,8 @@ def doProductTest(axlist=None, sxlist=None):
     foo = bar.product(axlist, state)
     foox = ring([field(i) for i in foo[0]])
     if rx != foox:
-        print("\t\tError!! Results using PolynomialRingModulo != PolynomialRing "
+        print("\t\tError!! Results using "
+              "PolynomialRingModulo != PolynomialRing "
               "implementations:\n\t\t\t%s != %s" % (hex(rx), hex(foox)))
         return (False, "Error")
     else:

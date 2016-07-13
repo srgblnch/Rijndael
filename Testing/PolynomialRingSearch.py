@@ -49,8 +49,9 @@ class SimulatedAnheling(_Logger):
                           % (self._field(0).modulo))
         self._polynomialRingSize = polynomialRingSize
         polynomialRingModulo = "x^%d+1" % (polynomialRingSize)
-        self._polynomialRing = PolynomialRingModulo(polynomialRingModulo, self._field,
-                                              loglevel=self.logLevel)
+        self._polynomialRing = PolynomialRingModulo(polynomialRingModulo,
+                                                    self._field,
+                                                    loglevel=self.logLevel)
         zero = [0]*self._polynomialRingSize
         self._info_stream("Build the polynomial ring modulo l(x)=%s"
                           % (self._polynomialRing(zero).modulo))
@@ -77,10 +78,13 @@ class SimulatedAnheling(_Logger):
                 self._testNextpolynomialRingGenNew = 0.99
                 # reset this probability of the region search
                 inTheArea = 0
-            self._debug_stream("Testing: %s" % (hex(self._polynomialCandidate)))
+            self._debug_stream("Testing: %s"
+                               % (hex(self._polynomialCandidate)))
         self._info_stream("Winner: %s" % (self._polynomialCandidate))
-        self._info_stream("Hex notation: %s" % (hex(self._polynomialCandidate)))
-        self._info_stream("%d tested polynomialss" % (len(self._testedPolynomials)))
+        self._info_stream("Hex notation: %s"
+                          % (hex(self._polynomialCandidate)))
+        self._info_stream("%d tested polynomialss"
+                          % (len(self._testedPolynomials)))
         return self._polynomialCandidate
 
     def __generatePolynomial(self):
@@ -91,7 +95,7 @@ class SimulatedAnheling(_Logger):
         while self._polynomialCandidate is None or \
                 self._polynomialCandidate in self._testedPolynomials:
             polynomial = [self._field(randint(0, 2**self._fieldSize))
-                      for i in range(self._polynomialRingSize)]
+                          for i in range(self._polynomialRingSize)]
             self._polynomialCandidate = self._polynomialRing(polynomial)
             self._debug_stream("Generating a random polynomial: %r"
                                % (self._polynomialCandidate))
@@ -114,7 +118,8 @@ class SimulatedAnheling(_Logger):
         self._polynomialCandidate = newCandidate
 
     def __test(self):
-        # self._debug_stream("%d tested polynomials" % (len(self._testedPolynomials)))
+        # self._debug_stream("%d tested polynomials"
+        #                    % (len(self._testedPolynomials)))
         # TODO: Check if it is invertible
         # TODO: What other requerements can be made for those candidates?
         self._testedPolynomials.append(self._polynomialCandidate)
