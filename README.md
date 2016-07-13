@@ -78,7 +78,7 @@ rijndael128.sbox.Field, rijndael128.sbox.Ring, rijndael128.sbox.Mu, rijndael128.
 And details about the *MixColumns* maths:
 
 ```python
-rijndael128.mixColumns.VectorSpaceModulo, rijndael128.mixColumns.SubfieldModulo, rijndael128.mixColumns.Cx, rijndael128.mixColumns.Dx
+rijndael128.mixColumns.PolynomialRingModulo, rijndael128.mixColumns.SubfieldModulo, rijndael128.mixColumns.Cx, rijndael128.mixColumns.Dx
 ('x^4+1',
  'z^8+z^4+z^3+z+1',
  '0x3x^3+x^2+x+0x2',
