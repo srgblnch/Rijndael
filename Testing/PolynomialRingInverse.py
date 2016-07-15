@@ -8,9 +8,9 @@ vSpace = GeneralizedRijndael.Polynomials.PolynomialRingModulo('x^4+1', field)
 # b = vSpace([0,0,0,3])
 # a.logLevel = 4
 c = vSpace('(z+1)*x^3+x^2+x+(z)')
-print("c = %s %s" % (c, hex(c)))
+print("c = %s = %s" % (c, hex(c)))
 d = vSpace('(z^3+z+1)*x^3+(z^3+z^2+1)*x^2+(z^3+1)*x+(z^3+z^2+z)')
-print("d = %s %s" % (d, hex(d)))
+print("d = %s = %s" % (d, hex(d)))
 # c.logLevel = 4
 try:
     # print("\nc*d = %s * %s = %s\n" % (c, d, c*d))

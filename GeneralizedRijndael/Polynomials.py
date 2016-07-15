@@ -1461,6 +1461,7 @@ def PolynomialRingModulo(modulo, coefficients_class, variable='x',
                previous division. As here the division method returns both,
                the next product and substraction is not needed for r.
             '''
+            logInHexa = True
             zero = [self._coefficientClass(0)]
             r = []
             r.append(a)
@@ -1472,49 +1473,49 @@ def PolynomialRingModulo(modulo, coefficients_class, variable='x',
             t.append([self._coefficientClass(0)])
             t.append([self._coefficientClass(1)])
             i = 1
-            while r[i] != zero:
+            while r[-1] != zero:
                 self._info_stream("Iteration %d" % i)
                 # q = r_{i-1} / r_{i}
                 quotient, reminder = self.__divideBy__(r[-2], r[-1])
-                qStr = self.__interpretToStr__(quotient, hexSubfield=True)
+                qStr = self.__interpretToStr__(quotient, hexSubfield=logInHexa)
                 self._info_stream("\tquotient: %s" % qStr)
                 # r_{i+1} = r_{i-1} - q*r_{i}
                 r.append(reminder)
-                rStr = self.__interpretToStr__(r[-1], hexSubfield=True)
-                self._info_stream("\tremainder: %s" % rStr)
+                rStr = self.__interpretToStr__(r[-1], hexSubfield=logInHexa)
+                self._info_stream("\tr_%d: %s" % (i+1,rStr))
                 # s_{i+1} = s_{i-1} - q*s_{i}
-                sStr = self.__interpretToStr__(s[-1], hexSubfield=True) 
+                sStr = self.__interpretToStr__(s[-1], hexSubfield=logInHexa) 
                 qsi = self.__multiply__(quotient, s[-1])
-                qsiStr = self.__interpretToStr__(qsi, hexSubfield=True)
-                self._info_stream("\t\tq*s[i]: %s * %s = %s"
-                                  % (qStr, sStr, qsiStr))
+                qsiStr = self.__interpretToStr__(qsi, hexSubfield=logInHexa)
+                self._info_stream("\t\tq*s_%d: %s * %s = %s"
+                                  % (i, qStr, sStr, qsiStr))
                 s.append(self.__substraction__(s[-2], qsi))
-                sStr = self.__interpretToStr__(s[-1], hexSubfield=True)
-                self._info_stream("\ts: %s - %s = %s"
-                                  % (self.__interpretToStr__(s[-3], hexSubfield=True),
-                                     self.__interpretToStr__(qsi, hexSubfield=True),
+                sStr = self.__interpretToStr__(s[-1], hexSubfield=logInHexa)
+                self._info_stream("\ts_%d: %s - %s = %s"
+                                  % (i+1, self.__interpretToStr__(s[-3], hexSubfield=logInHexa),
+                                     self.__interpretToStr__(qsi, hexSubfield=logInHexa),
                                      sStr))
                 # t_{i+1} = t_{i-1} - q*t_{i}
-                tStr = self.__interpretToStr__(t[-1], hexSubfield=True)
+                tStr = self.__interpretToStr__(t[-1], hexSubfield=logInHexa)
                 qti = self.__multiply__(quotient, t[-1])
-                qtiStr = self.__interpretToStr__(qti, hexSubfield=True)
-                self._info_stream("\t\tq*t[i]: %s * %s = %s"
-                                  % (qStr, tStr, qtiStr))
+                qtiStr = self.__interpretToStr__(qti, hexSubfield=logInHexa)
+                self._info_stream("\t\tq*t%d: %s * %s = %s"
+                                  % (i, qStr, tStr, qtiStr))
                 t.append(self.__substraction__(t[-2], qti))
-                tStr = self.__interpretToStr__(t[-1], hexSubfield=True)
-                self._info_stream("\tt: %s" % tStr)
+                tStr = self.__interpretToStr__(t[-1], hexSubfield=logInHexa)
+                self._info_stream("\tt_%d: %s" % (i+1, tStr))
                 i += 1
-            g = r[i-1]
-            u = s[i-1]
-            v = t[i-1]
+            g = r[-2]
+            u = s[-2]
+            v = t[-2]
             self._info_stream("Bezout's identity:"
                               " a(x) * u(x) + b(x) * v(x) = g(x)")
             self._info_stream("\t%s * %s + %s * %s = %s"
-                              % (self.__interpretToStr__(a, hexSubfield=True),
-                                 self.__interpretToStr__(u, hexSubfield=True),
-                                 self.__interpretToStr__(b, hexSubfield=True),
-                                 self.__interpretToStr__(v, hexSubfield=True),
-                                 self.__interpretToStr__(g, hexSubfield=True)))
+                              % (self.__interpretToStr__(a, hexSubfield=logInHexa),
+                                 self.__interpretToStr__(u, hexSubfield=logInHexa),
+                                 self.__interpretToStr__(b, hexSubfield=logInHexa),
+                                 self.__interpretToStr__(v, hexSubfield=logInHexa),
+                                 self.__interpretToStr__(g, hexSubfield=logInHexa)))
             return g, u, v
 
         # <<>> Shifts ----
