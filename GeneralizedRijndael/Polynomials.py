@@ -1400,9 +1400,10 @@ def PolynomialRingModulo(modulo, coefficients_class, variable='x',
 
         def __multiplicativeInverse__(self):
             '''Multiplicative inverse based on ...
-               Input: <integer> a (polynomial bit representation)
-                      <integer> m (modulo polynomial)
+               Input: <coefficients list> a (polynomial to invert)
+                      <coefficients list> m (modulo)
                Output: <integer> a^-1: a*a^-1 = 1 (mod m)
+               "coefficients list" means "little endian list of coefficients"
                This it the first of the two transformations for the SBoxes
                in the subBytes operation, the one called called g.
             '''
@@ -1435,15 +1436,33 @@ def PolynomialRingModulo(modulo, coefficients_class, variable='x',
             return PolynomialRingModuloConstructor(gcd)
 
         def __egcd__(self, a, b):
-            '''https://en.wikipedia.org/wiki/Polynomial_greatest_common_divisor#B.C3.A9zout.27s_identity_and_extended_GCD_algorithm
-               Input: <list> a (little endian list of coefficients)
-                      <list> b (little endian list of coefficients)
-               Output: <list> gcd (little endian list of coefficients)
-                       <list> u (little endian list of coefficients)
-                       <list> v (little endian list of coefficients)
+            logInHexa = True
+            g1, u1, v1 = self.__egcd__v1(a, b)
+            g1Str = self.__interpretToStr__(g1, hexSubfield=logInHexa)
+            u1Str = self.__interpretToStr__(u1, hexSubfield=logInHexa)
+            v1Str = self.__interpretToStr__(v1, hexSubfield=logInHexa)
+            g2, u2, v2 = self.__egcd__v2(a, b)
+            g2Str = self.__interpretToStr__(g2, hexSubfield=logInHexa)
+            u2Str = self.__interpretToStr__(u2, hexSubfield=logInHexa)
+            v2Str = self.__interpretToStr__(v2, hexSubfield=logInHexa)
+            self._info_stream("g -> %s ?= %s" % (g1Str, g2Str))
+            self._info_stream("u -> %s ?= %s" % (u1Str, u2Str))
+            self._info_stream("v -> %s ?= %s" % (v1Str, v2Str))
+            return g2, u2, v2
+
+        def __egcd__v1(self, a, b):
+            '''https://en.wikipedia.org/wiki/
+            Polynomial_greatest_common_divisor#B.C3.A9zout.
+            27s_identity_and_extended_GCD_algorithm
+               Input: <coefficients list> a
+                      <coefficients list> b
+               Output: <coefficients list> gcd
+                       <coefficients list> u
+                       <coefficients list> v
+               "coefficients list" means "little endian list of coefficients"
                The binary polynomials x, y are for the B\'ezout's identity:
                $u(x)$, $v(x)$ such that $a(x)\times u(x)+b(x)\times v(x)=g(x)$
-
+ 
                 \STATE $r_0 = a$\qquad $r_1 = b$
                 \STATE $s_0 = 1$\qquad $s_1 = 0$
                 \STATE $t_0 = 0$\qquad $t_1 = 1$
@@ -1516,6 +1535,51 @@ def PolynomialRingModulo(modulo, coefficients_class, variable='x',
                                  self.__interpretToStr__(b, hexSubfield=logInHexa),
                                  self.__interpretToStr__(v, hexSubfield=logInHexa),
                                  self.__interpretToStr__(g, hexSubfield=logInHexa)))
+            return g, u, v
+
+        def __egcd__v2(self, f, m):
+            '''Extended Euclidean gcd (Greatest Common Divisor) Algorithm
+               From Henri Cohen and Gerhard Frey "Handbook of Elliptic and 
+               Hyperelliptic Curve Cryptography" Algorithm 11.41.
+               Input: <coefficients list> f
+                      <coefficients list> m
+               Output: <coefficients list> gcd
+                       <coefficients list> x
+                       <coefficients list> y
+               "coefficients list" means "little endian list of coefficients"
+            '''
+            logInHexa = True
+            fStr = self.__interpretToStr__(f, hexSubfield=logInHexa)
+            mStr = self.__interpretToStr__(m, hexSubfield=logInHexa)
+            self._info_stream("egcd(%s, %s)" % (fStr, mStr))
+            zero = [self._coefficientClass(0)]
+            u = [self._coefficientClass(1)]
+            v = [self._coefficientClass(0)]
+            s = m
+            g = f
+            while s != zero:
+                # g = q*s + r
+                gStr = self.__interpretToStr__(g, hexSubfield=logInHexa)
+                sStr = self.__interpretToStr__(s, hexSubfield=logInHexa)
+                self._info_stream("g / s = %s / %s" % (gStr, sStr))
+                q, r = self.__divideBy__(g, s)
+                qStr = self.__interpretToStr__(q, hexSubfield=logInHexa)
+                rStr = self.__interpretToStr__(r, hexSubfield=logInHexa)
+                self._info_stream("%s = %s * %s + %s" % (gStr, qStr,
+                                                         sStr, rStr))
+                # t = u - v*q
+                t = self.__substraction__(u, self.__multiply__(v, q))
+                tStr = self.__interpretToStr__(t, hexSubfield=logInHexa)
+                self._info_stream("t = u - v * q = %s" % (tStr))
+                u = v
+                g = s
+                v = t
+                s = self.__normalizePolynomial__(r)
+                sStr = self.__interpretToStr__(s, hexSubfield=logInHexa)
+                self._info_stream("s = %s (%d)" % (sStr, len(s)))
+            # v = (g - f*u) / m
+            v, _ = self.__divideBy__\
+                (self.__substraction__(g, self.__multiply__(f, u)),m)
             return g, u, v
 
         # <<>> Shifts ----
