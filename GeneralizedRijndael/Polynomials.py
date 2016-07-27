@@ -1586,6 +1586,16 @@ def PolynomialRingModulo(modulo, coefficients_class, variable='x',
             # v = (g - f*u) / m
             v, _ = self.__divideBy__\
                 (self.__substraction__(g, self.__multiply__(f, u)),m)
+            vStr = self.__interpretToStr__(v, hexSubfield=logInHexa)
+            gStr = self.__interpretToStr__(g, hexSubfield=logInHexa)
+            fStr = self.__interpretToStr__(f, hexSubfield=logInHexa)
+            uStr = self.__interpretToStr__(u, hexSubfield=logInHexa)
+            mStr = self.__interpretToStr__(m, hexSubfield=logInHexa)
+            self._info_stream("\tg = %s" % gStr)
+            self._info_stream("\tf = %s" % fStr)
+            self._info_stream("\tu = %s" % uStr)
+            self._info_stream("\tm = %s" % mStr)
+            self._info_stream("\tv = (g - f*u) / m = %s" % vStr)
             return g, u, v
 
         def __egcd__v3(self, a, b):
