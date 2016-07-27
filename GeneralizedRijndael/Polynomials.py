@@ -1445,7 +1445,9 @@ def PolynomialRingModulo(modulo, coefficients_class, variable='x',
             g2Str = self.__interpretToStr__(g2, hexSubfield=logInHexa)
             u2Str = self.__interpretToStr__(u2, hexSubfield=logInHexa)
             v2Str = self.__interpretToStr__(v2, hexSubfield=logInHexa)
-            self._info_stream("g -> %s ?= %s" % (g1Str, g2Str))
+            g3, u3, v3 = self.__egcd__v3(a, b)
+            g3Str = self.__interpretToStr__(g3, hexSubfield=logInHexa)
+            self._info_stream("g -> %s ?= %s ?= %s" % (g1Str, g2Str, g3Str))
             self._info_stream("u -> %s ?= %s" % (u1Str, u2Str))
             self._info_stream("v -> %s ?= %s" % (v1Str, v2Str))
             return g2, u2, v2
@@ -1460,9 +1462,8 @@ def PolynomialRingModulo(modulo, coefficients_class, variable='x',
                        <coefficients list> u
                        <coefficients list> v
                "coefficients list" means "little endian list of coefficients"
-               The binary polynomials x, y are for the B\'ezout's identity:
+               The binary polynomials u, v are for the B\'ezout's identity:
                $u(x)$, $v(x)$ such that $a(x)\times u(x)+b(x)\times v(x)=g(x)$
- 
                 \STATE $r_0 = a$\qquad $r_1 = b$
                 \STATE $s_0 = 1$\qquad $s_1 = 0$
                 \STATE $t_0 = 0$\qquad $t_1 = 1$
@@ -1547,6 +1548,16 @@ def PolynomialRingModulo(modulo, coefficients_class, variable='x',
                        <coefficients list> x
                        <coefficients list> y
                "coefficients list" means "little endian list of coefficients"
+               The binary polynomials u, v are for the B\'ezout's identity:
+               $u(x)$, $v(x)$ such that $f(x)\times u(x)+m(x)\times v(x)=g(x)$
+                \STATE u = 1; v = 0; s = m; g = f
+                \WHILE{$s \neq 0$}
+                \STATE $g = q \times s +r$
+                \STATE $t = u - v \times q$
+                \STATE u = v; g = s; v = t
+                \ENDWHILE
+                \STATE $v = (g - f \times u) / m$
+                \RETURN $(g,u,v)$
             '''
             logInHexa = True
             fStr = self.__interpretToStr__(f, hexSubfield=logInHexa)
@@ -1557,30 +1568,42 @@ def PolynomialRingModulo(modulo, coefficients_class, variable='x',
             v = [self._coefficientClass(0)]
             s = m
             g = f
+            i = 1
             while s != zero:
+                self._info_stream("Iteration %d" % i)
                 # g = q*s + r
                 gStr = self.__interpretToStr__(g, hexSubfield=logInHexa)
                 sStr = self.__interpretToStr__(s, hexSubfield=logInHexa)
-                self._info_stream("g / s = %s / %s" % (gStr, sStr))
+                self._info_stream("\tg / s = %s / %s" % (gStr, sStr))
                 q, r = self.__divideBy__(g, s)
                 qStr = self.__interpretToStr__(q, hexSubfield=logInHexa)
                 rStr = self.__interpretToStr__(r, hexSubfield=logInHexa)
-                self._info_stream("%s = %s * %s + %s" % (gStr, qStr,
+                self._info_stream("\t%s = %s * %s + %s" % (gStr, qStr,
                                                          sStr, rStr))
                 # t = u - v*q
                 t = self.__substraction__(u, self.__multiply__(v, q))
                 tStr = self.__interpretToStr__(t, hexSubfield=logInHexa)
-                self._info_stream("t = u - v * q = %s" % (tStr))
+                self._info_stream("\tt = u - v * q = %s" % (tStr))
                 u = v
                 g = s
                 v = t
                 s = self.__normalizePolynomial__(r)
                 sStr = self.__interpretToStr__(s, hexSubfield=logInHexa)
-                self._info_stream("s = %s (%d)" % (sStr, len(s)))
+                self._info_stream("\ts = %s (%d)" % (sStr, len(s)))
+                i += 1
             # v = (g - f*u) / m
             v, _ = self.__divideBy__\
                 (self.__substraction__(g, self.__multiply__(f, u)),m)
             return g, u, v
+
+        def __egcd__v3(self, a, b):
+            '''Recursive approach to calculate the gcd.'''
+            if b != [self._coefficientClass(0)]:
+                q, r = self.__divideBy__(a, b)
+                g, _, _ = self.__egcd__v3(b, r)
+            else:
+                g = a
+            return g, None, None
 
         # <<>> Shifts ----
         def __lshift__(self, n):  # => a << n
