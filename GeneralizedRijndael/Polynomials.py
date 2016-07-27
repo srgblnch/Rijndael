@@ -1437,14 +1437,17 @@ def PolynomialRingModulo(modulo, coefficients_class, variable='x',
 
         def __egcd__(self, a, b):
             logInHexa = True
+            self._info_stream("wikipedia's algorithm")
             g1, u1, v1 = self.__egcd__v1(a, b)
             g1Str = self.__interpretToStr__(g1, hexSubfield=logInHexa)
             u1Str = self.__interpretToStr__(u1, hexSubfield=logInHexa)
             v1Str = self.__interpretToStr__(v1, hexSubfield=logInHexa)
+            self._info_stream("Cohen's book algorithm")
             g2, u2, v2 = self.__egcd__v2(a, b)
             g2Str = self.__interpretToStr__(g2, hexSubfield=logInHexa)
             u2Str = self.__interpretToStr__(u2, hexSubfield=logInHexa)
             v2Str = self.__interpretToStr__(v2, hexSubfield=logInHexa)
+            self._info_stream("Recursive approach (only gcd without Bezout)")
             g3, u3, v3 = self.__egcd__v3(a, b)
             g3Str = self.__interpretToStr__(g3, hexSubfield=logInHexa)
             self._info_stream("g -> %s ?= %s ?= %s" % (g1Str, g2Str, g3Str))
@@ -1494,43 +1497,32 @@ def PolynomialRingModulo(modulo, coefficients_class, variable='x',
             t.append([self._coefficientClass(1)])
             i = 1
             while r[-1] != zero:
-                self._info_stream("Iteration %d" % i)
+                self._info_stream("\tIteration %d" % i)
                 # q = r_{i-1} / r_{i}
                 quotient, reminder = self.__divideBy__(r[-2], r[-1])
                 qStr = self.__interpretToStr__(quotient, hexSubfield=logInHexa)
-                self._info_stream("\tquotient: %s" % qStr)
+                self._info_stream("\t\tquotient: %s" % qStr)
                 # r_{i+1} = r_{i-1} - q*r_{i}
                 r.append(reminder)
                 rStr = self.__interpretToStr__(r[-1], hexSubfield=logInHexa)
-                self._info_stream("\tr_%d: %s" % (i+1,rStr))
+                self._info_stream("\t\tr_%d: %s" % (i+1,rStr))
                 # s_{i+1} = s_{i-1} - q*s_{i}
-                sStr = self.__interpretToStr__(s[-1], hexSubfield=logInHexa) 
                 qsi = self.__multiply__(quotient, s[-1])
-                qsiStr = self.__interpretToStr__(qsi, hexSubfield=logInHexa)
-                self._info_stream("\t\tq*s_%d: %s * %s = %s"
-                                  % (i, qStr, sStr, qsiStr))
                 s.append(self.__substraction__(s[-2], qsi))
                 sStr = self.__interpretToStr__(s[-1], hexSubfield=logInHexa)
-                self._info_stream("\ts_%d: %s - %s = %s"
-                                  % (i+1, self.__interpretToStr__(s[-3], hexSubfield=logInHexa),
-                                     self.__interpretToStr__(qsi, hexSubfield=logInHexa),
-                                     sStr))
+                self._info_stream("\t\ts_%d: %s" % (i+1, sStr))
                 # t_{i+1} = t_{i-1} - q*t_{i}
-                tStr = self.__interpretToStr__(t[-1], hexSubfield=logInHexa)
                 qti = self.__multiply__(quotient, t[-1])
-                qtiStr = self.__interpretToStr__(qti, hexSubfield=logInHexa)
-                self._info_stream("\t\tq*t%d: %s * %s = %s"
-                                  % (i, qStr, tStr, qtiStr))
                 t.append(self.__substraction__(t[-2], qti))
                 tStr = self.__interpretToStr__(t[-1], hexSubfield=logInHexa)
-                self._info_stream("\tt_%d: %s" % (i+1, tStr))
+                self._info_stream("\t\tt_%d: %s" % (i+1, tStr))
                 i += 1
             g = r[-2]
             u = s[-2]
             v = t[-2]
-            self._info_stream("Bezout's identity:"
+            self._info_stream("\tBezout's identity:"
                               " a(x) * u(x) + b(x) * v(x) = g(x)")
-            self._info_stream("\t%s * %s + %s * %s = %s"
+            self._info_stream("\t\t%s * %s + %s * %s = %s"
                               % (self.__interpretToStr__(a, hexSubfield=logInHexa),
                                  self.__interpretToStr__(u, hexSubfield=logInHexa),
                                  self.__interpretToStr__(b, hexSubfield=logInHexa),
@@ -1562,7 +1554,7 @@ def PolynomialRingModulo(modulo, coefficients_class, variable='x',
             logInHexa = True
             fStr = self.__interpretToStr__(f, hexSubfield=logInHexa)
             mStr = self.__interpretToStr__(m, hexSubfield=logInHexa)
-            self._info_stream("egcd(%s, %s)" % (fStr, mStr))
+            self._info_stream("\tegcd(%s, %s)" % (fStr, mStr))
             zero = [self._coefficientClass(0)]
             u = [self._coefficientClass(1)]
             v = [self._coefficientClass(0)]
@@ -1570,26 +1562,26 @@ def PolynomialRingModulo(modulo, coefficients_class, variable='x',
             g = f
             i = 1
             while s != zero:
-                self._info_stream("Iteration %d" % i)
+                self._info_stream("\tIteration %d" % i)
                 # g = q*s + r
                 gStr = self.__interpretToStr__(g, hexSubfield=logInHexa)
                 sStr = self.__interpretToStr__(s, hexSubfield=logInHexa)
-                self._info_stream("\tg / s = %s / %s" % (gStr, sStr))
+                self._info_stream("\t\tg / s = %s / %s" % (gStr, sStr))
                 q, r = self.__divideBy__(g, s)
                 qStr = self.__interpretToStr__(q, hexSubfield=logInHexa)
                 rStr = self.__interpretToStr__(r, hexSubfield=logInHexa)
-                self._info_stream("\t%s = %s * %s + %s" % (gStr, qStr,
+                self._info_stream("\t\t%s = %s * %s + %s" % (gStr, qStr,
                                                          sStr, rStr))
                 # t = u - v*q
                 t = self.__substraction__(u, self.__multiply__(v, q))
                 tStr = self.__interpretToStr__(t, hexSubfield=logInHexa)
-                self._info_stream("\tt = u - v * q = %s" % (tStr))
+                self._info_stream("\t\tt = u - v * q = %s" % (tStr))
                 u = v
                 g = s
                 v = t
                 s = self.__normalizePolynomial__(r)
                 sStr = self.__interpretToStr__(s, hexSubfield=logInHexa)
-                self._info_stream("\ts = %s (%d)" % (sStr, len(s)))
+                self._info_stream("\t\ts = %s (%d)" % (sStr, len(s)))
                 i += 1
             # v = (g - f*u) / m
             v, _ = self.__divideBy__\
@@ -1598,8 +1590,18 @@ def PolynomialRingModulo(modulo, coefficients_class, variable='x',
 
         def __egcd__v3(self, a, b):
             '''Recursive approach to calculate the gcd.'''
+            logInHexa = True
             if b != [self._coefficientClass(0)]:
                 q, r = self.__divideBy__(a, b)
+                aStr = self.__interpretToStr__(a, hexSubfield=logInHexa)
+                bStr = self.__interpretToStr__(b, hexSubfield=logInHexa)
+                rStr = self.__interpretToStr__(r, hexSubfield=logInHexa)
+                if r != [self._coefficientClass(0)]:
+                    self._info_stream("\tgcd(%s,%s) = gcd(%s,%s)"
+                                      % (aStr, bStr, bStr, rStr))
+                else:
+                    self._info_stream("\tgcd(%s,%s) = %s"
+                                      % (aStr, bStr, bStr))
                 g, _, _ = self.__egcd__v3(b, r)
             else:
                 g = a
