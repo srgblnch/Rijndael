@@ -1683,9 +1683,14 @@ def PolynomialRingModulo(modulo, coefficients_class, variable='x',
                The binary polynomials u, v are for the B\'ezout's identity:
                $u(x)$, $v(x)$ such that $a(x)\times u(x)+b(x)\times v(x)=g(x)$
             '''
+            logInHexa = True
             zero = [self._coefficientClass(0)]
             a = self.__normalizePolynomial__(a)
+            aStr = self.__interpretToStr__(a, hexSubfield=logInHexa)
+            self._info_stream("\ta = %s" % (aStr))
             b = self.__normalizePolynomial__(b)
+            bStr = self.__interpretToStr__(b, hexSubfield=logInHexa)
+            self._info_stream("\tb = %s" % (bStr))
             if b == zero:
                 if a == zero:
                     return (zero, zero, zero)
@@ -1701,23 +1706,55 @@ def PolynomialRingModulo(modulo, coefficients_class, variable='x',
                 v = [c]
             else:
                 (u, d, v1, v3) = ([self._coefficientClass(1)], a, zero, b)
+                uStr = self.__interpretToStr__(u, hexSubfield=logInHexa)
+                self._info_stream("\tu = %s" % (uStr))
+                dStr = self.__interpretToStr__(d, hexSubfield=logInHexa)
+                self._info_stream("\td = %s" % (dStr))
+                v1Str = self.__interpretToStr__(v1, hexSubfield=logInHexa)
+                self._info_stream("\tv1 = %s" % (v1Str))
+                v3Str = self.__interpretToStr__(v3, hexSubfield=logInHexa)
+                self._info_stream("\tv3 = %s" % (v3Str))
+                i = 1
                 while v3 != zero:
+                    self._info_stream("\tIteration %d" % i)
                     q, r = self.__divideBy__(d, v3)
+                    dStr = self.__interpretToStr__(d, hexSubfield=logInHexa)
+                    v3Str = self.__interpretToStr__(v3, hexSubfield=logInHexa)
+                    qStr = self.__interpretToStr__(q, hexSubfield=logInHexa)
+                    rStr = self.__interpretToStr__(r, hexSubfield=logInHexa)
+                    self._info_stream("\t\t%s = %s * %s + %s" % (dStr, qStr,
+                                                         v3Str, rStr))
                     (u, d, v1, v3) = \
                         (v1, v3, self.__substraction__(u,
                                                        self.__multiply__(v1,
                                                                          q)),
                          r)
+                    uStr = self.__interpretToStr__(u, hexSubfield=logInHexa)
+                    self._info_stream("\t\tu = %s" % (uStr))
+                    dStr = self.__interpretToStr__(d, hexSubfield=logInHexa)
+                    self._info_stream("\t\td = %s" % (dStr))
+                    v1Str = self.__interpretToStr__(v1, hexSubfield=logInHexa)
+                    self._info_stream("\t\tv1 = %s" % (v1Str))
+                    v3Str = self.__interpretToStr__(v3, hexSubfield=logInHexa)
+                    self._info_stream("\t\tv3 = %s" % (v3Str))
+                    i += 1
                 v, _ = \
                     self.__divideBy__(self.__substraction__(d,
                                                             self.__multiply__(a,
                                                                               u)),
                                       b)
                 if d == zero:
+                    self._info_stream("d == zero")
                     c = ~d[-1]
                     d, u, v = self.__multiply__(c, d),\
                               self.__multiply__(c, u),\
                               self.__multiply__(c, v)
+                dStr = self.__interpretToStr__(d, hexSubfield=logInHexa)
+                self._info_stream("\td = %s" % (dStr))
+                uStr = self.__interpretToStr__(u, hexSubfield=logInHexa)
+                self._info_stream("\tu = %s" % (uStr))
+                vStr = self.__interpretToStr__(v, hexSubfield=logInHexa)
+                self._info_stream("\tv = %s" % (vStr))
             return d, u, v
 
         # <<>> Shifts ----
