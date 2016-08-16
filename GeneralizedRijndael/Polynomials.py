@@ -1442,18 +1442,33 @@ def PolynomialRingModulo(modulo, coefficients_class, variable='x',
             g1Str = self.__interpretToStr__(g1, hexSubfield=logInHexa)
             u1Str = self.__interpretToStr__(u1, hexSubfield=logInHexa)
             v1Str = self.__interpretToStr__(v1, hexSubfield=logInHexa)
+            # ---
             self._info_stream("Cohen's book algorithm")
             g2, u2, v2 = self.__egcd__v2(a, b)
             g2Str = self.__interpretToStr__(g2, hexSubfield=logInHexa)
             u2Str = self.__interpretToStr__(u2, hexSubfield=logInHexa)
             v2Str = self.__interpretToStr__(v2, hexSubfield=logInHexa)
+            # ---
             self._info_stream("Recursive approach (only gcd without Bezout)")
             g3, u3, v3 = self.__egcd__v3(a, b)
             g3Str = self.__interpretToStr__(g3, hexSubfield=logInHexa)
-            self._info_stream("g -> %s ?= %s ?= %s" % (g1Str, g2Str, g3Str))
-            self._info_stream("u -> %s ?= %s" % (u1Str, u2Str))
-            self._info_stream("v -> %s ?= %s" % (v1Str, v2Str))
-            return g2, u2, v2
+            # ---
+            self._info_stream("Another Cohen's book algorithm")
+            g4, u4, v4 = self.__egcd__v4(a, b)
+            g4Str = self.__interpretToStr__(g4, hexSubfield=logInHexa)
+            u4Str = self.__interpretToStr__(u4, hexSubfield=logInHexa)
+            v4Str = self.__interpretToStr__(v4, hexSubfield=logInHexa)
+            # ---
+            self._info_stream("Let's try with sage code")
+            g5, u5, v5 = self.__egcd__v5(a, b)
+            g5Str = self.__interpretToStr__(g5, hexSubfield=logInHexa)
+            u5Str = self.__interpretToStr__(u5, hexSubfield=logInHexa)
+            v5Str = self.__interpretToStr__(v5, hexSubfield=logInHexa)
+            # ---
+            self._info_stream("g -> %s ?= %s ?= %s ?= %s ?= %s" % (g1Str, g2Str, g3Str, g4Str, g5Str))
+            self._info_stream("u -> %s ?= %s ?= %s ?= %s" % (u1Str, u2Str, u4Str, u5Str))
+            self._info_stream("v -> %s ?= %s ?= %s ?= %s" % (v1Str, v2Str, v4Str, v5Str))
+            return g5, u5, v5
 
         def __egcd__v1(self, a, b):
             '''https://en.wikipedia.org/wiki/
@@ -1616,6 +1631,94 @@ def PolynomialRingModulo(modulo, coefficients_class, variable='x',
             else:
                 g = a
             return g, None, None
+
+        def __egcd__v4(self, a, b):
+            '''Extended Euclidean gcd (Greatest Common Divisor) Algorithm
+               From Henri Cohen "A course in computational algebraic number
+               theory" Algorithm 3.2.2
+               Input: <coefficients list> a
+                      <coefficients list> b
+               Output: <coefficients list> gcd
+                       <coefficients list> u
+                       <coefficients list> v
+               "coefficients list" means "little endian list of coefficients"
+               The binary polynomials u, v are for the B\'ezout's identity:
+               $u(x)$, $v(x)$ such that $a(x)\times u(x)+b(x)\times v(x)=g(x)$
+                \STATE u = 1; d = a; v_1 = 0; v_3 = b
+                \WHILE{v_3 \neq 0}
+                \STATE $d = q*v_3 + r$
+                \STATE $t = u - v_1*q$
+                \STATE u = v_1; d = v_3; v_1 = t; v_3 = r
+                \ENDWHILE
+                \STATE v = (d - a*u)/b
+                \RETURN $(d,u,v)$
+            '''
+            if self.__normalizePolynomial__(b) == [self._coefficientClass(0)]:
+                return a, [self._coefficientClass(1)],\
+                    [self._coefficientClass(0)]
+            u = [self._coefficientClass(1)]
+            d = a
+            v_1 = [self._coefficientClass(0)]
+            v_3 = b
+            while (self.__normalizePolynomial__(v_3) != [self._coefficientClass(0)]):
+                q, r = self.__divideBy__(d, v_3)
+                t = self.__substraction__(u, self.__multiply__(v_1, q))
+                u = v_1
+                d = v_3
+                v_1 = t
+                v_3 = r
+            v, _ = self.__divideBy__(self.__substraction__(d, self.__multiply__(a, u)), b)
+            return d, u, v
+
+        def __egcd__v5(self, a, b):
+            '''Extended Euclidean gcd (Greatest Common Divisor) Algorithm
+               Based on the Sage code (7.2) that has GPLv2+ license:
+               sage/rings/ring.pyx:_gcd_univariate_polynomial:2222
+               Input: <coefficients list> a
+                      <coefficients list> b
+               Output: <coefficients list> gcd
+                       <coefficients list> u
+                       <coefficients list> v
+               "coefficients list" means "little endian list of coefficients"
+               The binary polynomials u, v are for the B\'ezout's identity:
+               $u(x)$, $v(x)$ such that $a(x)\times u(x)+b(x)\times v(x)=g(x)$
+            '''
+            zero = [self._coefficientClass(0)]
+            a = self.__normalizePolynomial__(a)
+            b = self.__normalizePolynomial__(b)
+            if b == zero:
+                if a == zero:
+                    return (zero, zero, zero)
+                c = ~a[-1]  # the leading_coefficient is 
+                            # the one with highest degree
+                d = self.__multiply__(c, a)
+                u = [c]
+                v = zero
+            elif a == zero:
+                c = ~b[-1]
+                d = self.__multiply__(c, b)
+                u = zero
+                v = [c]
+            else:
+                (u, d, v1, v3) = ([self._coefficientClass(1)], a, zero, b)
+                while v3 != zero:
+                    q, r = self.__divideBy__(d, v3)
+                    (u, d, v1, v3) = \
+                        (v1, v3, self.__substraction__(u,
+                                                       self.__multiply__(v1,
+                                                                         q)),
+                         r)
+                v, _ = \
+                    self.__divideBy__(self.__substraction__(d,
+                                                            self.__multiply__(a,
+                                                                              u)),
+                                      b)
+                if d == zero:
+                    c = ~d[-1]
+                    d, u, v = self.__multiply__(c, d),\
+                              self.__multiply__(c, u),\
+                              self.__multiply__(c, v)
+            return d, u, v
 
         # <<>> Shifts ----
         def __lshift__(self, n):  # => a << n
