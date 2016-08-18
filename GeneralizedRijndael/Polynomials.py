@@ -990,14 +990,15 @@ def PolynomialRingModulo(modulo, coefficients_class, variable='x',
 
         def __interpretFromStr__(self, string):
             # FIXME: simplify, that's too big for the task to do.
+            string = string.replace(' ','')
             terms = {}
             i = 0
             self._trace_stream("Received the string %r (%d) to interpret"
                                % (string, len(string)))
             while i < len(string):
                 self._trace_stream("To be process: %r" % (string[i:]))
-                while string[i] == ' ' or i == len(string):
-                    i += 1  # ignore any &nbsp;
+#                 while string[i] == ' ' or i == len(string):
+#                     i += 1  # ignore any &nbsp;
                 # Coefficient area ----
                 if string[i] == '(':
                     closer = string.find(')', i)
@@ -1008,6 +1009,8 @@ def PolynomialRingModulo(modulo, coefficients_class, variable='x',
                         if string[closer+1] == '*':
                             self._trace_stream("'*' sign found.")
                             closer += 2
+                        else:
+                            close += 1
                     i = closer
                 elif string[i:i+2] == '0x':
                     vblePos = string.find(self._variable, i)
@@ -1017,13 +1020,26 @@ def PolynomialRingModulo(modulo, coefficients_class, variable='x',
                     i = vblePos
                 else:
                     self._trace_stream("No coefficient specified, "
-                                       "it means a '1'")
+                                       "it would mean '1'")
                     coefficient = '1'
                 # variable area ----
                 if string[i] != self._variable:
-                    self._trace_stream("Searching the variable %r != %s"
-                                       % (string[i], self._variable))
-                    i += 1
+                    self._trace_stream("Variable not found %s != %r"
+                                       % (self._variable, string[i]))
+                    # perhaps is the latest coefficient, with x^0 not present, 
+                    # and no brackets are containing it. Like sage does.
+                    candidate = string[i:]
+                    self._trace_stream("coefficient candidate: %r" % candidate)
+                    try:
+                        self._coefficientClass(candidate)
+                    except:  # not the case, continues like this hasn't tried
+                        self._trace_stream("It cannot be interpreted "
+                                           "as a coefficient")
+                        i += 1
+                    else:  # That's the case of the previous comment
+                        self._trace_stream("It has been the case!")
+                        coefficient = candidate
+                        i = len(string)
                 # exponent area ----
                 if i == len(string):
                     terms[0] = coefficient
@@ -1452,7 +1468,7 @@ def PolynomialRingModulo(modulo, coefficients_class, variable='x',
             logInHexa = True
 
             def doPrint(msg):
-                self._info_stream(msg)
+                self._debug_stream(msg)
 
             def getStr(p):
                 return self.__interpretToStr__(p, hexSubfield=logInHexa)
