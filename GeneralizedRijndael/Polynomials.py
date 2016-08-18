@@ -1407,12 +1407,12 @@ def PolynomialRingModulo(modulo, coefficients_class, variable='x',
                This it the first of the two transformations for the SBoxes
                in the subBytes operation, the one called called g.
             '''
-            self._info_stream("__multiplicativeInverse__: %s"
-                              % self.coefficients)
+            self._debug_stream("__multiplicativeInverse__: %s"
+                               % self.coefficients)
             if self._coefficients == 0:  # FIXME: is this true?
                 return self
             if self._gcd is None:
-                gcd, multinv, _ = \
+                gcd, _, multinv = \
                     self.__egcd__(self._modulo, self._coefficients)
                 self._gcd = PolynomialRingModuloConstructor(gcd)
                 self._multinv = PolynomialRingModuloConstructor(multinv)
@@ -1436,241 +1436,6 @@ def PolynomialRingModulo(modulo, coefficients_class, variable='x',
             return PolynomialRingModuloConstructor(gcd)
 
         def __egcd__(self, a, b):
-            logInHexa = True
-            self._info_stream("wikipedia's algorithm")
-            g1, u1, v1 = self.__egcd__v1(a, b)
-            g1Str = self.__interpretToStr__(g1, hexSubfield=logInHexa)
-            u1Str = self.__interpretToStr__(u1, hexSubfield=logInHexa)
-            v1Str = self.__interpretToStr__(v1, hexSubfield=logInHexa)
-            # ---
-            self._info_stream("Cohen's book algorithm")
-            g2, u2, v2 = self.__egcd__v2(a, b)
-            g2Str = self.__interpretToStr__(g2, hexSubfield=logInHexa)
-            u2Str = self.__interpretToStr__(u2, hexSubfield=logInHexa)
-            v2Str = self.__interpretToStr__(v2, hexSubfield=logInHexa)
-            # ---
-            self._info_stream("Recursive approach (only gcd without Bezout)")
-            g3, u3, v3 = self.__egcd__v3(a, b)
-            g3Str = self.__interpretToStr__(g3, hexSubfield=logInHexa)
-            # ---
-            self._info_stream("Another Cohen's book algorithm")
-            g4, u4, v4 = self.__egcd__v4(a, b)
-            g4Str = self.__interpretToStr__(g4, hexSubfield=logInHexa)
-            u4Str = self.__interpretToStr__(u4, hexSubfield=logInHexa)
-            v4Str = self.__interpretToStr__(v4, hexSubfield=logInHexa)
-            # ---
-            self._info_stream("Let's try with sage code")
-            g5, u5, v5 = self.__egcd__v5(a, b)
-            g5Str = self.__interpretToStr__(g5, hexSubfield=logInHexa)
-            u5Str = self.__interpretToStr__(u5, hexSubfield=logInHexa)
-            v5Str = self.__interpretToStr__(v5, hexSubfield=logInHexa)
-            # ---
-            self._info_stream("g -> %s ?= %s ?= %s ?= %s ?= %s" % (g1Str, g2Str, g3Str, g4Str, g5Str))
-            self._info_stream("u -> %s ?= %s ?= %s ?= %s" % (u1Str, u2Str, u4Str, u5Str))
-            self._info_stream("v -> %s ?= %s ?= %s ?= %s" % (v1Str, v2Str, v4Str, v5Str))
-            return g5, u5, v5
-
-        def __egcd__v1(self, a, b):
-            '''https://en.wikipedia.org/wiki/
-            Polynomial_greatest_common_divisor#B.C3.A9zout.
-            27s_identity_and_extended_GCD_algorithm
-               Input: <coefficients list> a
-                      <coefficients list> b
-               Output: <coefficients list> gcd
-                       <coefficients list> u
-                       <coefficients list> v
-               "coefficients list" means "little endian list of coefficients"
-               The binary polynomials u, v are for the B\'ezout's identity:
-               $u(x)$, $v(x)$ such that $a(x)\times u(x)+b(x)\times v(x)=g(x)$
-                \STATE $r_0 = a$\qquad $r_1 = b$
-                \STATE $s_0 = 1$\qquad $s_1 = 0$
-                \STATE $t_0 = 0$\qquad $t_1 = 1$
-                \FOR{$i=1$; $r_i \neq 0$; $i=i+1$}
-                \STATE q = quo($r_{i-1}$,$r_i$)
-                \STATE $r_{i+1} = r_{i-1}-$q$\times r_i$
-                \STATE $s_{i+1} = s_{i-1}-$q$\times s_i$
-                \STATE $t_{i+1} = t_{i-1}-$q$\times t_i$
-                \ENDFOR
-                \STATE $g = r_{i-1}$
-                \STATE $u = s_{i-1}$
-                \STATE $v = t_{i-1}$
-                \RETURN $(g,u,v)$
-               Note that the r_{i+1} corresponds to the remainder of the
-               previous division. As here the division method returns both,
-               the next product and substraction is not needed for r.
-            '''
-            logInHexa = True
-            zero = [self._coefficientClass(0)]
-            r = []
-            r.append(a)
-            r.append(b)
-            s = []
-            s.append([self._coefficientClass(1)])
-            s.append([self._coefficientClass(0)])
-            t = []
-            t.append([self._coefficientClass(0)])
-            t.append([self._coefficientClass(1)])
-            i = 1
-            while r[-1] != zero:
-                self._info_stream("\tIteration %d" % i)
-                # q = r_{i-1} / r_{i}
-                quotient, reminder = self.__divideBy__(r[-2], r[-1])
-                qStr = self.__interpretToStr__(quotient, hexSubfield=logInHexa)
-                self._info_stream("\t\tquotient: %s" % qStr)
-                # r_{i+1} = r_{i-1} - q*r_{i}
-                r.append(reminder)
-                rStr = self.__interpretToStr__(r[-1], hexSubfield=logInHexa)
-                self._info_stream("\t\tr_%d: %s" % (i+1,rStr))
-                # s_{i+1} = s_{i-1} - q*s_{i}
-                qsi = self.__multiply__(quotient, s[-1])
-                s.append(self.__substraction__(s[-2], qsi))
-                sStr = self.__interpretToStr__(s[-1], hexSubfield=logInHexa)
-                self._info_stream("\t\ts_%d: %s" % (i+1, sStr))
-                # t_{i+1} = t_{i-1} - q*t_{i}
-                qti = self.__multiply__(quotient, t[-1])
-                t.append(self.__substraction__(t[-2], qti))
-                tStr = self.__interpretToStr__(t[-1], hexSubfield=logInHexa)
-                self._info_stream("\t\tt_%d: %s" % (i+1, tStr))
-                i += 1
-            g = r[-2]
-            u = s[-2]
-            v = t[-2]
-            self._info_stream("\tBezout's identity:"
-                              " a(x) * u(x) + b(x) * v(x) = g(x)")
-            self._info_stream("\t\t%s * %s + %s * %s = %s"
-                              % (self.__interpretToStr__(a, hexSubfield=logInHexa),
-                                 self.__interpretToStr__(u, hexSubfield=logInHexa),
-                                 self.__interpretToStr__(b, hexSubfield=logInHexa),
-                                 self.__interpretToStr__(v, hexSubfield=logInHexa),
-                                 self.__interpretToStr__(g, hexSubfield=logInHexa)))
-            return g, u, v
-
-        def __egcd__v2(self, f, m):
-            '''Extended Euclidean gcd (Greatest Common Divisor) Algorithm
-               From Henri Cohen and Gerhard Frey "Handbook of Elliptic and 
-               Hyperelliptic Curve Cryptography" Algorithm 11.41.
-               Input: <coefficients list> f
-                      <coefficients list> m
-               Output: <coefficients list> gcd
-                       <coefficients list> x
-                       <coefficients list> y
-               "coefficients list" means "little endian list of coefficients"
-               The binary polynomials u, v are for the B\'ezout's identity:
-               $u(x)$, $v(x)$ such that $f(x)\times u(x)+m(x)\times v(x)=g(x)$
-                \STATE u = 1; v = 0; s = m; g = f
-                \WHILE{$s \neq 0$}
-                \STATE $g = q \times s +r$
-                \STATE $t = u - v \times q$
-                \STATE u = v; g = s; v = t
-                \ENDWHILE
-                \STATE $v = (g - f \times u) / m$
-                \RETURN $(g,u,v)$
-            '''
-            logInHexa = True
-            fStr = self.__interpretToStr__(f, hexSubfield=logInHexa)
-            mStr = self.__interpretToStr__(m, hexSubfield=logInHexa)
-            self._info_stream("\tegcd(%s, %s)" % (fStr, mStr))
-            zero = [self._coefficientClass(0)]
-            u = [self._coefficientClass(1)]
-            v = [self._coefficientClass(0)]
-            s = m
-            g = f
-            i = 1
-            while s != zero:
-                self._info_stream("\tIteration %d" % i)
-                # g = q*s + r
-                gStr = self.__interpretToStr__(g, hexSubfield=logInHexa)
-                sStr = self.__interpretToStr__(s, hexSubfield=logInHexa)
-                self._info_stream("\t\tg / s = %s / %s" % (gStr, sStr))
-                q, r = self.__divideBy__(g, s)
-                qStr = self.__interpretToStr__(q, hexSubfield=logInHexa)
-                rStr = self.__interpretToStr__(r, hexSubfield=logInHexa)
-                self._info_stream("\t\t%s = %s * %s + %s" % (gStr, qStr,
-                                                         sStr, rStr))
-                # t = u - v*q
-                t = self.__substraction__(u, self.__multiply__(v, q))
-                tStr = self.__interpretToStr__(t, hexSubfield=logInHexa)
-                self._info_stream("\t\tt = u - v * q = %s" % (tStr))
-                u = v
-                g = s
-                v = t
-                s = self.__normalizePolynomial__(r)
-                sStr = self.__interpretToStr__(s, hexSubfield=logInHexa)
-                self._info_stream("\t\ts = %s (%d)" % (sStr, len(s)))
-                i += 1
-            # v = (g - f*u) / m
-            v, _ = self.__divideBy__\
-                (self.__substraction__(g, self.__multiply__(f, u)),m)
-            vStr = self.__interpretToStr__(v, hexSubfield=logInHexa)
-            gStr = self.__interpretToStr__(g, hexSubfield=logInHexa)
-            fStr = self.__interpretToStr__(f, hexSubfield=logInHexa)
-            uStr = self.__interpretToStr__(u, hexSubfield=logInHexa)
-            mStr = self.__interpretToStr__(m, hexSubfield=logInHexa)
-            self._info_stream("\tg = %s" % gStr)
-            self._info_stream("\tf = %s" % fStr)
-            self._info_stream("\tu = %s" % uStr)
-            self._info_stream("\tm = %s" % mStr)
-            self._info_stream("\tv = (g - f*u) / m = %s" % vStr)
-            return g, u, v
-
-        def __egcd__v3(self, a, b):
-            '''Recursive approach to calculate the gcd.'''
-            logInHexa = True
-            if b != [self._coefficientClass(0)]:
-                q, r = self.__divideBy__(a, b)
-                aStr = self.__interpretToStr__(a, hexSubfield=logInHexa)
-                bStr = self.__interpretToStr__(b, hexSubfield=logInHexa)
-                rStr = self.__interpretToStr__(r, hexSubfield=logInHexa)
-                if r != [self._coefficientClass(0)]:
-                    self._info_stream("\tgcd(%s,%s) = gcd(%s,%s)"
-                                      % (aStr, bStr, bStr, rStr))
-                else:
-                    self._info_stream("\tgcd(%s,%s) = %s"
-                                      % (aStr, bStr, bStr))
-                g, _, _ = self.__egcd__v3(b, r)
-            else:
-                g = a
-            return g, None, None
-
-        def __egcd__v4(self, a, b):
-            '''Extended Euclidean gcd (Greatest Common Divisor) Algorithm
-               From Henri Cohen "A course in computational algebraic number
-               theory" Algorithm 3.2.2
-               Input: <coefficients list> a
-                      <coefficients list> b
-               Output: <coefficients list> gcd
-                       <coefficients list> u
-                       <coefficients list> v
-               "coefficients list" means "little endian list of coefficients"
-               The binary polynomials u, v are for the B\'ezout's identity:
-               $u(x)$, $v(x)$ such that $a(x)\times u(x)+b(x)\times v(x)=g(x)$
-                \STATE u = 1; d = a; v_1 = 0; v_3 = b
-                \WHILE{v_3 \neq 0}
-                \STATE $d = q*v_3 + r$
-                \STATE $t = u - v_1*q$
-                \STATE u = v_1; d = v_3; v_1 = t; v_3 = r
-                \ENDWHILE
-                \STATE v = (d - a*u)/b
-                \RETURN $(d,u,v)$
-            '''
-            if self.__normalizePolynomial__(b) == [self._coefficientClass(0)]:
-                return a, [self._coefficientClass(1)],\
-                    [self._coefficientClass(0)]
-            u = [self._coefficientClass(1)]
-            d = a
-            v_1 = [self._coefficientClass(0)]
-            v_3 = b
-            while (self.__normalizePolynomial__(v_3) != [self._coefficientClass(0)]):
-                q, r = self.__divideBy__(d, v_3)
-                t = self.__substraction__(u, self.__multiply__(v_1, q))
-                u = v_1
-                d = v_3
-                v_1 = t
-                v_3 = r
-            v, _ = self.__divideBy__(self.__substraction__(d, self.__multiply__(a, u)), b)
-            return d, u, v
-
-        def __egcd__v5(self, a, b):
             '''Extended Euclidean gcd (Greatest Common Divisor) Algorithm
                Based on the Sage code (7.2) that has GPLv2+ license:
                sage/rings/ring.pyx:_gcd_univariate_polynomial:2222
@@ -1683,78 +1448,68 @@ def PolynomialRingModulo(modulo, coefficients_class, variable='x',
                The binary polynomials u, v are for the B\'ezout's identity:
                $u(x)$, $v(x)$ such that $a(x)\times u(x)+b(x)\times v(x)=g(x)$
             '''
+            # --- logging methods
             logInHexa = True
+
+            def doPrint(msg):
+                self._info_stream(msg)
+
+            def getStr(p):
+                return self.__interpretToStr__(p, hexSubfield=logInHexa)
+
+            def printAsStr(pName, pValue, tabs=0):
+                pStr = getStr(pValue)
+                doPrint("%s%s = %s" % ("\t"*tabs, pName, pStr))
+
+            def printAsStrings(pairs, tabs=0):
+                for name, value in pairs:
+                    printAsStr(name, value, tabs)
+
+            def printQuotient(x, q, y, r, tabs=0):
+                xStr = getStr(x)
+                qStr = getStr(q)
+                yStr = getStr(y)
+                rStr = getStr(r)
+                doPrint("%s%s = %s * %s + %s" % ("\t"*tabs, xStr, qStr, yStr,
+                                                 rStr))
+            # --- operation methods
+            leading_coefficient = lambda x: x[-1]
+            # this lambda simply means get the highest degree coefficient
+            sub = self.__substraction__
+            mul = self.__multiply__
+            div_mod = self.__divideBy__
+            # --- The algorithm itself
             zero = [self._coefficientClass(0)]
             a = self.__normalizePolynomial__(a)
-            aStr = self.__interpretToStr__(a, hexSubfield=logInHexa)
-            self._info_stream("\ta = %s" % (aStr))
             b = self.__normalizePolynomial__(b)
-            bStr = self.__interpretToStr__(b, hexSubfield=logInHexa)
-            self._info_stream("\tb = %s" % (bStr))
+            printAsStrings([["a", a], ["b", b]])
             if b == zero:
                 if a == zero:
                     return (zero, zero, zero)
-                c = ~a[-1]  # the leading_coefficient is 
-                            # the one with highest degree
-                d = self.__multiply__(c, a)
-                u = [c]
-                v = zero
+                c = ~leading_coefficient(a)
+                d, u, v = self.__multiply__(c, a), [c], zero
             elif a == zero:
-                c = ~b[-1]
-                d = self.__multiply__(c, b)
-                u = zero
-                v = [c]
+                c = ~leading_coefficient(b)
+                d, u, v = self.__multiply__(c, b), zero, [c]
             else:
                 (u, d, v1, v3) = ([self._coefficientClass(1)], a, zero, b)
-                uStr = self.__interpretToStr__(u, hexSubfield=logInHexa)
-                self._info_stream("\tu = %s" % (uStr))
-                dStr = self.__interpretToStr__(d, hexSubfield=logInHexa)
-                self._info_stream("\td = %s" % (dStr))
-                v1Str = self.__interpretToStr__(v1, hexSubfield=logInHexa)
-                self._info_stream("\tv1 = %s" % (v1Str))
-                v3Str = self.__interpretToStr__(v3, hexSubfield=logInHexa)
-                self._info_stream("\tv3 = %s" % (v3Str))
+                printAsStrings([["u", u], ["d", d], ["v1", v1], ["v3", v3]], 1)
                 i = 1
                 while v3 != zero:
-                    self._info_stream("\tIteration %d" % i)
-                    q, r = self.__divideBy__(d, v3)
-                    dStr = self.__interpretToStr__(d, hexSubfield=logInHexa)
-                    v3Str = self.__interpretToStr__(v3, hexSubfield=logInHexa)
-                    qStr = self.__interpretToStr__(q, hexSubfield=logInHexa)
-                    rStr = self.__interpretToStr__(r, hexSubfield=logInHexa)
-                    self._info_stream("\t\t%s = %s * %s + %s" % (dStr, qStr,
-                                                         v3Str, rStr))
-                    (u, d, v1, v3) = \
-                        (v1, v3, self.__substraction__(u,
-                                                       self.__multiply__(v1,
-                                                                         q)),
-                         r)
-                    uStr = self.__interpretToStr__(u, hexSubfield=logInHexa)
-                    self._info_stream("\t\tu = %s" % (uStr))
-                    dStr = self.__interpretToStr__(d, hexSubfield=logInHexa)
-                    self._info_stream("\t\td = %s" % (dStr))
-                    v1Str = self.__interpretToStr__(v1, hexSubfield=logInHexa)
-                    self._info_stream("\t\tv1 = %s" % (v1Str))
-                    v3Str = self.__interpretToStr__(v3, hexSubfield=logInHexa)
-                    self._info_stream("\t\tv3 = %s" % (v3Str))
+                    doPrint("\tIteration %d" % i)
+                    q, r = div_mod(d, v3)
+                    printQuotient(d, q, v3, r, 2)
+                    (u, d, v1, v3) = (v1, v3, sub(u, mul(v1, q)), r)
+                    printAsStrings([["u", u], ["d", d], ["v1", v1],
+                                    ["v3", v3]], 2)
                     i += 1
-                v, _ = \
-                    self.__divideBy__(self.__substraction__(d,
-                                                            self.__multiply__(a,
-                                                                              u)),
-                                      b)
+                v, _ = div_mod(sub(d, mul(a, u)), b)
+                printAsStr("v", v, 1)
                 if d != zero:
-                    self._info_stream("d == zero")
-                    c = ~d[-1]
-                    d, u, v = self.__multiply__([c], d),\
-                              self.__multiply__([c], u),\
-                              self.__multiply__([c], v)
-                dStr = self.__interpretToStr__(d, hexSubfield=logInHexa)
-                self._info_stream("\td = %s" % (dStr))
-                uStr = self.__interpretToStr__(u, hexSubfield=logInHexa)
-                self._info_stream("\tu = %s" % (uStr))
-                vStr = self.__interpretToStr__(v, hexSubfield=logInHexa)
-                self._info_stream("\tv = %s" % (vStr))
+                    doPrint("d != zero")
+                    c = ~leading_coefficient(d)
+                    d, u, v = mul([c], d), mul([c], u), mul([c], v)
+                printAsStrings([["d", d], ["u", u], ["v", v]], 1)
             return d, u, v
 
         # <<>> Shifts ----

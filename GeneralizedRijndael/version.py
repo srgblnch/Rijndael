@@ -26,7 +26,7 @@ __status__ = "development"
 _MAJOR_VERSION = 0
 _MINOR_VERSION = 2
 _BUILD_VERSION = 1
-_REVISION_VERSION = 8
+_REVISION_VERSION = 9
 
 
 def VERSION():
