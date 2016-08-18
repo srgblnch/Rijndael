@@ -1396,7 +1396,7 @@ def PolynomialRingModulo(modulo, coefficients_class, variable='x',
         # - operator.__inv__(a) => ~a
         def __invert__(self):  # => ~a, that means like a^-1
             res = self.__multiplicativeInverse__()
-            return BinaryExtensionModuloConstructor(res)
+            return PolynomialRingModuloConstructor(res)
 
         def __multiplicativeInverse__(self):
             '''Multiplicative inverse based on ...
@@ -1743,12 +1743,12 @@ def PolynomialRingModulo(modulo, coefficients_class, variable='x',
                                                             self.__multiply__(a,
                                                                               u)),
                                       b)
-                if d == zero:
+                if d != zero:
                     self._info_stream("d == zero")
                     c = ~d[-1]
-                    d, u, v = self.__multiply__(c, d),\
-                              self.__multiply__(c, u),\
-                              self.__multiply__(c, v)
+                    d, u, v = self.__multiply__([c], d),\
+                              self.__multiply__([c], u),\
+                              self.__multiply__([c], v)
                 dStr = self.__interpretToStr__(d, hexSubfield=logInHexa)
                 self._info_stream("\td = %s" % (dStr))
                 uStr = self.__interpretToStr__(u, hexSubfield=logInHexa)
