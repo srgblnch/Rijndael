@@ -1448,7 +1448,7 @@ def PolynomialRingModulo(modulo, coefficients_class, variable='x',
         def __gcd__(self, other):
             a = self.coefficients
             b = other.coefficients
-            gcd, x, y = self.__egcd__(a, b)
+            gcd, _, _ = self.__egcd__(a, b)
             return PolynomialRingModuloConstructor(gcd)
 
         def __egcd__(self, a, b):
