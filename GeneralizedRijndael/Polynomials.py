@@ -1432,7 +1432,7 @@ def PolynomialRingModulo(modulo, coefficients_class, variable='x',
         def __gcd__(self, other):
             a = self.coefficients
             b = other.coefficients
-            gcd, x, y = self.__egcd__(a, b)
+            gcd, _, _ = self.__egcd__(a, b)
             return PolynomialRingModuloConstructor(gcd)
 
         def __egcd__(self, a, b):
@@ -1452,7 +1452,7 @@ def PolynomialRingModulo(modulo, coefficients_class, variable='x',
             logInHexa = True
 
             def doPrint(msg):
-                self._info_stream(msg)
+                self._debug_stream(msg)
 
             def getStr(p):
                 return self.__interpretToStr__(p, hexSubfield=logInHexa)

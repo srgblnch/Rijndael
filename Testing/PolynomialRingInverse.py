@@ -3,13 +3,13 @@ import GeneralizedRijndael
 fieldModulo = GeneralizedRijndael.Polynomials.getBinaryExtensionFieldModulo(8)
 field = GeneralizedRijndael.Polynomials.BinaryExtensionModulo(fieldModulo,
                                                               variable='z')
-vSpace = GeneralizedRijndael.Polynomials.PolynomialRingModulo('x^4+1', field)
-# a = vSpace([3,3,3,3])
-# b = vSpace([0,0,0,3])
+ring = GeneralizedRijndael.Polynomials.PolynomialRingModulo('x^4+1', field)
+# a = ring([3,3,3,3])
+# b = ring([0,0,0,3])
 # a.logLevel = 4
-c = vSpace('(z+1)*x^3+x^2+x+(z)')
+c = ring('(z+1)*x^3+x^2+x+(z)')
 print("c = %s = %s" % (c, hex(c)))
-d = vSpace('(z^3+z+1)*x^3+(z^3+z^2+1)*x^2+(z^3+1)*x+(z^3+z^2+z)')
+d = ring('(z^3+z+1)*x^3+(z^3+z^2+1)*x^2+(z^3+1)*x+(z^3+z^2+z)')
 print("d = %s = %s" % (d, hex(d)))
 # c.logLevel = 4
 try:
