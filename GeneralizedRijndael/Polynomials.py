@@ -867,6 +867,7 @@ def PolynomialRingModulo(modulo, coefficients_class, variable='x',
             self.reduce()
             self._gcd = None
             self._multinv = None
+            self._hammingWeights = None
 
         def reduce(self):
             if self.degree >= self.modulodegree:
@@ -1122,6 +1123,17 @@ def PolynomialRingModulo(modulo, coefficients_class, variable='x',
             return self._gr_coefficients
 
         @property
+        def hammingWeight(self):
+            """Get the hamming weight of the polynomial.
+               Hamming weight is defined as the number of non null elements. In
+               the binary case, the number of ones.
+            """
+            if self._hammingWeights is None:
+                self._hammingWeights = [coefficient.hammingWeight\
+                                        for coefficient in self._coefficients]
+            return sum(self._hammingWeights)
+
+        @property
         def modulodegree(self):
             if not hasattr(self, "_gr_modulo"):
                 self._gr_modulo = self.__coefficientsDegree(self._modulo)
@@ -1165,14 +1177,15 @@ def PolynomialRingModulo(modulo, coefficients_class, variable='x',
             zeros = [self._coefficientClass(0)]*(self.modulodegree-1)
             one = [self._coefficientClass(1)] + zeros
             return PolynomialRingModuloConstructor(one, loglevel=self.logLevel)
+
 #         @property
 #         def isInvertible(self):
 #             '''Show if the element is invertible modulo for the product
 #                operation.
 #             '''
 #             if self._gcd is None:
-#                 self._gcd, self._multinv, y = \
-#                     self.__egcd__(self.coefficients, self._modulo)
+#                 self._gcd, _, self._multinv = \
+#                     self.__egcd__(self._modulo, self.coefficients)
 #             if self._gcd == 1:
 #                 return True
 #             return False
