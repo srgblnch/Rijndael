@@ -31,6 +31,7 @@ __status__ = "development"
 from GeneralizedRijndael.Logger import Logger as _Logger
 from GeneralizedRijndael.Logger import levelFromMeaning as _levelFromMeaning
 from GeneralizedRijndael.Polynomials import *
+from math import log
 from optparse import OptionParser
 from random import random, randint
 import sys
@@ -56,199 +57,165 @@ class SimulatedAnheling(_Logger):
         zero = [0]*self._polynomialRingSize
         self._info_stream("Build the polynomial ring modulo l(x)=%s"
                           % (self._polynomialRing(zero).modulo))
-        totalNumberOfPolynomials = (2**fieldSize)**polynomialRingSize
-        order = int(("%e"%totalNumberOfPolynomials).split('+')[1])
-        if order < 2:
-            self._expectedSamples = float("1e%d"%(order-1))
-            self._coefficientsHammingGoal = None
-        else:
-            self._expectedSamples = 1e4
-            self._coefficientsHammingGoal = fieldSize / 2
-        self._hammingGoal = (fieldSize * polynomialRingSize) / 2
+        nTotal = (2**fieldSize)**polynomialRingSize  # NumberOfPolynomials
+        order = int(("%e" % nTotal).split('+')[1])
         # --- Search for a reasonable number of candidates
         #     without an explosion of them.
-        self._info_stream("With %d degree polynomials with %d degree "
-                          "coefficients, there are %d possible candidates."
-                          "This program with try to collect first %d "
-                          "candidates (hamming goal: %d%s)"
-                          % (polynomialRingSize, fieldSize,
-                             totalNumberOfPolynomials, self._expectedSamples,
-                             self._hammingGoal,
-                             "" if not self._coefficientsHammingGoal else
-                             " (for each coefficient %d)"
-                             % self._coefficientsHammingGoal))
+        self._expectedSamples = int(round(log(nTotal)*order))
+        deviation = int(round(log(fieldSize*polynomialRingSize))) / 2
+        hammingGoal = (fieldSize * polynomialRingSize) / 2
+        self._desiredHammingRange = range(hammingGoal-deviation,
+                                          hammingGoal+deviation+1)
+        # --- another range for the coefficients if they need to be checked
+        if order < 5:
+            self._desiredCoeffHammingRange = None
+        else:
+            hammingGoal = fieldSize / 2
+            deviation = int(round(log(fieldSize))) / 2
+            self._desiredCoeffHammingRange = range(hammingGoal-deviation,
+                                                   hammingGoal+deviation+1)
+        self._info_stream("Preparing a search over a %d degree polynomial "
+                          "with %d degree coefficients. The search space has "
+                          "%d polynomials. The program will start looking for "
+                          "%d candidates within %s hamming weights%s."
+                          % (polynomialRingSize, fieldSize, nTotal,
+                             self._expectedSamples, self._desiredHammingRange,
+                             "" if not self._desiredCoeffHammingRange else
+                             " (%s per coefficient)"
+                             % self._desiredCoeffHammingRange))
         # --- storage variables
-        self._polynomialCandidate = None
         self._candidatesLst = []
         self._alreadyTestedPolynomials = []
-        # FIXME: improve the way to check that someone
-        #        was already random generated
-        self._testNextpolynomialRingGenNew = 0.99
+        # --- simulated anheling new area jump probability
+        self._jumpProbability = 0.01
+        self._jumpsMade = 0
 
-    # TODO: improve the search.
-    #       first check the hamming weight of a candidate (global and by
-    #       coefficients, if need be) and them check if it is invertible.
-    #       Hamming weight is much cheaper to calculate and we don't need
-    #       to know is it is invertible if it will be discarded anyway.
     def search(self):
-        inTheArea = 0
-        self.__generatePolynomial()
-        if self.__preliminarTest():
-            self.__collectForFurtherTest()
-        while not self.__hasCollectEnough():
-            self._debug_stream("Discard %s" % (self._polynomialCandidate))
-            if random() < self._testNextpolynomialRingGenNew:
-                self.__getNextPolynomial()
-                # get a closer candidate
-                self._testNextpolynomialRingGenNew -= 0.01
-                # reduce this probability to stay in this area
-                inTheArea += 1
-                if self.__preliminarTest():
-                    self.__collectForFurtherTest()
+        polynomial = self.__generatePolynomial()
+        if self._doPreliminaryTest(polynomial):
+            self.__collectForFurtherTest(polynomial)
+        while not self.__hasCollectEnough() and not self.__allHasBeenTested():
+            if random() > self._jumpProbability:
+                polynomial = self.__getNextPolynomial(polynomial)
+                if polynomial is None:  # exception to force a space jump
+                    polynomial = self.__doJump()
             else:
-                self._info_stream("After %d nears, jump to a newer area"
-                                  % inTheArea)
-                self.__generatePolynomial()
-                # jump to a different area of the search space
-                self._testNextpolynomialRingGenNew = 0.99
-                # reset this probability of the region search
-                inTheArea = 0
-                if self.__preliminarTest():
-                    self.__collectForFurtherTest()
-            self._debug_stream("Testing: %s"
-                               % (hex(self._polynomialCandidate)))
-        self._info_stream("Winner: %s with its inverse %s"
-                          % (self._polynomialCandidate,
-                             ~self._polynomialCandidate))
-        self._info_stream("Hex notation: %s and %s"
-                          % (hex(self._polynomialCandidate),
-                             hex(~self._polynomialCandidate)))
-        self._info_stream("%d tested polynomialss"
-                          % (len(self._alreadyTestedPolynomials)))
-        return self._polynomialCandidate
+                polynomial = self.__doJump()
+            if self._doPreliminaryTest(polynomial):
+                self.__collectForFurtherTest(polynomial)
+
+    def __doJump(self):
+        polynomial = self.__generatePolynomial()
+        self._jumpsMade += 1
+        self._info_stream("Exploring a newer area in the search space.")
+        return polynomial
 
     def __generatePolynomial(self):
         '''Generate a new fresh polynomial at random, checking it hasn't been
            already tested.
         '''
-        self._debug_stream("Jump to a newer area in the search space.")
-        while self._polynomialCandidate is None or \
-                self._polynomialCandidate in self._alreadyTestedPolynomials:
-            polynomial = [self._field(randint(0, 2**self._fieldSize))
-                          for i in range(self._polynomialRingSize)]
-            candidate = self._polynomialRing(polynomial)
-            self._debug_stream("Generating a random polynomial candidate: %r"
-                               % (hex(candidate)))
-            if candidate in self._alreadyTestedPolynomials:
+        self._debug_stream("Generate a new random polynomials.")
+        polynomialObj = None
+        while polynomialObj is None or\
+                polynomialObj in self._alreadyTestedPolynomials:
+            polynomialLst = [self._field(randint(0, 2**self._fieldSize))
+                             for i in range(self._polynomialRingSize)]
+            polynomialObj = self._polynomialRing(polynomialLst)
+            if polynomialObj in self._alreadyTestedPolynomials:
                 self._debug_stream("Discard %s, already tested"
-                                   % (hex(candidate)))
-            elif self.__isInvertible(candidate):
-                self._polynomialCandidate = candidate
+                                   % (hex(polynomialObj)))
+            self._debug_stream("Generating a random polynomial candidate: %r"
+                               % (hex(polynomialObj)))
+        return polynomialObj
 
-    def __getNextPolynomial(self):
+    def __getNextPolynomial(self, polynomial):
         self._debug_stream("Move a bit in side the current region of the "
                            "search space")
-        oldCandidate = self._polynomialCandidate
-        oldCoefficients = oldCandidate.coefficients
-        self._polynomialCandidate = None
-        while self._polynomialCandidate is None:
+        oldCoefficients = polynomial.coefficients
+        newPolynomial = None
+        distance = 1
+        while newPolynomial is None:
             newCoefficients = []
             for each in oldCoefficients:
-                value = each.coefficients
-                newCoefficients.append(self._field(value+randint(0, 1)))
-                newCandidate = self._polynomialRing(newCoefficients)
-            if newCandidate in self._alreadyTestedPolynomials:
-                self._debug_stream("Discard %s, already tested"
-                                   % (hex(newCandidate)))
-            elif self.__isInvertible(newCandidate):
-                self._polynomialCandidate = newCandidate
+                value = each.coefficients + randint(0, distance)
+                newCoefficients.append(self._field(value))
+                if newCoefficients == oldCoefficients:
+                    oldCoefficients.reverse()
+                newPolynomial = self._polynomialRing(newCoefficients)
+            if newPolynomial in self._alreadyTestedPolynomials:
+                self._debug_stream("Discard %s, already tested (%d,%d)"
+                                   % (hex(newPolynomial), distance,
+                                      len(self._alreadyTestedPolynomials)))
+                newPolynomial = None
+                distance += 1
+                if distance == 10:
+                    # --- It is an area of many already tested
+                    return None
+        return newPolynomial
 
-    def __isInvertible(self, candidate):
-        try:  # if candidate.isInvertible:
-            inv = ~candidate
+    def _doPreliminaryTest(self, polynomial):
+        self._alreadyTestedPolynomials.append(polynomial)
+        if self.__PrefactoryOne(polynomial):
+            if self.__PrefactoryTwo(polynomial):
+                if self.__isInvertible(polynomial):
+                    inverse = ~polynomial
+                    self._alreadyTestedPolynomials.append(inverse)
+                    if self.__PrefactoryOne(inverse):
+                        if self.__PrefactoryTwo(inverse):
+                            return True
+        return False
+
+    def __PrefactoryOne(self, polynomial):
+        if polynomial.hammingWeight in self._desiredHammingRange:
+            return True
+        self._debug_stream("%s does NOT have the desired hamming weight."
+                           % polynomial)
+        return False
+
+    def __PrefactoryTwo(self, polynomial):
+        if self._desiredCoeffHammingRange is None:
+            return True
+        for weight in polynomial.hammingWeightPerCoefficient:
+            if weight not in self._desiredCoeffHammingRange:
+                self._debug_stream("%s does NOT have the desired hamming "
+                                   "weight per coefficient." % polynomial)
+                return False
+        return True
+
+    def __isInvertible(self, polynomial):
+        try:  # if polynomial.isInvertible:
+            inverse = ~polynomial
             self._debug_stream("Candidate %s has %s as inverse"
-                               % (hex(candidate), hex(inv)))
+                               % (hex(polynomial), hex(inverse)))
             return True
         except ArithmeticError as e:  # else:
             self._debug_stream("Discard %s, because is not invertible"
-                               % (hex(candidate)))
+                               % (hex(polynomial)))
             return False
         except Exception as e:
             self._debug_stream("Discard %s, because an exception %s"
-                               % (hex(candidate), e))
+                               % (hex(polynomial), e))
             return False
+
+    def __collectForFurtherTest(self, polynomial):
+        self._debug_stream("Collecting %s" % polynomial)
+        self._candidatesLst.append(polynomial)
+        self._info_stream("%d candidates collected (%d total checked %d jumps)"
+                          % (len(self._candidatesLst),
+                             len(self._alreadyTestedPolynomials),
+                             self._jumpsMade))
+        self.__generatePolynomial()  # do not continue by a near search
 
     def __hasCollectEnough(self):
         if len(self._candidatesLst) < self._expectedSamples:
-            self._debug_stream("%d stored candidates" % len(self._candidatesLst))
+            self._debug_stream("%d stored candidates"
+                               % len(self._candidatesLst))
             return False
         return True
 
-    # --- Preliminar Test
-
-    def __preliminarTest(self):
-        # --- avoid repeate the test for the same pair
-        self._alreadyTestedPolynomials.append(self._polynomialCandidate)
-        inv = ~self._polynomialCandidate
-        self._alreadyTestedPolynomials.append(inv)
-        # --- conditions area
-        if self.__firstPreliminaryCondition():
-            if self.__secondPreliminarCondition():
-                # TODO: What other requerements can be made for those candidates?
-                return True
-        return False
-
-    def __firstPreliminaryCondition(self):
-        desiredHammingRange = range(self._hammingGoal-1, self._hammingGoal+2)
-        inv = ~self._polynomialCandidate
-        if self._polynomialCandidate.hammingWeight in desiredHammingRange and\
-                inv.hammingWeight in desiredHammingRange:
-            self._debug_stream("First Preliminary Condition: %s is IN: "
-                               "%d and %d its inverse"
-                               % (self._polynomialCandidate,
-                                  self._polynomialCandidate.hammingWeight,
-                                  inv.hammingWeight))
-            return True
-        self._debug_stream("First Preliminary Condition: %s is OUT: "
-                           "%d and %d its inverse"
-                           % (self._polynomialCandidate,
-                              self._polynomialCandidate.hammingWeight,
-                              inv.hammingWeight))
-        return False
-
-    def __secondPreliminarCondition(self):
-        if self._coefficientsHammingGoal is None:
-            return True
-        desiredHammingRange = range(self._coefficientsHammingGoal-1,
-                                    self._coefficientsHammingGoal+2)
-        weights = self._polynomialCandidate.hammingWeightPerCoefficient
-        inv = ~self._polynomialCandidate
-        for hamming in weights:
-            if hamming not in desiredHammingRange:
-                self._debug_stream("Second Preliminary Condition: %s is OUT: "
-                                   "%s and %s its inverse"
-                                   % (self._polynomialCandidate, weights,
-                                      inv.hammingWeightPerCoefficient))
-                return False
-        for hamming in inv.hammingWeightPerCoefficient:
-            if hamming not in desiredHammingRange:
-                self._debug_stream("Second Preliminary Condition: %s is OUT: "
-                                   "%s and %s its inverse"
-                                   % (self._polynomialCandidate, weights,
-                                      inv.hammingWeightPerCoefficient))
-                return False
-        self._debug_stream("Second Preliminary Condition: %s is IN: "
-                           "%s and %s its inverse"
-                           % (self._polynomialCandidate, weights,
-                              inv.hammingWeightPerCoefficient))
-        return True
-
-    def __collectForFurtherTest(self):
-        self._candidatesLst.append(self._polynomialCandidate)
-        self._info_stream("%d candidates collected (%d total checked)"
-                          % (len(self._candidatesLst),
-                             len(self._alreadyTestedPolynomials)))
-        self.__generatePolynomial()  # do not continue by a near search
+    def __allHasBeenTested(self):
+        nTotal = (2**self._fieldSize)**self._polynomialRingSize
+        return nTotal == len(self._alreadyTestedPolynomials)
 
     # --- TODO: second screening
 
