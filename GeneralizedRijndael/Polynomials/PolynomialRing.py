@@ -24,8 +24,13 @@ __status__ = "development"
 
 
 from copy import deepcopy as _deepcopy
-from ..Logger import Logger as _Logger
-from ..ThirdLevel import shift as _shift
+try:
+    from ..Logger import Logger as _Logger
+    from ..ThirdLevel import shift as _shift
+except:
+    from Logger import Logger as _Logger
+    from ThirdLevel import shift as _shift
+from BinaryPolynomials import *
 
 
 def PolynomialRingModulo(modulo, coefficients_class, variable='x',
@@ -363,10 +368,14 @@ def PolynomialRingModulo(modulo, coefficients_class, variable='x',
                Hamming weight is defined as the number of non null elements. In
                the binary case, the number of ones.
             """
+            return sum(self.hammingWeightPerCoefficient)
+
+        @property
+        def hammingWeightPerCoefficient(self):
             if self._hammingWeights is None:
                 self._hammingWeights = [coefficient.hammingWeight
                                         for coefficient in self._coefficients]
-            return sum(self._hammingWeights)
+            return self._hammingWeights[:]
 
         @property
         def modulodegree(self):
@@ -413,17 +422,18 @@ def PolynomialRingModulo(modulo, coefficients_class, variable='x',
             one = [self._coefficientClass(1)] + zeros
             return PolynomialRingModuloConstructor(one, loglevel=self.logLevel)
 
-#         @property
-#         def isInvertible(self):
-#             '''Show if the element is invertible modulo for the product
-#                operation.
-#             '''
-#             if self._gcd is None:
-#                 self._gcd, _, self._multinv = \
-#                     self.__egcd__(self._modulo, self.coefficients)
-#             if self._gcd == 1:
-#                 return True
-#             return False
+        @property
+        def isInvertible(self):
+            '''Show if the element is invertible modulo for the product
+               operation.
+            '''
+            if self._gcd is None or self._multinv is None:
+                self._gcd, _, self._multinv = \
+                    self.__egcd__(self._modulo, self.coefficients)
+            if self._gcd == [self._coefficientClass(1)]:
+                return True
+            print("...")
+            return False
 
         def __iter__(self):
             return iter(self.coefficients)
@@ -659,8 +669,9 @@ def PolynomialRingModulo(modulo, coefficients_class, variable='x',
         # ~ Multiplicative inverse: ----
         # - operator.__inv__(a) => ~a
         def __invert__(self):  # => ~a, that means like a^-1
-            res = self.__multiplicativeInverse__()
-            return PolynomialRingModuloConstructor(res)
+            if self._multinv is None:
+                self._multinv = self.__multiplicativeInverse__()
+            return PolynomialRingModuloConstructor(self._multinv)
 
         def __multiplicativeInverse__(self):
             '''Multiplicative inverse based on ...
@@ -675,14 +686,14 @@ def PolynomialRingModulo(modulo, coefficients_class, variable='x',
                                % self.coefficients)
             if self._coefficients == 0:  # FIXME: is this true?
                 return self
-            if self._gcd is None:
-                gcd, _, multinv = \
+            if self._gcd is None or self._multinv is None:
+                self._gcd, _, self._multinv = \
                     self.__egcd__(self._modulo, self._coefficients)
-                self._gcd = PolynomialRingModuloConstructor(gcd)
-                self._multinv = PolynomialRingModuloConstructor(multinv)
-            self._debug_stream("gcd = %s" % self._gcd)
-            self._debug_stream("x = %s" % self._multinv)
-            if self._gcd != self.__one():
+            gcd = PolynomialRingModuloConstructor(self._gcd)
+            multinv = PolynomialRingModuloConstructor(self._multinv)
+            self._debug_stream("gcd = %s" % gcd)
+            self._debug_stream("multiplicative inverse = %s" % multinv)
+            if gcd != self.__one():
                 bar = self.__interpretToStr__(self._coefficients)
                 foo = self.__interpretToStr__(self._modulo)
                 raise ArithmeticError("The inverse of %s modulo %s "
@@ -690,8 +701,7 @@ def PolynomialRingModulo(modulo, coefficients_class, variable='x',
                                       "candidate = %s = %s)"
                                       % (bar, foo, self._gcd, hex(self._gcd),
                                          self._multinv, hex(self._multinv)))
-            else:
-                return self._multinv  # % self._modulo
+            return self._multinv  # % self._modulo
 
         def __gcd__(self, other):
             a = self.coefficients

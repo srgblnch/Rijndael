@@ -58,18 +58,25 @@ class SimulatedAnheling(_Logger):
                           % (self._polynomialRing(zero).modulo))
         totalNumberOfPolynomials = (2**fieldSize)**polynomialRingSize
         order = int(("%e"%totalNumberOfPolynomials).split('+')[1])
-        if order < 4:
+        if order < 2:
             self._expectedSamples = float("1e%d"%(order-1))
+            self._coefficientsHammingGoal = None
         else:
             self._expectedSamples = 1e4
+            self._coefficientsHammingGoal = fieldSize / 2
+        self._hammingGoal = (fieldSize * polynomialRingSize) / 2
         # --- Search for a reasonable number of candidates
         #     without an explosion of them.
         self._info_stream("With %d degree polynomials with %d degree "
                           "coefficients, there are %d possible candidates."
                           "This program with try to collect first %d "
-                          "candidates"
+                          "candidates (hamming goal: %d%s)"
                           % (polynomialRingSize, fieldSize,
-                             totalNumberOfPolynomials, self._expectedSamples))
+                             totalNumberOfPolynomials, self._expectedSamples,
+                             self._hammingGoal,
+                             "" if not self._coefficientsHammingGoal else
+                             " (for each coefficient %d)"
+                             % self._coefficientsHammingGoal))
         # --- storage variables
         self._polynomialCandidate = None
         self._candidatesLst = []
@@ -78,9 +85,16 @@ class SimulatedAnheling(_Logger):
         #        was already random generated
         self._testNextpolynomialRingGenNew = 0.99
 
+    # TODO: improve the search.
+    #       first check the hamming weight of a candidate (global and by
+    #       coefficients, if need be) and them check if it is invertible.
+    #       Hamming weight is much cheaper to calculate and we don't need
+    #       to know is it is invertible if it will be discarded anyway.
     def search(self):
         inTheArea = 0
         self.__generatePolynomial()
+        if self.__preliminarTest():
+            self.__collectForFurtherTest()
         while not self.__hasCollectEnough():
             self._debug_stream("Discard %s" % (self._polynomialCandidate))
             if random() < self._testNextpolynomialRingGenNew:
@@ -123,8 +137,8 @@ class SimulatedAnheling(_Logger):
             polynomial = [self._field(randint(0, 2**self._fieldSize))
                           for i in range(self._polynomialRingSize)]
             candidate = self._polynomialRing(polynomial)
-            self._info_stream("Generating a random polynomial: %r"
-                              % (hex(candidate)))
+            self._debug_stream("Generating a random polynomial candidate: %r"
+                               % (hex(candidate)))
             if candidate in self._alreadyTestedPolynomials:
                 self._debug_stream("Discard %s, already tested"
                                    % (hex(candidate)))
@@ -147,39 +161,96 @@ class SimulatedAnheling(_Logger):
                 self._debug_stream("Discard %s, already tested"
                                    % (hex(newCandidate)))
             elif self.__isInvertible(newCandidate):
-                self._info_stream("%s can be a candidate"
-                                  % (hex(newCandidate)))
                 self._polynomialCandidate = newCandidate
 
     def __isInvertible(self, candidate):
-        try:
+        try:  # if candidate.isInvertible:
             inv = ~candidate
             self._debug_stream("Candidate %s has %s as inverse"
                                % (hex(candidate), hex(inv)))
             return True
-        except:
+        except ArithmeticError as e:  # else:
             self._debug_stream("Discard %s, because is not invertible"
                                % (hex(candidate)))
+            return False
+        except Exception as e:
+            self._debug_stream("Discard %s, because an exception %s"
+                               % (hex(candidate), e))
             return False
 
     def __hasCollectEnough(self):
         if len(self._candidatesLst) < self._expectedSamples:
-            self._info_stream("%d stored candidates" % len(self._candidatesLst))
+            self._debug_stream("%d stored candidates" % len(self._candidatesLst))
             return False
         return True
 
+    # --- Preliminar Test
+
     def __preliminarTest(self):
-        # self._debug_stream("%d tested polynomials"
-        #                    % (len(self._alreadyTestedPolynomials)))
-        # TODO: What other requerements can be made for those candidates?
+        # --- avoid repeate the test for the same pair
         self._alreadyTestedPolynomials.append(self._polynomialCandidate)
-        return random() > 0.9
-        # FIXME: once there are decision constrains for the candidates,
-        #        remove this random choser
+        inv = ~self._polynomialCandidate
+        self._alreadyTestedPolynomials.append(inv)
+        # --- conditions area
+        if self.__firstPreliminaryCondition():
+            if self.__secondPreliminarCondition():
+                # TODO: What other requerements can be made for those candidates?
+                return True
+        return False
+
+    def __firstPreliminaryCondition(self):
+        desiredHammingRange = range(self._hammingGoal-1, self._hammingGoal+2)
+        inv = ~self._polynomialCandidate
+        if self._polynomialCandidate.hammingWeight in desiredHammingRange and\
+                inv.hammingWeight in desiredHammingRange:
+            self._debug_stream("First Preliminary Condition: %s is IN: "
+                               "%d and %d its inverse"
+                               % (self._polynomialCandidate,
+                                  self._polynomialCandidate.hammingWeight,
+                                  inv.hammingWeight))
+            return True
+        self._debug_stream("First Preliminary Condition: %s is OUT: "
+                           "%d and %d its inverse"
+                           % (self._polynomialCandidate,
+                              self._polynomialCandidate.hammingWeight,
+                              inv.hammingWeight))
+        return False
+
+    def __secondPreliminarCondition(self):
+        if self._coefficientsHammingGoal is None:
+            return True
+        desiredHammingRange = range(self._coefficientsHammingGoal-1,
+                                    self._coefficientsHammingGoal+2)
+        weights = self._polynomialCandidate.hammingWeightPerCoefficient
+        inv = ~self._polynomialCandidate
+        for hamming in weights:
+            if hamming not in desiredHammingRange:
+                self._debug_stream("Second Preliminary Condition: %s is OUT: "
+                                   "%s and %s its inverse"
+                                   % (self._polynomialCandidate, weights,
+                                      inv.hammingWeightPerCoefficient))
+                return False
+        for hamming in inv.hammingWeightPerCoefficient:
+            if hamming not in desiredHammingRange:
+                self._debug_stream("Second Preliminary Condition: %s is OUT: "
+                                   "%s and %s its inverse"
+                                   % (self._polynomialCandidate, weights,
+                                      inv.hammingWeightPerCoefficient))
+                return False
+        self._debug_stream("Second Preliminary Condition: %s is IN: "
+                           "%s and %s its inverse"
+                           % (self._polynomialCandidate, weights,
+                              inv.hammingWeightPerCoefficient))
+        return True
 
     def __collectForFurtherTest(self):
         self._candidatesLst.append(self._polynomialCandidate)
+        self._info_stream("%d candidates collected (%d total checked)"
+                          % (len(self._candidatesLst),
+                             len(self._alreadyTestedPolynomials)))
         self.__generatePolynomial()  # do not continue by a near search
+
+    # --- TODO: second screening
 
 
 def extractPair(pairStr):

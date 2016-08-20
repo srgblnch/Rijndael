@@ -25,7 +25,10 @@ __status__ = "development"
 
 from copy import copy as _copy
 from copy import deepcopy as _deepcopy
-from ..Logger import Logger as _Logger
+try:
+    from ..Logger import Logger as _Logger
+except:
+    from Logger import Logger as _Logger
 
 
 def BinaryExtensionModulo(modulo, variable='z', loglevel=_Logger._info):
@@ -174,7 +177,7 @@ def BinaryExtensionModulo(modulo, variable='z', loglevel=_Logger._info):
                operation.
             '''
             if self._gcd is None:
-                self._gcd, self._multinv, y = self.__egcd__(self._coefficients,
+                self._gcd, self._multinv, _ = self.__egcd__(self._coefficients,
                                                             self._modulo)
             if self._gcd == 1:
                 return True
@@ -597,14 +600,15 @@ def BinaryExtensionModulo(modulo, variable='z', loglevel=_Logger._info):
         def __gcd__(self, other):
             a = self._coefficients
             b = other._coefficients
-            gcd, x, y = self.__egcd__(a, b)
+            gcd, _, _ = self.__egcd__(a, b)
             return gcd
 
         # ~ Multiplicative inverse: ----
         #        - operator.__inv__(a) => ~a
         def __invert__(self):  # => ~a, that means like a^-1
-            res = self.__multiplicativeInverse__()
-            return BinaryExtensionModuloConstructor(res)
+            if self._multinv is None:
+                self._multinv = self.__multiplicativeInverse__()
+            return BinaryExtensionModuloConstructor(self._multinv)
 
         def __multiplicativeInverse__(self):
             '''Multiplicative inverse based on ...
@@ -617,10 +621,10 @@ def BinaryExtensionModulo(modulo, variable='z', loglevel=_Logger._info):
             if self._coefficients == 0:  # FIXME: is this true?
                 return self
             if self._gcd is None:
-                self._gcd, self._multinv, y = \
-                    self.__egcd__(self._coefficients, self._modulo)
+                self._gcd, self._multinv, _ = self.__egcd__(self._coefficients,
+                                                            self._modulo)
             self._debug_stream("gcd", self._gcd)
-            self._debug_stream("x", self._multinv)
+            self._debug_stream("multiplicative inverse", self._multinv)
             if self._gcd != 1:
                 bar = self.__interpretToStr__(self._coefficients)
                 foo = self.__interpretToStr__(self._modulo)

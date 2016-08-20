@@ -17,4 +17,6 @@ except Exception as e:
     traceback.print_exc()
 
 print c.hammingWeight
+print c.hammingWeightPerCoefficient
 print d.hammingWeight
+print d.hammingWeightPerCoefficient

@@ -25,7 +25,10 @@ __status__ = "development"
 from BinaryPolynomials import *
 from PolynomialRing import *
 
-from ..Logger import Logger as _Logger
+try:
+    from ..Logger import Logger as _Logger
+except:
+    from Logger import Logger as _Logger
 from random import randint
 
 
