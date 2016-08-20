@@ -62,8 +62,13 @@ class SimulatedAnheling(_Logger):
         # --- Search for a reasonable number of candidates
         #     without an explosion of them.
         self._expectedSamples = int(round(log(nTotal)*order))
-        deviation = int(round(log(fieldSize*polynomialRingSize))) / 2
-        hammingGoal = (fieldSize * polynomialRingSize) / 2
+        sizeInBits = fieldSize * polynomialRingSize
+        sizeInBytes = sizeInBits / 8
+        hammingGoal = sizeInBits / 2
+        if sizeInBytes < 2:
+            deviation = int(round(log(fieldSize*polynomialRingSize))) / 2
+        else:
+            deviation = 0
         self._desiredHammingRange = range(hammingGoal-deviation,
                                           hammingGoal+deviation+1)
         # --- another range for the coefficients if they need to be checked
@@ -71,7 +76,10 @@ class SimulatedAnheling(_Logger):
             self._desiredCoeffHammingRange = None
         else:
             hammingGoal = fieldSize / 2
-            deviation = int(round(log(fieldSize))) / 2
+            if (fieldSize/8) < 1:
+                deviation = int(round(log(fieldSize))) / 2
+            else:
+                deviation = 0
             self._desiredCoeffHammingRange = range(hammingGoal-deviation,
                                                    hammingGoal+deviation+1)
         self._info_stream("Preparing a search over a %d degree polynomial "
@@ -262,6 +270,7 @@ def main():
             if v not in results:
                 results[v] = {}
             for f in range(2, 16):
+                # --- TODO: check lower combinations that doesn't have sense
                 print("Searching for a %d polynomial degree, "
                       "with coefficients in an %dth extension of a "
                       "characteristic 2 field" % (v, f))
