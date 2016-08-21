@@ -80,10 +80,7 @@ class SimulatedAnheling(_Logger):
             self._desiredCoeffHammingRange = None
         else:
             hammingGoal = fieldSize / 2
-            if (fieldSize/8) < 1:
-                deviation = int(round(log(fieldSize))) / 2
-            else:
-                deviation = 0
+            deviation = int(round(log(fieldSize))) / 2
             self._desiredCoeffHammingRange = range(hammingGoal-deviation,
                                                    hammingGoal+deviation+1)
         self._info_stream("Preparing a search over a %d degree polynomial "
