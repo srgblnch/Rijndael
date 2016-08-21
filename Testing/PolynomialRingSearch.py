@@ -64,13 +64,13 @@ class SimulatedAnheling(_Logger):
         self._expectedSamples = int(round(log(nTotal)*order))
         sizeInBits = fieldSize * polynomialRingSize
         sizeInBytes = sizeInBits / 8
-        hammingGoal = sizeInBits / 2
+        self._hammingGoal = sizeInBits / 2
         if sizeInBytes < 2:
-            deviation = int(round(log(fieldSize*polynomialRingSize))) / 2
+            self._deviation = int(round(log(fieldSize*polynomialRingSize))) / 2
         else:
-            deviation = 0
-        self._desiredHammingRange = range(hammingGoal-deviation,
-                                          hammingGoal+deviation+1)
+            self._deviation = 0
+        self._desiredHammingRange = range(self._hammingGoal-self._deviation,
+                                          self._hammingGoal+self._deviation+1)
         # --- another range for the coefficients if they need to be checked
         if order < 5:
             self._desiredCoeffHammingRange = None
@@ -92,6 +92,7 @@ class SimulatedAnheling(_Logger):
                              " (%s per coefficient)"
                              % self._desiredCoeffHammingRange))
         # --- storage variables
+        self._candidatesDct = {}
         self._candidatesLst = []
         self._alreadyTestedPolynomials = []
         # --- simulated anheling new area jump probability
@@ -111,6 +112,7 @@ class SimulatedAnheling(_Logger):
                 polynomial = self.__doJump()
             if self._doPreliminaryTest(polynomial):
                 self.__collectForFurtherTest(polynomial)
+        return self._SecondScreening()
 
     def __doJump(self):
         polynomial = self.__generatePolynomial()
@@ -208,6 +210,9 @@ class SimulatedAnheling(_Logger):
     def __collectForFurtherTest(self, polynomial):
         self._debug_stream("Collecting %s" % polynomial)
         self._candidatesLst.append(polynomial)
+        if polynomial.hammingWeight not in self._candidatesDct:
+            self._candidatesDct[polynomial.hammingWeight] = []
+        self._candidatesDct[polynomial.hammingWeight].append(polynomial)
         self._info_stream("%d candidates collected (%d total checked %d jumps)"
                           % (len(self._candidatesLst),
                              len(self._alreadyTestedPolynomials),
@@ -226,6 +231,67 @@ class SimulatedAnheling(_Logger):
         return nTotal == len(self._alreadyTestedPolynomials)
 
     # --- TODO: second screening
+
+    def _SecondScreening(self):
+        finalists = self._hammingFilter()
+        if len(finalists) == 0:
+            self._error_stream("NO finalists has passed the second screening!")
+            return None
+        else:
+            finalists = self._coefficientHammingFilter(finalists)
+        return finalists
+
+    def _hammingFilter(self):
+        if self._hammingGoal in self._candidatesDct:
+            finalists = self._candidatesDct[self._hammingGoal]
+            self._info_stream("There are %d candidates in the goal "
+                              "hamming weight" % len(finalists))
+        else:
+            finalists = []
+            deviation = 0
+            while len(finalists) == 0 and deviation < self._deviation:
+                deviation += 1
+                if self._hammingGoal-deviation in self._candidatesDct:
+                    finalists += \
+                        self._candidatesDct[self._hammingGoal-deviation]
+                if self._hammingGoal+deviation in self._candidatesDct:
+                    finalists += \
+                        self._candidatesDct[self._hammingGoal+deviation]
+            self._info_stream("Taking %d candidates with %d deviation "
+                              "for the %d hamming goal"
+                              % (len(finalists, deviation, self._hammingGoal)))
+        return finalists
+
+    def _coefficientHammingFilter(self, candidates):
+        dct = {}
+        for candidate in candidates:
+            hammingLst = candidate.hammingWeightPerCoefficient
+            hammingLst.sort()
+            if str(hammingLst) not in dct:
+                dct[str(hammingLst)] = candidate
+        self._info_stream("Candidates hamming weights per coefficients: %s"
+                          % dct.keys())
+        self._debug_stream("Those candidates are: %s" % dct)
+        scores = {}
+        for i, combination in enumerate(dct.keys()):
+            score = self.__scoreLst(eval(combination))
+            if score not in scores:
+                scores[score] = []
+            scores[score].append(dct[combination])
+        self._info_stream("Scoring those hamming weights: %s" % scores)
+        scoreKeys = scores.keys()
+        scoreKeys.sort()
+        candidate = scores[scoreKeys[0]]
+        # --- TODO: perhaps there is more than one
+        return candidate[0]
+    
+    def __scoreLst(self, lst):
+        lst.sort()
+        score = 0
+        for i, each in enumerate(lst):
+            if i > 0 and each - lst[i-1] != 0:
+                score += each - lst[i-1]
+        return score
 
 
 def extractPair(pairStr):
@@ -263,14 +329,22 @@ def main():
     if options.search is not None:
         polynomialSize, fieldSize = extractPair(options.search)
         searcher = SimulatedAnheling(polynomialSize, fieldSize, logLevel)
-        searcher.search()
+        result = searcher.search()
+        print("summary:")
+        print("\tWith %d columns (polynomial ring):" % polynomialSize)
+        print("\t\tWordsize %d: %s (%r)" % (fieldSize, hex(result), result))
     elif options.search_all is not None:
         results = {}
-        for v in range(2, 8):
+        for v in range(2, 9):
             if v not in results:
                 results[v] = {}
-            for f in range(2, 16):
-                # --- TODO: check lower combinations that doesn't have sense
+            if v in [2,3]:  # --- lower combinations that doesn't have sense
+                wordSizes = range(4,17)
+            else:
+                wordSizes = range(3,17)
+            for f in wordSizes:
+                
+                
                 print("Searching for a %d polynomial degree, "
                       "with coefficients in an %dth extension of a "
                       "characteristic 2 field" % (v, f))
@@ -280,7 +354,8 @@ def main():
         for v in results.keys():
             print("\tWith %d columns (polynomial ring):" % v)
             for f in results[v].keys():
-                print("\t\tWordsize %d: %s" % (f, hex(results[v][f])))
+                result = results[v][f]
+                print("\t\tWordsize %d: %s (%r)" % (f, hex(result), result))
     else:
         print("\n\tNo default action, check help to know what can be done.\n")
 
