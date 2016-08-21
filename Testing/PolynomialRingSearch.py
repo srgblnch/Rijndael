@@ -354,7 +354,7 @@ def main():
                 print("Searching for a %d polynomial degree, "
                       "with coefficients in an %dth extension of a "
                       "characteristic 2 field" % (v, f))
-                searcher = SimulatedAnheling(v, f)
+                searcher = SimulatedAnheling(v, f, logLevel)
                 results[v][f] = searcher.search()
         print("summary:")
         for v in results.keys():
