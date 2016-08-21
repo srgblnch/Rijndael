@@ -42,6 +42,10 @@ from time import sleep  # FIXME: to be removed
 class SimulatedAnheling(_Logger):
     def __init__(self, polynomialRingSize, fieldSize, *args, **kwargs):
         super(SimulatedAnheling, self).__init__(*args, **kwargs)
+        # --- file log for later audithory
+        self._file_suffix = "SimulatedAnheling_ring_%d_coefficients_%d"\
+                            % (polynomialRingSize, fieldSize)
+        self._log2file = True
         # --- prepare
         self._fieldSize = fieldSize
         fieldModulo = getBinaryExtensionFieldModulo(fieldSize)
@@ -112,7 +116,9 @@ class SimulatedAnheling(_Logger):
                 polynomial = self.__doJump()
             if self._doPreliminaryTest(polynomial):
                 self.__collectForFurtherTest(polynomial)
-        return self._SecondScreening()
+        winner = self._SecondScreening()
+        self._info_stream("Winner polynomial: %s = %s" % (winner, hex(winner)))
+        return winner
 
     def __doJump(self):
         polynomial = self.__generatePolynomial()
