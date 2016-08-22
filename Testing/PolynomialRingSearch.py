@@ -322,6 +322,65 @@ def cmdArgs(parser):
                       help="Do a iterative search for polynomial ring between "
                            "2 and 8, with on each iterate with fields between "
                            "2 and 16")
+    parser.add_option('', "--parallel-processing", action="store_true",
+                      help="Only in search all, launch the search using "
+                      "multiprocessing.")
+
+
+from datetime import datetime
+import itertools
+import multiprocessing
+from PolynomialsSearch import ActivePool
+import traceback
+
+
+def worker(_lock, pool, fileName, fLocker, logLevel=_Logger._info):
+    i,j = multiprocessing.current_process().name.split(',')
+    i,j = int(i), int(j)
+    id = int("%02d%02d" % (i,j))
+    with _lock:
+        pool.makeActive("%s" % (id))
+        print('Worker %d,%d running. Total Now running: %s'
+              % (i, j, str(pool)))
+        # --- check if the pair is one about we want result
+        searcher = SimulatedAnheling(i, j, logLevel)
+        result = searcher.search()
+        print("At %d,%d worker, result is: %s" % (i, j, pool._results))
+        pool.makeInactive("%s" % (id))
+        with fLocker:
+            with open(fileName, 'a') as f:
+                msg = "%d degree polynomial ring with %d degree field "\
+                    "coefficients: %s\n" % (i, j, result)
+                print(msg)
+                f.write(msg)
+
+
+def parallelSearch(fileName, polynomialRingSizes, fieldSizes,
+                   logLevel=_Logger._info):
+    pool = ActivePool()
+    maxParallelprocesses = multiprocessing.cpu_count()
+    semaphore = multiprocessing.Semaphore(maxParallelprocesses)
+    fLocker = multiprocessing.Lock()
+    results = {}
+    jobs = []
+    for i,j in itertools.product(polynomialRingSizes, fieldSizes):
+        job = multiprocessing.Process(target=worker,
+                                      name=str("%d,%d"%(i,j)),
+                                      args=(semaphore, pool, fileName,
+                                            fLocker, logLevel))
+        jobs.append(job)
+    for job in jobs:
+        print('On start, running: %s' % (str(pool)))
+        job.start()
+
+    for job in jobs:
+        job.join()
+        print('Finish, running: %s' % (str(pool)))
+    print("At the end: %s" % (pool._results))
+
+
+MAX_RING_DEGREE = 8
+MAX_FIELD_DEGREE = 16
 
 
 def main():
@@ -337,28 +396,39 @@ def main():
         print("\tWith %d columns (polynomial ring):" % polynomialSize)
         print("\t\tWordsize %d: %s (%r)" % (fieldSize, hex(result), result))
     elif options.search_all is not None:
-        results = {}
-        for v in range(2, 9):
-            if v not in results:
-                results[v] = {}
-            if v in [2,3]:  # --- lower combinations that doesn't have sense
-                wordSizes = range(4,17)
-            else:
-                wordSizes = range(3,17)
-            for f in wordSizes:
-                
-                
-                print("Searching for a %d polynomial degree, "
-                      "with coefficients in an %dth extension of a "
-                      "characteristic 2 field" % (v, f))
-                searcher = SimulatedAnheling(v, f, logLevel)
-                results[v][f] = searcher.search()
-        print("summary:")
-        for v in results.keys():
-            print("\tWith %d columns (polynomial ring):" % v)
-            for f in results[v].keys():
-                result = results[v][f]
-                print("\t\tWordsize %d: %s (%r)" % (f, hex(result), result))
+        if options.parallel_processing:
+            try:
+                now = datetime.now().strftime("%Y%m%d_%H%M%S")
+                fileName = "%s_SimulatedAnheling_ParallelSearch.log" % (now)
+                logLevel = _levelFromMeaning(options.loglevel)
+                parallelSearch(fileName, range(2,MAX_RING_DEGREE+1),
+                               range(2,MAX_FIELD_DEGREE+1), logLevel)
+            except Exception as e:
+                print("Uoch! %s" % (e))
+                traceback.print_exc()
+        else:
+            results = {}
+            for v in range(2, 9):
+                if v not in results:
+                    results[v] = {}
+    #             if v in [2,3]:  # --- lower combinations that doesn't have sense
+    #                 wordSizes = range(4,17)
+    #             else:
+    #                 wordSizes = range(3,17)
+                for f in wordSizes:
+                    
+                    
+                    print("Searching for a %d polynomial degree, "
+                          "with coefficients in an %dth extension of a "
+                          "characteristic 2 field" % (v, f))
+                    searcher = SimulatedAnheling(v, f, logLevel)
+                    results[v][f] = searcher.search()
+            print("summary:")
+            for v in results.keys():
+                print("\tWith %d columns (polynomial ring):" % v)
+                for f in results[v].keys():
+                    result = results[v][f]
+                    print("\t\tWordsize %d: %s (%r)" % (f, hex(result), result))
     else:
         print("\n\tNo default action, check help to know what can be done.\n")
 
