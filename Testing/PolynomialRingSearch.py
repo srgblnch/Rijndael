@@ -262,7 +262,7 @@ class SimulatedAnheling(_Logger):
                         self._candidatesDct[self._hammingGoal+deviation]
             self._info_stream("Taking %d candidates with %d deviation "
                               "for the %d hamming goal"
-                              % (len(finalists, deviation, self._hammingGoal)))
+                              % (len(finalists), deviation, self._hammingGoal))
         return finalists
 
     def _coefficientHammingFilter(self, candidates):
@@ -297,6 +297,13 @@ class SimulatedAnheling(_Logger):
         return score
 
 
+from datetime import datetime
+import itertools
+import multiprocessing
+from PolynomialsSearch import ActivePool
+import traceback
+
+
 def extractPair(pairStr):
     try:
         first, second = pairStr.split(',')
@@ -307,31 +314,62 @@ def extractPair(pairStr):
         sys.exit(-1)
 
 
+def extractSets(sets):
+    try:
+        if sets.startswith('[') and sets.endswith(']'):
+            lst = eval(sets)
+            if type(lst) is not list or\
+                    any([type(l) is not list and len(l) == 2 for l in lst]):
+                raise Exception("Not understood as a list of pairs")
+        elif sets.startswith('{') and sets.endswith('}'):
+            lst = []
+            dct = eval(sets)
+            if type(dct) is not dict:
+                raise Exception("Not evaluable as a dictionary")
+            for ringdegree in dct:
+                if type(dct[ringdegree]) is not list:
+                    raise Exception("For ring degree %d, item not evaluable "
+                                    "as a list" % ringdegree)
+                for coeffdegree in dct[ringdegree]:
+                    lst.append([ringdegree, coeffdegree])
+        print(lst)
+        return lst
+    except Exception as e:
+        raise Exception("Sets not well understood due to: %s" % e)
+
+
 def cmdArgs(parser):
     '''Include all the command line parameters to be accepted and used.
     '''
     parser.add_option('', "--loglevel", type="str",
                       help="output prints log level: "
-                           "{error,warning,info,debug,trace}")
-    parser.add_option('', "--search", type='str',
-                      help="Comma separated pair. First number represents the"
-                           "degree of the polynomial ring, the second "
-                           "represents the extension of the binary field used"
-                           "for the coefficients of the polynomial ring.")
+                           "{error,warning,info,debug,trace}.")
     parser.add_option('', "--search-all", action="store_true",
                       help="Do a iterative search for polynomial ring between "
-                           "2 and 8, with on each iterate with fields between "
-                           "2 and 16")
+                      "2 and 8, where for each the coefficient field degree "
+                      "will be between 2 and 16.")
+    parser.add_option('', "--search", type='str',
+                      help="Comma separated pair. First number represents the "
+                           "degree of the polynomial ring, the second "
+                           "represents the extension of the binary field used "
+                           "for the coefficients of the polynomial ring.")
+    parser.add_option('', "--search-set", type="str",
+                      help="Do a iterative search for a set of pair "
+                      "of polynomial ring degrees with coefficient field "
+                      "degrees. It can receive a list of pair of a dictionary "
+                      "with ring degrees with item list of coefficients "
+                      "degrees. Remember to write within ''.")
     parser.add_option('', "--parallel-processing", action="store_true",
-                      help="Only in search all, launch the search using "
-                      "multiprocessing.")
-
-
-from datetime import datetime
-import itertools
-import multiprocessing
-from PolynomialsSearch import ActivePool
-import traceback
+                      help="Only in search multiple searches, launch each of "
+                      "them using multiprocessing.")
+    parser.add_option('', "--processors", type="str",
+                      help="In case of parallel processing, it can be "
+                      "specified the number of parallel jobs to be working. "
+                      "With the string 'max' the program will use all the "
+                      "available cores. A positive number of them will force "
+                      "this number of parallel jobs in execution, and a "
+                      "negative number will decrease from the maximum of "
+                      "available")
 
 
 def worker(_lock, pool, fileName, fLocker, logLevel=_Logger._info):
@@ -344,6 +382,7 @@ def worker(_lock, pool, fileName, fLocker, logLevel=_Logger._info):
               % (i, j, str(pool)))
         # --- check if the pair is one about we want result
         searcher = SimulatedAnheling(i, j, logLevel)
+        searcher.stdout = False
         result = searcher.search()
         print("At %d,%d worker, result is: %s" % (i, j, pool._results))
         pool.makeInactive("%s" % (id))
@@ -355,28 +394,58 @@ def worker(_lock, pool, fileName, fLocker, logLevel=_Logger._info):
                 f.write(msg)
 
 
-def parallelSearch(fileName, polynomialRingSizes, fieldSizes,
-                   logLevel=_Logger._info):
-    pool = ActivePool()
-    maxParallelprocesses = multiprocessing.cpu_count()
-    semaphore = multiprocessing.Semaphore(maxParallelprocesses)
-    fLocker = multiprocessing.Lock()
+def singleProcessing(pairs, logLevel=_Logger._info):
     results = {}
-    jobs = []
-    for i,j in itertools.product(polynomialRingSizes, fieldSizes):
-        job = multiprocessing.Process(target=worker,
-                                      name=str("%d,%d"%(i,j)),
-                                      args=(semaphore, pool, fileName,
-                                            fLocker, logLevel))
-        jobs.append(job)
-    for job in jobs:
-        print('On start, running: %s' % (str(pool)))
-        job.start()
+    for i, j in pairs:
+        if i not in results:
+            results[i] = {}
+        if j not in results[i]:
+            results[i][j] = None
+        searcher = SimulatedAnheling(i, j, logLevel)
+        print("Searching for a %d polynomial degree, "
+              "with coefficients in an %dth extension of a "
+              "characteristic 2 field" % (i, j))
+        results[i][j] = searcher.search()
+    print("Single processing summary:")
+    for v in results.keys():
+        print("\tWith %d columns (polynomial ring):" % v)
+        for f in results[v].keys():
+            result = results[v][f]
+            print("\t\tWordsize %d: %s (%r)" % (f, hex(result), result))
 
-    for job in jobs:
-        job.join()
-        print('Finish, running: %s' % (str(pool)))
-    print("At the end: %s" % (pool._results))
+
+def parallelProcessing(pairs, processors, logLevel=_Logger._info):
+    try:
+        now = datetime.now().strftime("%Y%m%d_%H%M%S")
+        fileName = "%s_SimulatedAnheling_ParallelSearch.log" % (now)
+        pool = ActivePool()
+        maxParallelprocesses = multiprocessing.cpu_count()
+        if processors is None or processors == 'max':
+            processors = maxParallelprocesses
+        else:
+            processors = int(processors)
+            if processors < 0:
+                processors = maxParallelprocesses - processors
+        semaphore = multiprocessing.Semaphore(processors)
+        fLocker = multiprocessing.Lock()
+        jobs = []
+        for i, j in pairs:
+            singleJob = multiprocessing.Process(target=worker,
+                                                name=str("%d,%d"%(i,j)),
+                                                args=(semaphore, pool,
+                                                      fileName, fLocker,
+                                                      logLevel))
+            jobs.append(singleJob)
+        for job in jobs:
+            # print('On start, running: %s' % (str(pool)))
+            job.start()
+        for job in jobs:
+            job.join()
+            print('Finish, running: %s' % (str(pool)))
+        print("At the end: %s" % (pool._results))
+    except Exception as e:
+        print("Uoch! %s" % (e))
+        traceback.print_exc()
 
 
 MAX_RING_DEGREE = 8
@@ -387,6 +456,7 @@ def main():
     parser = OptionParser()
     cmdArgs(parser)
     (options, args) = parser.parse_args()
+    print options
     logLevel = _levelFromMeaning(options.loglevel)
     if options.search is not None:
         polynomialSize, fieldSize = extractPair(options.search)
@@ -395,40 +465,20 @@ def main():
         print("summary:")
         print("\tWith %d columns (polynomial ring):" % polynomialSize)
         print("\t\tWordsize %d: %s (%r)" % (fieldSize, hex(result), result))
-    elif options.search_all is not None:
+    elif options.search_set is not None:
+        lstOfPairs = extractSets(options.search_set)
         if options.parallel_processing:
-            try:
-                now = datetime.now().strftime("%Y%m%d_%H%M%S")
-                fileName = "%s_SimulatedAnheling_ParallelSearch.log" % (now)
-                logLevel = _levelFromMeaning(options.loglevel)
-                parallelSearch(fileName, range(2,MAX_RING_DEGREE+1),
-                               range(2,MAX_FIELD_DEGREE+1), logLevel)
-            except Exception as e:
-                print("Uoch! %s" % (e))
-                traceback.print_exc()
+            parallelProcessing(lstOfPairs, options.processors, logLevel)
         else:
-            results = {}
-            for v in range(2, 9):
-                if v not in results:
-                    results[v] = {}
-    #             if v in [2,3]:  # --- lower combinations that doesn't have sense
-    #                 wordSizes = range(4,17)
-    #             else:
-    #                 wordSizes = range(3,17)
-                for f in wordSizes:
-                    
-                    
-                    print("Searching for a %d polynomial degree, "
-                          "with coefficients in an %dth extension of a "
-                          "characteristic 2 field" % (v, f))
-                    searcher = SimulatedAnheling(v, f, logLevel)
-                    results[v][f] = searcher.search()
-            print("summary:")
-            for v in results.keys():
-                print("\tWith %d columns (polynomial ring):" % v)
-                for f in results[v].keys():
-                    result = results[v][f]
-                    print("\t\tWordsize %d: %s (%r)" % (f, hex(result), result))
+            singleProcessing(lstOfPairs, logLevel)
+    elif options.search_all is not None:
+        ring_ranges = range(2,MAX_RING_DEGREE+1)
+        coefficient_ranges = range(2,MAX_FIELD_DEGREE+1)
+        lstOfPairs = list(itertools.product(polynomialRingSizes, fieldSizes))
+        if options.parallel_processing:
+            parallelProcessing(lstOfPairs, options.processors, logLevel)
+        else:
+            singleProcessing(lstOfPairs, logLevel)
     else:
         print("\n\tNo default action, check help to know what can be done.\n")
 

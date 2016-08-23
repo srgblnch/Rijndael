@@ -69,6 +69,7 @@ class Logger(object):
         self._logLevel = loglevel
         self._when_build = _datetime.now()
         self._log2file = False
+        self._stdout = True
         self._file_suffix = ""
         self._file_extension = "log"
 
@@ -107,6 +108,14 @@ class Logger(object):
     def fileSuffix(self, suffix):
         self._file_suffix = "%s" % (suffix)
         self._debug_stream("New log file name suffix: %s" % self._file_suffix)
+
+    @property
+    def stdout(self):
+        return self._stdout
+
+    @stdout.setter
+    def stdout(self, value):
+        self._stdout = bool(value)
 
     def _arePolynomials(self, data):
         '''
@@ -176,7 +185,8 @@ class Logger(object):
             fileName = "%s.%s" % (fileName, self._file_extension)
             with open(fileName, 'a') as logfile:
                 logfile.write(msg+"\n")
-        print msg
+        if self._stdout:
+            print msg
 
     def _print_stream(self, logtext, loglevel,
                       data=None, round=None, operation=None):
