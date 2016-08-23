@@ -474,7 +474,7 @@ def main():
     elif options.search_all is not None:
         ring_ranges = range(2,MAX_RING_DEGREE+1)
         coefficient_ranges = range(2,MAX_FIELD_DEGREE+1)
-        lstOfPairs = list(itertools.product(polynomialRingSizes, fieldSizes))
+        lstOfPairs = list(itertools.product(ring_ranges, coefficient_ranges))
         if options.parallel_processing:
             parallelProcessing(lstOfPairs, options.processors, logLevel)
         else:
