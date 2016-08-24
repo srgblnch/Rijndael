@@ -40,7 +40,8 @@ from time import sleep  # FIXME: to be removed
 
 
 class SimulatedAnheling(_Logger):
-    def __init__(self, polynomialRingSize, fieldSize, *args, **kwargs):
+    def __init__(self, polynomialRingSize, fieldSize, samples,
+                 *args, **kwargs):
         super(SimulatedAnheling, self).__init__(*args, **kwargs)
         # --- file log for later audithory
         self._file_suffix = "SimulatedAnheling_ring_%d_coefficients_%d"\
@@ -65,7 +66,11 @@ class SimulatedAnheling(_Logger):
         order = int(("%e" % nTotal).split('+')[1])
         # --- Search for a reasonable number of candidates
         #     without an explosion of them.
-        self._expectedSamples = 1#int(round(log(nTotal)*order))
+        print "...", samples
+        if samples is None:
+            self._expectedSamples = int(round(log(nTotal)*order))
+        else:
+            self._expectedSamples = int(samples)
         sizeInBits = fieldSize * polynomialRingSize
         sizeInBytes = sizeInBits / 8
         self._hammingGoal = sizeInBits / 2
@@ -386,9 +391,12 @@ def cmdArgs(parser):
                       "this number of parallel jobs in execution, and a "
                       "negative number will decrease from the maximum of "
                       "available")
+    parser.add_option('', "--samples", type="int",
+                      help="Tell the algorithm how many samples first "
+                      "screening must collect.")
 
 
-def worker(_lock, pool, fileName, fLocker, logLevel=_Logger._info):
+def worker(_lock, pool, fileName, fLocker, samples, logLevel=_Logger._info):
     i,j = multiprocessing.current_process().name.split(',')
     i,j = int(i), int(j)
     id = int("%02d%02d" % (i,j))
@@ -397,7 +405,7 @@ def worker(_lock, pool, fileName, fLocker, logLevel=_Logger._info):
         print('Worker %d,%d running. Total Now running: %s'
               % (i, j, str(pool)))
         # --- check if the pair is one about we want result
-        searcher = SimulatedAnheling(i, j, logLevel)
+        searcher = SimulatedAnheling(i, j, samples, logLevel)
         searcher.stdout = False
         result = searcher.search()
         print("At %d,%d worker, result is: %s" % (i, j, pool._results))
@@ -410,14 +418,14 @@ def worker(_lock, pool, fileName, fLocker, logLevel=_Logger._info):
                 f.write(msg)
 
 
-def singleProcessing(pairs, logLevel=_Logger._info):
+def singleProcessing(pairs, samples, logLevel=_Logger._info):
     results = {}
     for i, j in pairs:
         if i not in results:
             results[i] = {}
         if j not in results[i]:
             results[i][j] = None
-        searcher = SimulatedAnheling(i, j, logLevel)
+        searcher = SimulatedAnheling(i, j, samples, logLevel)
         print("Searching for a %d polynomial degree, "
               "with coefficients in an %dth extension of a "
               "characteristic 2 field" % (i, j))
@@ -450,7 +458,7 @@ def parallelProcessing(pairs, processors, logLevel=_Logger._info):
                                                 name=str("%d,%d"%(i,j)),
                                                 args=(semaphore, pool,
                                                       fileName, fLocker,
-                                                      logLevel))
+                                                      samples, logLevel))
             jobs.append(singleJob)
         for job in jobs:
             # print('On start, running: %s' % (str(pool)))
@@ -472,11 +480,12 @@ def main():
     parser = OptionParser()
     cmdArgs(parser)
     (options, args) = parser.parse_args()
-    print options
+    print options.samples
     logLevel = _levelFromMeaning(options.loglevel)
     if options.search is not None:
         polynomialSize, fieldSize = extractPair(options.search)
-        searcher = SimulatedAnheling(polynomialSize, fieldSize, logLevel)
+        searcher = SimulatedAnheling(polynomialSize, fieldSize,
+                                     options.samples, logLevel)
         result = searcher.search()
         print("summary:")
         print("\tWith %d columns (polynomial ring):" % polynomialSize)
@@ -484,17 +493,17 @@ def main():
     elif options.search_set is not None:
         lstOfPairs = extractSets(options.search_set)
         if options.parallel_processing:
-            parallelProcessing(lstOfPairs, options.processors, logLevel)
+            parallelProcessing(lstOfPairs, options.processors, options.samples, logLevel)
         else:
-            singleProcessing(lstOfPairs, logLevel)
+            singleProcessing(lstOfPairs, options.samples, logLevel)
     elif options.search_all is not None:
         ring_ranges = range(2,MAX_RING_DEGREE+1)
         coefficient_ranges = range(2,MAX_FIELD_DEGREE+1)
         lstOfPairs = list(itertools.product(ring_ranges, coefficient_ranges))
         if options.parallel_processing:
-            parallelProcessing(lstOfPairs, options.processors, logLevel)
+            parallelProcessing(lstOfPairs, options.processors, options.samples, logLevel)
         else:
-            singleProcessing(lstOfPairs, logLevel)
+            singleProcessing(lstOfPairs, options.samples, logLevel)
     else:
         print("\n\tNo default action, check help to know what can be done.\n")
 
