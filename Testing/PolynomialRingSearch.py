@@ -506,7 +506,10 @@ def parallelProcessing(pairs, processors, samples, logLevel=_Logger._info):
         else:
             processors = int(processors)
             if processors < 0:
-                processors = maxParallelprocesses - processors
+                processors = maxParallelprocesses + processors
+        with open(fileName, 'a') as f:
+            f.write("With %d processors, prepare a set of %d workers\n"
+                    % (maxParallelprocesses, processors))
         queue = multiprocessing.Queue()
         for i, j in pairs:
             queue.put([i, j])
