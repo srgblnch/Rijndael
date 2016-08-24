@@ -396,26 +396,26 @@ def cmdArgs(parser):
                       "screening must collect.")
 
 
-def worker(_lock, pool, fileName, fLocker, samples, logLevel=_Logger._info):
-    i,j = multiprocessing.current_process().name.split(',')
-    i,j = int(i), int(j)
-    id = int("%02d%02d" % (i,j))
-    with _lock:
-        pool.makeActive("%s" % (id))
-        print('Worker %d,%d running. Total Now running: %s'
-              % (i, j, str(pool)))
-        # --- check if the pair is one about we want result
-        searcher = SimulatedAnheling(i, j, samples, logLevel)
-        searcher.stdout = False
-        result = searcher.search()
-        print("At %d,%d worker, result is: %s" % (i, j, pool._results))
-        pool.makeInactive("%s" % (id))
-        with fLocker:
-            with open(fileName, 'a') as f:
-                msg = "%d degree polynomial ring with %d degree field "\
-                    "coefficients: %s\n" % (i, j, result)
-                print(msg)
-                f.write(msg)
+# def worker(_lock, pool, fileName, fLocker, samples, logLevel=_Logger._info):
+#     i,j = multiprocessing.current_process().name.split(',')
+#     i,j = int(i), int(j)
+#     id = int("%02d%02d" % (i,j))
+#     with _lock:
+#         pool.makeActive("%s" % (id))
+#         print('Worker %d,%d running. Total Now running: %s'
+#               % (i, j, str(pool)))
+#         # --- check if the pair is one about we want result
+#         searcher = SimulatedAnheling(i, j, samples, logLevel)
+#         searcher.stdout = False
+#         result = searcher.search()
+#         print("At %d,%d worker, result is: %s" % (i, j, pool._results))
+#         pool.makeInactive("%s" % (id))
+#         with fLocker:
+#             with open(fileName, 'a') as f:
+#                 msg = "%d degree polynomial ring with %d degree field "\
+#                     "coefficients: %s\n" % (i, j, result)
+#                 print(msg)
+#                 f.write(msg)
 
 
 def singleProcessing(pairs, samples, logLevel=_Logger._info):
@@ -438,11 +438,68 @@ def singleProcessing(pairs, samples, logLevel=_Logger._info):
             print("\t\tWordsize %d: %s (%r)" % (f, hex(result), result))
 
 
-def parallelProcessing(pairs, processors, logLevel=_Logger._info):
+# def parallelProcessing(pairs, processors, samples, logLevel=_Logger._info):
+#     try:
+#         now = datetime.now().strftime("%Y%m%d_%H%M%S")
+#         fileName = "%s_SimulatedAnheling_ParallelSearch.log" % (now)
+#         pool = ActivePool()
+#         maxParallelprocesses = multiprocessing.cpu_count()
+#         if processors is None or processors == 'max':
+#             processors = maxParallelprocesses
+#         else:
+#             processors = int(processors)
+#             if processors < 0:
+#                 processors = maxParallelprocesses - processors
+#         semaphore = multiprocessing.Semaphore(processors)
+#         fLocker = multiprocessing.Lock()
+#         jobs = []
+#         for i, j in pairs:
+#             singleJob = multiprocessing.Process(target=worker,
+#                                                 name=str("%d,%d"%(i,j)),
+#                                                 args=(semaphore, pool,
+#                                                       fileName, fLocker,
+#                                                       samples, logLevel))
+#             jobs.append(singleJob)
+#         for job in jobs:
+#             # print('On start, running: %s' % (str(pool)))
+#             job.start()
+#         for job in jobs:
+#             job.join()
+#             print('Finish, running: %s' % (str(pool)))
+#         print("At the end: %s" % (pool._results))
+#     except Exception as e:
+#         print("Uoch! %s" % (e))
+#         traceback.print_exc()
+
+
+def worker(queue, fileName, fLocker, samples, logLevel=_Logger._info):
+    def write2File(msg):
+        with fLocker:
+            with open(fileName, 'a') as f:
+                f.write(msg)
+    id = int(multiprocessing.current_process().name)
+    while not queue.empty():
+        try:
+            i, j = queue.get()
+            write2File("worker %d is going to search for pair %d, %d\n"
+                       % (id, i, j))
+            searcher = SimulatedAnheling(i, j, samples, logLevel)
+            searcher.stdout = False
+            result = searcher.search()
+            write2File("worker %d has finished\n"
+                       "\t%d degree polynomial ring with %d degree field "
+                       "coefficients: %s = %s\n" % (id, i, j, result,
+                                                    hex(result)))
+        except Exception as e:
+            write2File("worker %d reports an exception for pair %d, %d: %s\n"
+                       % (id, i, j, e))
+
+
+def parallelProcessing(pairs, processors, samples, logLevel=_Logger._info):
     try:
         now = datetime.now().strftime("%Y%m%d_%H%M%S")
         fileName = "%s_SimulatedAnheling_ParallelSearch.log" % (now)
-        pool = ActivePool()
+        fLocker = multiprocessing.Lock()
         maxParallelprocesses = multiprocessing.cpu_count()
         if processors is None or processors == 'max':
             processors = maxParallelprocesses
@@ -450,27 +507,24 @@ def parallelProcessing(pairs, processors, logLevel=_Logger._info):
             processors = int(processors)
             if processors < 0:
                 processors = maxParallelprocesses - processors
-        semaphore = multiprocessing.Semaphore(processors)
-        fLocker = multiprocessing.Lock()
-        jobs = []
+        queue = multiprocessing.Queue()
         for i, j in pairs:
-            singleJob = multiprocessing.Process(target=worker,
-                                                name=str("%d,%d"%(i,j)),
-                                                args=(semaphore, pool,
-                                                      fileName, fLocker,
-                                                      samples, logLevel))
-            jobs.append(singleJob)
-        for job in jobs:
-            # print('On start, running: %s' % (str(pool)))
-            job.start()
-        for job in jobs:
-            job.join()
-            print('Finish, running: %s' % (str(pool)))
-        print("At the end: %s" % (pool._results))
+            queue.put([i, j])
+        workersLst = []
+        for k in range(processors):
+            singleWorker = multiprocessing.Process(target=worker,
+                                                   name=str("%d" % (k)),
+                                                   args=(queue, fileName,
+                                                         fLocker, samples,
+                                                         logLevel))
+            workersLst.append(singleWorker)
+        for w in workersLst:
+            w.start()
+        for w in workersLst:
+            w.join()
     except Exception as e:
         print("Uoch! %s" % (e))
         traceback.print_exc()
-
 
 MAX_RING_DEGREE = 8
 MAX_FIELD_DEGREE = 16
@@ -480,7 +534,6 @@ def main():
     parser = OptionParser()
     cmdArgs(parser)
     (options, args) = parser.parse_args()
-    print options.samples
     logLevel = _levelFromMeaning(options.loglevel)
     if options.search is not None:
         polynomialSize, fieldSize = extractPair(options.search)
