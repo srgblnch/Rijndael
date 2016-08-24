@@ -65,14 +65,21 @@ class SimulatedAnheling(_Logger):
         order = int(("%e" % nTotal).split('+')[1])
         # --- Search for a reasonable number of candidates
         #     without an explosion of them.
-        self._expectedSamples = int(round(log(nTotal)*order))
+        self._expectedSamples = 1#int(round(log(nTotal)*order))
         sizeInBits = fieldSize * polynomialRingSize
         sizeInBytes = sizeInBits / 8
         self._hammingGoal = sizeInBits / 2
-        if sizeInBytes < 2:
-            self._deviation = int(round(log(fieldSize*polynomialRingSize))) / 2
+        if fieldSize == 2 and polynomialRingSize == 2:
+            self._deviation = 1
+            # --- Force an special case for this very small situation.
+        #elif sizeInBytes < 2:
+        bar = int(round(log(fieldSize*polynomialRingSize)))
+        if bar % 2:
+            self._deviation = bar / 2
         else:
-            self._deviation = 0
+            self._deviation = (bar / 2) + 1
+        if self._deviation == 0:
+            self._deviation = 1
         self._desiredHammingRange = range(self._hammingGoal-self._deviation,
                                           self._hammingGoal+self._deviation+1)
         # --- another range for the coefficients if they need to be checked
@@ -80,12 +87,18 @@ class SimulatedAnheling(_Logger):
             self._desiredCoeffHammingRange = None
         else:
             hammingGoal = fieldSize / 2
-            deviation = int(round(log(fieldSize))) / 2
+            bar = int(round(log(fieldSize)))
+            if bar % 2:
+                deviation = bar / 2
+            else:
+                deviation = (bar / 2) + 1
+            if deviation == 0:
+                deviation = 1
             self._desiredCoeffHammingRange = range(hammingGoal-deviation,
                                                    hammingGoal+deviation+1)
         self._info_stream("Preparing a search over a %d degree polynomial "
                           "with %d degree coefficients. The search space has "
-                          "%d polynomials. The program will start looking for "
+                          "%g polynomials. The program will start looking for "
                           "%d candidates within %s hamming weights%s."
                           % (polynomialRingSize, fieldSize, nTotal,
                              self._expectedSamples, self._desiredHammingRange,
@@ -181,8 +194,8 @@ class SimulatedAnheling(_Logger):
     def __PrefactoryOne(self, polynomial):
         if polynomial.hammingWeight in self._desiredHammingRange:
             return True
-        self._debug_stream("%s does NOT have the desired hamming weight."
-                           % polynomial)
+        self._debug_stream("%s does NOT have the desired hamming weight. (%d)"
+                           % (polynomial, polynomial.hammingWeight))
         return False
 
     def __PrefactoryTwo(self, polynomial):
@@ -191,7 +204,9 @@ class SimulatedAnheling(_Logger):
         for weight in polynomial.hammingWeightPerCoefficient:
             if weight not in self._desiredCoeffHammingRange:
                 self._debug_stream("%s does NOT have the desired hamming "
-                                   "weight per coefficient." % polynomial)
+                                   "weight per coefficient. (%s)"
+                                   % (polynomial,
+                                      polynomial.hammingWeightPerCoefficient))
                 return False
         return True
 
@@ -206,8 +221,9 @@ class SimulatedAnheling(_Logger):
                                % (hex(polynomial)))
             return False
         except Exception as e:
-            self._debug_stream("Discard %s, because an exception %s"
+            self._error_stream("Discard %s, because an exception %s"
                                % (hex(polynomial), e))
+            traceback.print_exc()
             return False
 
     def __collectForFurtherTest(self, polynomial):

@@ -699,8 +699,8 @@ def PolynomialRingModulo(modulo, coefficients_class, variable='x',
                 raise ArithmeticError("The inverse of %s modulo %s "
                                       "doens't exist! (gcd = %s = %s, "
                                       "candidate = %s = %s)"
-                                      % (bar, foo, self._gcd, hex(self._gcd),
-                                         self._multinv, hex(self._multinv)))
+                                      % (bar, foo, self._gcd, hex(gcd),
+                                         self._multinv, hex(multinv)))
             return self._multinv  # % self._modulo
 
         def __gcd__(self, other):
