@@ -66,7 +66,6 @@ class SimulatedAnheling(_Logger):
         order = int(("%e" % nTotal).split('+')[1])
         # --- Search for a reasonable number of candidates
         #     without an explosion of them.
-        print "...", samples
         if samples is None:
             self._expectedSamples = int(round(log(nTotal)*order))
         else:
@@ -481,21 +480,32 @@ def worker(queue, fileName, fLocker, samples, logLevel=_Logger._info):
     while not queue.empty():
         try:
             i, j = queue.get()
-            write2File("worker %d is going to search for pair %d, %d\n"
+            write2File("Worker %d is going to search for pair %d, %d\n"
                        % (id, i, j))
             searcher = SimulatedAnheling(i, j, samples, logLevel)
             searcher.stdout = False
             result = searcher.search()
-            write2File("worker %d has finished\n"
+            write2File("Worker %d has finished\n"
                        "\t%d degree polynomial ring with %d degree field "
                        "coefficients: %s = %s\n" % (id, i, j, result,
                                                     hex(result)))
+            del searcher
         except Exception as e:
-            write2File("worker %d reports an exception for pair %d, %d: %s\n"
-                       % (id, i, j, e))
+            write2File("** Worker %d reports an exception for pair %d, %d: **"
+                       "\n\t%s\n" % (id, i, j, e))
+
+
+CHECKPERIOD = 60  # a minute
 
 
 def parallelProcessing(pairs, processors, samples, logLevel=_Logger._info):
+    def write2File(msg):
+        with open(fileName, 'a') as f:
+            f.write(msg)
+    def buildWorker(id):
+        return multiprocessing.Process(target=worker, name=str("%d" % (id)),
+                                       args=(queue, fileName, fLocker, samples,
+                                             logLevel))
     try:
         now = datetime.now().strftime("%Y%m%d_%H%M%S")
         fileName = "%s_SimulatedAnheling_ParallelSearch.log" % (now)
@@ -508,21 +518,35 @@ def parallelProcessing(pairs, processors, samples, logLevel=_Logger._info):
             if processors < 0:
                 processors = maxParallelprocesses + processors
         with open(fileName, 'a') as f:
-            f.write("With %d processors, prepare a set of %d workers\n"
-                    % (maxParallelprocesses, processors))
+            write2File("With %d processors, prepare a set of %d workers\n"
+                       % (maxParallelprocesses, processors))
         queue = multiprocessing.Queue()
         for i, j in pairs:
             queue.put([i, j])
         workersLst = []
         for k in range(processors):
-            singleWorker = multiprocessing.Process(target=worker,
-                                                   name=str("%d" % (k)),
-                                                   args=(queue, fileName,
-                                                         fLocker, samples,
-                                                         logLevel))
-            workersLst.append(singleWorker)
+            workersLst.append(buildWorker(k))
         for w in workersLst:
             w.start()
+        write2File("All %d workers started. PIDs %s\n"
+                   % (len(workersLst), [w.pid for w in workersLsr]))
+        while not queue.empty():
+            pidsLst = [w.pid for w in workersLsr]
+            # --- check if all the workers are alive and working
+            while any([True if pid is not None else False
+                       for pid in pidsLsr]):
+                idx = pidsLst.index(None)
+                deadWorker = workersLst.pop(idx)
+                write2File("Worker %s hasn't PID, replacing it"
+                           % (deadWorker.name))
+                k += 1
+                newWorker = buildWorker(k)
+                workersLst.append(newWorker)
+                newWorker.start()
+                write2File("New worker %s replaces %s"
+                           % (newWorker.name, deadWorker.name))
+                deadWorker.join()
+            sleep(CHECKPERIOD)
         for w in workersLst:
             w.join()
     except Exception as e:
