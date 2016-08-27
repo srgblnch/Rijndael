@@ -33,10 +33,14 @@ from GeneralizedRijndael.Logger import levelFromMeaning as _levelFromMeaning
 from GeneralizedRijndael.Polynomials import *
 from math import log
 from optparse import OptionParser
+import psutil
 from random import random, randint
 import sys
+from time import sleep
 
-from time import sleep  # FIXME: to be removed
+
+FIRST_MEM_THRESHOLD = 10.0
+SECOND_MEM_THRESHOLD = 19.0
 
 
 class SimulatedAnheling(_Logger):
@@ -147,11 +151,11 @@ class SimulatedAnheling(_Logger):
         self._debug_stream("Generate a new random polynomials.")
         polynomialObj = None
         while polynomialObj is None or\
-                polynomialObj in self._alreadyTestedPolynomials:
+                polynomialObj.coefficients in self._alreadyTestedPolynomials:
             polynomialLst = [self._field(randint(0, 2**self._fieldSize))
                              for i in range(self._polynomialRingSize)]
             polynomialObj = self._polynomialRing(polynomialLst)
-            if polynomialObj in self._alreadyTestedPolynomials:
+            if polynomialObj.coefficients in self._alreadyTestedPolynomials:
                 self._debug_stream("Discard %s, already tested"
                                    % (hex(polynomialObj)))
             self._debug_stream("Generating a random polynomial candidate: %r"
@@ -172,7 +176,7 @@ class SimulatedAnheling(_Logger):
                 if newCoefficients == oldCoefficients:
                     oldCoefficients.reverse()
                 newPolynomial = self._polynomialRing(newCoefficients)
-            if newPolynomial in self._alreadyTestedPolynomials:
+            if newPolynomial.coefficients in self._alreadyTestedPolynomials:
                 self._debug_stream("Discard %s, already tested (%d,%d)"
                                    % (hex(newPolynomial), distance,
                                       len(self._alreadyTestedPolynomials)))
@@ -184,12 +188,16 @@ class SimulatedAnheling(_Logger):
         return newPolynomial
 
     def _doPreliminaryTest(self, polynomial):
-        self._alreadyTestedPolynomials.append(polynomial)
+        if psutil.virtual_memory().percent > SECOND_MEM_THRESHOLD:
+            self._warning_stream("Memory in use %g, this process uses %g"
+                                 % (psutil.virtual_memory().percent, 
+                                    psutil.Process().memory_percent()))
+        self._alreadyTestedPolynomials.append(polynomial.coefficients)
         if self.__PrefactoryOne(polynomial):
             if self.__PrefactoryTwo(polynomial):
                 if self.__isInvertible(polynomial):
                     inverse = ~polynomial
-                    self._alreadyTestedPolynomials.append(inverse)
+                    self._alreadyTestedPolynomials.append(inverse.coefficients)
                     if self.__PrefactoryOne(inverse):
                         if self.__PrefactoryTwo(inverse):
                             return True
@@ -529,23 +537,30 @@ def parallelProcessing(pairs, processors, samples, logLevel=_Logger._info):
         for w in workersLst:
             w.start()
         write2File("All %d workers started. PIDs %s\n"
-                   % (len(workersLst), [w.pid for w in workersLsr]))
+                   % (len(workersLst), [w.pid for w in workersLst]))
         while not queue.empty():
-            pidsLst = [w.pid for w in workersLsr]
+            pidsLst = [w.pid for w in workersLst]
             # --- check if all the workers are alive and working
             while any([True if pid is not None else False
-                       for pid in pidsLsr]):
-                idx = pidsLst.index(None)
-                deadWorker = workersLst.pop(idx)
-                write2File("Worker %s hasn't PID, replacing it"
-                           % (deadWorker.name))
-                k += 1
-                newWorker = buildWorker(k)
-                workersLst.append(newWorker)
-                newWorker.start()
-                write2File("New worker %s replaces %s"
-                           % (newWorker.name, deadWorker.name))
-                deadWorker.join()
+                       for pid in pidsLst]):
+                try:
+                    idx = pidsLst.index(None)
+                except:
+                    pass
+                else:
+                    deadWorker = workersLst.pop(idx)
+                    write2File("Worker %s hasn't PID, replacing it"
+                               % (deadWorker.name))
+                    k += 1
+                    newWorker = buildWorker(k)
+                    workersLst.append(newWorker)
+                    newWorker.start()
+                    write2File("New worker %s replaces %s"
+                               % (newWorker.name, deadWorker.name))
+                    deadWorker.join()
+            if psutil.virtual_memory().percent > FIRST_MEM_THRESHOLD:
+                write2File("WARNING: memory use %g"
+                           % psutil.virtual_memory().percent)
             sleep(CHECKPERIOD)
         for w in workersLst:
             w.join()
