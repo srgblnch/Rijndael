@@ -151,11 +151,11 @@ class SimulatedAnheling(_Logger):
         self._debug_stream("Generate a new random polynomials.")
         polynomialObj = None
         while polynomialObj is None or\
-                polynomialObj.coefficients in self._alreadyTestedPolynomials:
+                int(polynomialObj) in self._alreadyTestedPolynomials:
             polynomialLst = [self._field(randint(0, 2**self._fieldSize))
                              for i in range(self._polynomialRingSize)]
             polynomialObj = self._polynomialRing(polynomialLst)
-            if polynomialObj.coefficients in self._alreadyTestedPolynomials:
+            if int(polynomialObj) in self._alreadyTestedPolynomials:
                 self._debug_stream("Discard %s, already tested"
                                    % (hex(polynomialObj)))
             self._debug_stream("Generating a random polynomial candidate: %r"
@@ -176,7 +176,7 @@ class SimulatedAnheling(_Logger):
                 if newCoefficients == oldCoefficients:
                     oldCoefficients.reverse()
                 newPolynomial = self._polynomialRing(newCoefficients)
-            if newPolynomial.coefficients in self._alreadyTestedPolynomials:
+            if int(newPolynomial) in self._alreadyTestedPolynomials:
                 self._debug_stream("Discard %s, already tested (%d,%d)"
                                    % (hex(newPolynomial), distance,
                                       len(self._alreadyTestedPolynomials)))
@@ -189,15 +189,17 @@ class SimulatedAnheling(_Logger):
 
     def _doPreliminaryTest(self, polynomial):
         if psutil.virtual_memory().percent > SECOND_MEM_THRESHOLD:
-            self._warning_stream("Memory in use %g, this process uses %g"
+            self._warning_stream("Memory in use %g, this process uses %g "
+                                 "(already tested polynomials %d)"
                                  % (psutil.virtual_memory().percent, 
-                                    psutil.Process().memory_percent()))
-        self._alreadyTestedPolynomials.append(polynomial.coefficients)
+                                    psutil.Process().memory_percent(),
+                                    len(self._alreadyTestedPolynomials)))
+        self._alreadyTestedPolynomials.append(int(polynomial))
         if self.__PrefactoryOne(polynomial):
             if self.__PrefactoryTwo(polynomial):
                 if self.__isInvertible(polynomial):
                     inverse = ~polynomial
-                    self._alreadyTestedPolynomials.append(inverse.coefficients)
+                    self._alreadyTestedPolynomials.append(int(inverse))
                     if self.__PrefactoryOne(inverse):
                         if self.__PrefactoryTwo(inverse):
                             return True

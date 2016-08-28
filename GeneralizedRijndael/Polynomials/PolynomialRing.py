@@ -132,6 +132,33 @@ def PolynomialRingModulo(modulo, coefficients_class, variable='x',
                    % (self.__interpretToStr__(self._coefficients),
                       self.__interpretToStr__(self._modulo))
 
+        def __int__(self):
+            '''
+                Generate a integer representing the polynomial
+            '''
+            value = 0
+            for degree, coefficient in enumerate(self.coefficients):
+#                 self._debug_stream("For %dth coefficient %s: %d %s"
+#                                    % (degree, coefficient,
+#                                       coefficient.coefficients, bin(coefficient.coefficients)))
+                # shift = degree * (coefficient.modulodegree -1)
+                # shiftedcoeff = coefficient.coefficients << shift
+#                 self._debug_stream("\t%d << %d = %d %s"
+#                                    % (coefficient.coefficients, shift,
+#                                       shiftedcoeff, bin(shiftedcoeff)))
+#                 self._debug_stream("\t%d + %d = %d %s"
+#                                    %(value, shiftedcoeff,
+#                                      value + shiftedcoeff,
+#                                      bin(value + shiftedcoeff)))
+#                 self._debug_stream("For %dth coefficient %s, shifted %d bits, "
+#                                    "is %d to add to %d is %s"
+#                                    % (degree, coefficient, shift, shiftedcoeff,
+#                                       value, value + shiftedcoeff))
+                # value += shiftedcoeff
+                value += coefficient.coefficients <<\
+                    (degree * (coefficient.modulodegree-1))
+            return value
+
         def __hex__(self):
             '''
                 String where the coefficients are compacted on an hexadecimal
