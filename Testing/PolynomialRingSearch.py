@@ -327,10 +327,13 @@ class SimulatedAnheling(_Logger):
         return score
 
 
+import bz2
 from datetime import datetime
 import itertools
 import multiprocessing
+import os
 from PolynomialsSearch import ActivePool
+from shutil import copyfileobj
 import traceback
 
 
@@ -405,26 +408,12 @@ def cmdArgs(parser):
                       "screening must collect.")
 
 
-# def worker(_lock, pool, fileName, fLocker, samples, logLevel=_Logger._info):
-#     i,j = multiprocessing.current_process().name.split(',')
-#     i,j = int(i), int(j)
-#     id = int("%02d%02d" % (i,j))
-#     with _lock:
-#         pool.makeActive("%s" % (id))
-#         print('Worker %d,%d running. Total Now running: %s'
-#               % (i, j, str(pool)))
-#         # --- check if the pair is one about we want result
-#         searcher = SimulatedAnheling(i, j, samples, logLevel)
-#         searcher.stdout = False
-#         result = searcher.search()
-#         print("At %d,%d worker, result is: %s" % (i, j, pool._results))
-#         pool.makeInactive("%s" % (id))
-#         with fLocker:
-#             with open(fileName, 'a') as f:
-#                 msg = "%d degree polynomial ring with %d degree field "\
-#                     "coefficients: %s\n" % (i, j, result)
-#                 print(msg)
-#                 f.write(msg)
+def closeSearch(searcher):
+    fileName = searcher._get_logFileName()
+    with open(fileName, 'rb') as input:
+        with bz2.BZ2File(fileName+'.bz2', 'wb', compresslevel=9) as output:
+            copyfileobj(input, output)
+    os.remove(fileName)
 
 
 def singleProcessing(pairs, samples, logLevel=_Logger._info):
@@ -439,46 +428,13 @@ def singleProcessing(pairs, samples, logLevel=_Logger._info):
               "with coefficients in an %dth extension of a "
               "characteristic 2 field" % (i, j))
         results[i][j] = searcher.search()
+        closeSearch(searcher)
     print("Single processing summary:")
     for v in results.keys():
         print("\tWith %d columns (polynomial ring):" % v)
         for f in results[v].keys():
             result = results[v][f]
             print("\t\tWordsize %d: %s (%r)" % (f, hex(result), result))
-
-
-# def parallelProcessing(pairs, processors, samples, logLevel=_Logger._info):
-#     try:
-#         now = datetime.now().strftime("%Y%m%d_%H%M%S")
-#         fileName = "%s_SimulatedAnheling_ParallelSearch.log" % (now)
-#         pool = ActivePool()
-#         maxParallelprocesses = multiprocessing.cpu_count()
-#         if processors is None or processors == 'max':
-#             processors = maxParallelprocesses
-#         else:
-#             processors = int(processors)
-#             if processors < 0:
-#                 processors = maxParallelprocesses - processors
-#         semaphore = multiprocessing.Semaphore(processors)
-#         fLocker = multiprocessing.Lock()
-#         jobs = []
-#         for i, j in pairs:
-#             singleJob = multiprocessing.Process(target=worker,
-#                                                 name=str("%d,%d"%(i,j)),
-#                                                 args=(semaphore, pool,
-#                                                       fileName, fLocker,
-#                                                       samples, logLevel))
-#             jobs.append(singleJob)
-#         for job in jobs:
-#             # print('On start, running: %s' % (str(pool)))
-#             job.start()
-#         for job in jobs:
-#             job.join()
-#             print('Finish, running: %s' % (str(pool)))
-#         print("At the end: %s" % (pool._results))
-#     except Exception as e:
-#         print("Uoch! %s" % (e))
-#         traceback.print_exc()
 
 
 def worker(queue, fileName, fLocker, samples, logLevel=_Logger._info):
@@ -499,6 +455,7 @@ def worker(queue, fileName, fLocker, samples, logLevel=_Logger._info):
                        "\t%d degree polynomial ring with %d degree field "
                        "coefficients: %s = %s\n" % (id, i, j, result,
                                                     hex(result)))
+            closeSearch(searcher)
             del searcher
         except Exception as e:
             write2File("** Worker %d reports an exception for pair %d, %d: **"
@@ -569,6 +526,7 @@ def parallelProcessing(pairs, processors, samples, logLevel=_Logger._info):
     except Exception as e:
         print("Uoch! %s" % (e))
         traceback.print_exc()
+
 
 MAX_RING_DEGREE = 8
 MAX_FIELD_DEGREE = 16

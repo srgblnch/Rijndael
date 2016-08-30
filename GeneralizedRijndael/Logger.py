@@ -160,6 +160,13 @@ class Logger(object):
         return "%s = %s" % ("{0:b}".format(data),
                             self.__interpretToStr__(data))
 
+    def _get_logFileName(self):
+        fileName = self._when_build.strftime("%Y%m%d_%H%M%S")
+        if self._file_suffix:
+            fileName = "%s_%s" % (fileName, self._file_suffix)
+        fileName = "%s.%s" % (fileName, self._file_extension)
+        return fileName
+
     def _print_line(self, logtext, data=None, round=None, operation=None):
         '''
         '''
@@ -179,10 +186,7 @@ class Logger(object):
             else:
                 msg += "%s" % (data)
         if self._log2file:
-            fileName = self._when_build.strftime("%Y%m%d_%H%M%S")
-            if self._file_suffix:
-                fileName = "%s_%s" % (fileName, self._file_suffix)
-            fileName = "%s.%s" % (fileName, self._file_extension)
+            fileName = self._get_logFileName()
             with open(fileName, 'a') as logfile:
                 logfile.write(msg+"\n")
         if self._stdout:
