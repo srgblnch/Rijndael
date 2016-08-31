@@ -120,6 +120,8 @@ class SimulatedAnheling(_Logger):
         # --- simulated anheling new area jump probability
         self._jumpProbability = 0.01
         self._jumpsMade = 0
+        # --- about memory usage
+        self._memoryPercent = int(psutil.virtual_memory().percent)
 
     def search(self):
         polynomial = self.__generatePolynomial()
@@ -188,7 +190,9 @@ class SimulatedAnheling(_Logger):
         return newPolynomial
 
     def _doPreliminaryTest(self, polynomial):
-        if psutil.virtual_memory().percent > SECOND_MEM_THRESHOLD:
+        if self._memoryPercent != int(psutil.virtual_memory().percent) and\
+                psutil.virtual_memory().percent > SECOND_MEM_THRESHOLD:
+            self._memoryPercent = int(psutil.virtual_memory().percent)
             self._warning_stream("Memory in use %g, this process uses %g "
                                  "(already tested polynomials %d)"
                                  % (psutil.virtual_memory().percent, 
@@ -497,6 +501,7 @@ def parallelProcessing(pairs, processors, samples, logLevel=_Logger._info):
             w.start()
         write2File("All %d workers started. PIDs %s\n"
                    % (len(workersLst), [w.pid for w in workersLst]))
+        memoryPercent = int(psutil.virtual_memory().percent)
         while not queue.empty():
             pidsLst = [w.pid for w in workersLst]
             # --- check if all the workers are alive and working
@@ -517,7 +522,9 @@ def parallelProcessing(pairs, processors, samples, logLevel=_Logger._info):
                     write2File("New worker %s replaces %s"
                                % (newWorker.name, deadWorker.name))
                     deadWorker.join()
-            if psutil.virtual_memory().percent > FIRST_MEM_THRESHOLD:
+            if int(psutil.virtual_memory().percent) != memoryPercent and\
+                    psutil.virtual_memory().percent > FIRST_MEM_THRESHOLD:
+                memoryPercent = int(psutil.virtual_memory().percent)
                 write2File("WARNING: memory use %g"
                            % psutil.virtual_memory().percent)
             sleep(CHECKPERIOD)
