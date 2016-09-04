@@ -120,6 +120,7 @@ class SimulatedAnheling(_Logger):
         # --- simulated anheling new area jump probability
         self._jumpProbability = 0.01
         self._jumpsMade = 0
+        self._nearMovements = 0
         # --- about memory usage
         self._memoryPercent = int(psutil.virtual_memory().percent)
 
@@ -143,18 +144,54 @@ class SimulatedAnheling(_Logger):
     def __doJump(self):
         polynomial = self.__generatePolynomial()
         self._jumpsMade += 1
-        self._info_stream("Exploring a newer area in the search space.")
+        self._info_stream("Exploring a newer area in the search space "
+                          "after %d near movements." % (self._nearMovements))
+        self._nearMovements = 0
         return polynomial
+
+    def __generateCoefficient(self):
+        '''Generate a random coefficient and, if there is a range of desired
+           weights for them, generate some to satisfy this condition.
+        '''
+        coefficient = self._field(randint(0, 2**self._fieldSize))
+        tries = 0
+        if self._desiredCoeffHammingRange is not None:
+            hammingRange = self._desiredCoeffHammingRange
+            while coefficient.hammingWeight not in hammingRange:
+                coefficient = self._field(randint(0, 2**self._fieldSize))
+                tries += 1
+                if tries % 10 == 0:
+                    self._debug_stream("Made %d tries "
+                                       "to generate random coefficient "
+                                       "(%d not in %s)"
+                                        % (tries, coefficient.hammingWeight,
+                                           hammingRange))
+        return coefficient
+
+    def __moveNearCoefficient(self, input, distance):
+        coefficient = self._field(input.coefficients + randint(0, distance))
+        tries = 0
+        if self._desiredCoeffHammingRange is not None:
+            while coefficient.hammingWeight not in \
+                    self._desiredCoeffHammingRange:
+                coefficient = self._field(input.coefficients +
+                                          randint(0, distance))
+                tries += 1
+                if tries % 10 == 0:
+                    self._debug_stream("Made %d tries "
+                                       "to generate a small change to %s"
+                                        % (tries, hex(input)))
+        return coefficient
 
     def __generatePolynomial(self):
         '''Generate a new fresh polynomial at random, checking it hasn't been
            already tested.
         '''
-        self._debug_stream("Generate a new random polynomials.")
+        self._debug_stream("Generate a new random polynomial.")
         polynomialObj = None
         while polynomialObj is None or\
                 int(polynomialObj) in self._alreadyTestedPolynomials:
-            polynomialLst = [self._field(randint(0, 2**self._fieldSize))
+            polynomialLst = [self.__generateCoefficient()
                              for i in range(self._polynomialRingSize)]
             polynomialObj = self._polynomialRing(polynomialLst)
             if int(polynomialObj) in self._alreadyTestedPolynomials:
@@ -173,10 +210,11 @@ class SimulatedAnheling(_Logger):
         while newPolynomial is None:
             newCoefficients = []
             for each in oldCoefficients:
-                value = each.coefficients + randint(0, distance)
-                newCoefficients.append(self._field(value))
+                newCoefficients.append(self.__moveNearCoefficient(each,
+                                                                  distance))
                 if newCoefficients == oldCoefficients:
                     oldCoefficients.reverse()
+                    # FIXME: hackish, do something if nothing has change
                 newPolynomial = self._polynomialRing(newCoefficients)
             if int(newPolynomial) in self._alreadyTestedPolynomials:
                 self._debug_stream("Discard %s, already tested (%d,%d)"
@@ -187,6 +225,7 @@ class SimulatedAnheling(_Logger):
                 if distance == 10:
                     # --- It is an area of many already tested
                     return None
+        self._nearMovements += 1
         return newPolynomial
 
     def _doPreliminaryTest(self, polynomial):
@@ -200,7 +239,7 @@ class SimulatedAnheling(_Logger):
                                     len(self._alreadyTestedPolynomials)))
         self._alreadyTestedPolynomials.append(int(polynomial))
         if self.__PrefactoryOne(polynomial):
-            if self.__PrefactoryTwo(polynomial):
+            # if self.__PrefactoryTwo(polynomial):
                 if self.__isInvertible(polynomial):
                     inverse = ~polynomial
                     self._alreadyTestedPolynomials.append(int(inverse))
@@ -217,6 +256,9 @@ class SimulatedAnheling(_Logger):
         return False
 
     def __PrefactoryTwo(self, polynomial):
+        # This may not have sense to check the condition on a candidate, 
+        # because in the candidate generation (jump or near) this is check.
+        # But for its inverse evaluation it is.
         if self._desiredCoeffHammingRange is None:
             return True
         for weight in polynomial.hammingWeightPerCoefficient:
