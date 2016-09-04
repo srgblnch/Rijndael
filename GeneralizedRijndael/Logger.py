@@ -23,6 +23,7 @@ __license__ = "GPLv3+"
 __status__ = "development"
 
 import bz2
+import gzip
 from datetime import datetime as _datetime
 from threading import Lock as _Lock
 
@@ -109,8 +110,9 @@ class Logger(object):
 
     @compressedLogfile.setter
     def compressedLogfile(self, value):
-        if value in ['bz2']:
-             self._file_compression = value
+        if value in ['gz']:
+            self._file_compression = value
+        # TODO :if "value == 'bz2'" append to file doesn't work well
 
     @property
     def fileSuffix(self):
@@ -120,6 +122,15 @@ class Logger(object):
     def fileSuffix(self, suffix):
         self._file_suffix = "%s" % (suffix)
         self._debug_stream("New log file name suffix: %s" % self._file_suffix)
+
+    def getLogFileName(self):
+        fileName = self._when_build.strftime("%Y%m%d_%H%M%S")
+        if self._file_suffix:
+            fileName = "%s_%s" % (fileName, self._file_suffix)
+        fileName = "%s.%s" % (fileName, self._file_extension)
+        if self._file_compression:
+            fileName = "%s.%s" % (fileName, self._file_compression)
+        return fileName
 
     @property
     def stdout(self):
@@ -172,15 +183,6 @@ class Logger(object):
         return "%s = %s" % ("{0:b}".format(data),
                             self.__interpretToStr__(data))
 
-    def _get_logFileName(self):
-        fileName = self._when_build.strftime("%Y%m%d_%H%M%S")
-        if self._file_suffix:
-            fileName = "%s_%s" % (fileName, self._file_suffix)
-        fileName = "%s.%s" % (fileName, self._file_extension)
-        if self._file_compression:
-            fileName = "%s.%s" % (fileName, self._file_compression)
-        return fileName
-
     def _print_line(self, logtext, data=None, round=None, operation=None):
         '''
         '''
@@ -200,9 +202,12 @@ class Logger(object):
             else:
                 msg += "%s" % (data)
         if self._log2file:
-            fileName = self._get_logFileName()
+            fileName = self.getLogFileName()
             if self._file_compression == 'bz2':
-                with bz2.BZ2File(fileName, 'w', compresslevel=9) as logfile:
+                with bz2.BZ2File(fileName, 'at', compresslevel=9) as logfile:
+                    logfile.write(msg+"\n")
+            elif self._file_compression == 'gz':
+                with gzip.open(fileName, 'at', compresslevel=9) as logfile:
                     logfile.write(msg+"\n")
             else:
                 with open(fileName, 'a') as logfile:

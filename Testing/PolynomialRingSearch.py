@@ -376,6 +376,7 @@ class SimulatedAnheling(_Logger):
 import bz2
 from datetime import datetime
 import itertools
+import gzip
 import multiprocessing
 import os
 from PolynomialsSearch import ActivePool
@@ -456,11 +457,22 @@ def cmdArgs(parser):
 
 def closeSearch(searcher):
     if searcher.compressedLogfile is None:
-        fileName = searcher._get_logFileName()
+        print("Compress output to bz2")
+        fileName = searcher.getLogFileName()
         with open(fileName, 'rb') as input:
             with bz2.BZ2File(fileName+'.bz2', 'wb', compresslevel=9) as output:
                 copyfileobj(input, output)
         os.remove(fileName)
+    elif searcher._file_compression is 'gz':
+        print("Convert gzip compression to bz2")
+        fileName = searcher.getLogFileName().split('.gz')[0]
+        with gzip.open(fileName+'.gz', 'rb') as input:
+            with bz2.BZ2File(fileName+'.bz2', 'wb', compresslevel=9) as output:
+                copyfileobj(input, output)
+        os.remove(fileName+'.gz')
+    else:
+        print("No compression conversion needed. (%s)"
+              % searcher.compressedLogfile)
 
 
 def singleProcessing(pairs, samples, logLevel=_Logger._info):
@@ -471,7 +483,7 @@ def singleProcessing(pairs, samples, logLevel=_Logger._info):
         if j not in results[i]:
             results[i][j] = None
         searcher = SimulatedAnheling(i, j, samples, logLevel,
-                                     file_compression='bz2')
+                                     file_compression='gz')
         print("Searching for a %d polynomial degree, "
               "with coefficients in an %dth extension of a "
               "characteristic 2 field" % (i, j))
@@ -497,7 +509,7 @@ def worker(queue, fileName, fLocker, samples, logLevel=_Logger._info):
             write2File("Worker %d is going to search for pair %d, %d\n"
                        % (id, i, j))
             searcher = SimulatedAnheling(i, j, samples, logLevel,
-                                         file_compression='bz2')
+                                         file_compression='gz')
             searcher.stdout = False
             result = searcher.search()
             write2File("Worker %d has finished\n"
