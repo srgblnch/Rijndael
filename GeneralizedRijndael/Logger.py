@@ -22,6 +22,7 @@ __copyright__ = "Copyright 2013 Sergi Blanch-Torne"
 __license__ = "GPLv3+"
 __status__ = "development"
 
+import bz2
 from datetime import datetime as _datetime
 from threading import Lock as _Lock
 
@@ -62,7 +63,7 @@ class Logger(object):
     _debug = _DEBUG
     _trace = _TRACE
 
-    def __init__(self, loglevel=_INFO, *args, **kwargs):
+    def __init__(self, loglevel=_INFO, file_compression=None, *args, **kwargs):
         '''
         '''
         super(Logger, self).__init__(*args, **kwargs)
@@ -72,6 +73,8 @@ class Logger(object):
         self._stdout = True
         self._file_suffix = ""
         self._file_extension = "log"
+        self._file_compression = None
+        self.compressedLogfile = file_compression
 
     def setLogLevel(self, level):
         self._warning_stream("deprecated call to setLogLevel, use logLevel "
@@ -99,6 +102,15 @@ class Logger(object):
     def log2file(self, boolean):
         self._log2file = bool(boolean)
         self._debug_stream("Logger to file = %s" % self._log2file)
+
+    @property
+    def compressedLogfile(self):
+        return self._file_compression == None
+
+    @compressedLogfile.setter
+    def compressedLogfile(self, value):
+        if value in ['bz2']:
+             self._file_compression = value
 
     @property
     def fileSuffix(self):
@@ -165,6 +177,8 @@ class Logger(object):
         if self._file_suffix:
             fileName = "%s_%s" % (fileName, self._file_suffix)
         fileName = "%s.%s" % (fileName, self._file_extension)
+        if self._file_compression:
+            fileName = "%s.%s" % (fileName, self._file_compression)
         return fileName
 
     def _print_line(self, logtext, data=None, round=None, operation=None):
@@ -187,8 +201,12 @@ class Logger(object):
                 msg += "%s" % (data)
         if self._log2file:
             fileName = self._get_logFileName()
-            with open(fileName, 'a') as logfile:
-                logfile.write(msg+"\n")
+            if self._file_compression == 'bz2':
+                with bz2.BZ2File(fileName, 'w', compresslevel=9) as logfile:
+                    logfile.write(msg+"\n")
+            else:
+                with open(fileName, 'a') as logfile:
+                    logfile.write(msg+"\n")
         if self._stdout:
             print msg
 

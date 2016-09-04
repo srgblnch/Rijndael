@@ -455,11 +455,12 @@ def cmdArgs(parser):
 
 
 def closeSearch(searcher):
-    fileName = searcher._get_logFileName()
-    with open(fileName, 'rb') as input:
-        with bz2.BZ2File(fileName+'.bz2', 'wb', compresslevel=9) as output:
-            copyfileobj(input, output)
-    os.remove(fileName)
+    if searcher.compressedLogfile is None:
+        fileName = searcher._get_logFileName()
+        with open(fileName, 'rb') as input:
+            with bz2.BZ2File(fileName+'.bz2', 'wb', compresslevel=9) as output:
+                copyfileobj(input, output)
+        os.remove(fileName)
 
 
 def singleProcessing(pairs, samples, logLevel=_Logger._info):
@@ -469,7 +470,8 @@ def singleProcessing(pairs, samples, logLevel=_Logger._info):
             results[i] = {}
         if j not in results[i]:
             results[i][j] = None
-        searcher = SimulatedAnheling(i, j, samples, logLevel)
+        searcher = SimulatedAnheling(i, j, samples, logLevel,
+                                     file_compression='bz2')
         print("Searching for a %d polynomial degree, "
               "with coefficients in an %dth extension of a "
               "characteristic 2 field" % (i, j))
@@ -494,7 +496,8 @@ def worker(queue, fileName, fLocker, samples, logLevel=_Logger._info):
             i, j = queue.get()
             write2File("Worker %d is going to search for pair %d, %d\n"
                        % (id, i, j))
-            searcher = SimulatedAnheling(i, j, samples, logLevel)
+            searcher = SimulatedAnheling(i, j, samples, logLevel,
+                                         file_compression='bz2')
             searcher.stdout = False
             result = searcher.search()
             write2File("Worker %d has finished\n"
