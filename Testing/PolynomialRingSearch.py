@@ -44,7 +44,7 @@ SECOND_MEM_THRESHOLD = 19.0
 
 
 class SimulatedAnheling(_Logger):
-    def __init__(self, polynomialRingSize, fieldSize, samples,
+    def __init__(self, polynomialRingSize, fieldSize, max_samples,
                  *args, **kwargs):
         super(SimulatedAnheling, self).__init__(*args, **kwargs)
         # --- file log for later audithory
@@ -70,9 +70,9 @@ class SimulatedAnheling(_Logger):
         order = int(("%e" % nTotal).split('+')[1])
         # --- Search for a reasonable number of candidates
         #     without an explosion of them.
-        if samples is None:
-            self._expectedSamples = int(round(log(nTotal)*order))
-        else:
+        self._expectedSamples = int(round(log(nTotal)*order))
+        if max_samples is not None and \
+                self._expectedSamples > int(max_samples):
             self._expectedSamples = int(samples)
         sizeInBits = fieldSize * polynomialRingSize
         sizeInBytes = sizeInBits / 8
@@ -450,9 +450,9 @@ def cmdArgs(parser):
                       "this number of parallel jobs in execution, and a "
                       "negative number will decrease from the maximum of "
                       "available")
-    parser.add_option('', "--samples", type="int",
+    parser.add_option('', "--max-samples", type="int",
                       help="Tell the algorithm how many samples first "
-                      "screening must collect.")
+                      "screening must collect as maximum.")
 
 
 def closeSearch(searcher):
@@ -475,14 +475,14 @@ def closeSearch(searcher):
               % searcher.compressedLogfile)
 
 
-def singleProcessing(pairs, samples, logLevel=_Logger._info):
+def singleProcessing(pairs, max_samples, logLevel=_Logger._info):
     results = {}
     for i, j in pairs:
         if i not in results:
             results[i] = {}
         if j not in results[i]:
             results[i][j] = None
-        searcher = SimulatedAnheling(i, j, samples, logLevel,
+        searcher = SimulatedAnheling(i, j, max_samples, logLevel,
                                      file_compression='gz')
         print("Searching for a %d polynomial degree, "
               "with coefficients in an %dth extension of a "
@@ -526,13 +526,13 @@ def worker(queue, fileName, fLocker, samples, logLevel=_Logger._info):
 CHECKPERIOD = 60  # a minute
 
 
-def parallelProcessing(pairs, processors, samples, logLevel=_Logger._info):
+def parallelProcessing(pairs, processors, max_samples, logLevel=_Logger._info):
     def write2File(msg):
         with open(fileName, 'a') as f:
             f.write(msg)
     def buildWorker(id):
         return multiprocessing.Process(target=worker, name=str("%d" % (id)),
-                                       args=(queue, fileName, fLocker, samples,
+                                       args=(queue, fileName, fLocker, max_samples,
                                              logLevel))
     try:
         now = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -604,7 +604,7 @@ def main():
     if options.search is not None:
         polynomialSize, fieldSize = extractPair(options.search)
         searcher = SimulatedAnheling(polynomialSize, fieldSize,
-                                     options.samples, logLevel)
+                                     options.max_samples, logLevel)
         result = searcher.search()
         print("summary:")
         print("\tWith %d columns (polynomial ring):" % polynomialSize)
@@ -612,17 +612,17 @@ def main():
     elif options.search_set is not None:
         lstOfPairs = extractSets(options.search_set)
         if options.parallel_processing:
-            parallelProcessing(lstOfPairs, options.processors, options.samples, logLevel)
+            parallelProcessing(lstOfPairs, options.processors, options.max_samples, logLevel)
         else:
-            singleProcessing(lstOfPairs, options.samples, logLevel)
+            singleProcessing(lstOfPairs, options.max_samples, logLevel)
     elif options.search_all is not None:
         ring_ranges = range(2,MAX_RING_DEGREE+1)
         coefficient_ranges = range(2,MAX_FIELD_DEGREE+1)
         lstOfPairs = list(itertools.product(ring_ranges, coefficient_ranges))
         if options.parallel_processing:
-            parallelProcessing(lstOfPairs, options.processors, options.samples, logLevel)
+            parallelProcessing(lstOfPairs, options.processors, options.max_samples, logLevel)
         else:
-            singleProcessing(lstOfPairs, options.samples, logLevel)
+            singleProcessing(lstOfPairs, options.max_samples, logLevel)
     else:
         print("\n\tNo default action, check help to know what can be done.\n")
 
