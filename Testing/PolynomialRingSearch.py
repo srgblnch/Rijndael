@@ -501,7 +501,7 @@ def worker(queue, fileName, fLocker, samples, logLevel=_Logger._info):
     def write2File(msg):
         with fLocker:
             with open(fileName, 'a') as f:
-                f.write(msg)
+                f.write("%s\t%s" % (datetime.now().isoformat(),msg))
     id = int(multiprocessing.current_process().name)
     while not queue.empty():
         try:
@@ -512,7 +512,7 @@ def worker(queue, fileName, fLocker, samples, logLevel=_Logger._info):
                                          file_compression='gz')
             searcher.stdout = False
             result = searcher.search()
-            write2File("Worker %d has finished\n"
+            write2File("Worker %d has finished:"
                        "\t%d degree polynomial ring with %d degree field "
                        "coefficients: %s = %s\n" % (id, i, j, result,
                                                     hex(result)))
@@ -529,7 +529,7 @@ CHECKPERIOD = 60  # a minute
 def parallelProcessing(pairs, processors, max_samples, logLevel=_Logger._info):
     def write2File(msg):
         with open(fileName, 'a') as f:
-            f.write("%s %s" % (datetime.now().isoformat(),msg))
+            f.write("%s\t%s" % (datetime.now().isoformat(),msg))
     def buildWorker(id):
         return multiprocessing.Process(target=worker, name=str("%d" % (id)),
                                        args=(queue, fileName, fLocker, max_samples,
