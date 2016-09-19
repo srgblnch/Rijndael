@@ -529,7 +529,7 @@ CHECKPERIOD = 60  # a minute
 def parallelProcessing(pairs, processors, max_samples, logLevel=_Logger._info):
     def write2File(msg):
         with open(fileName, 'a') as f:
-            f.write(msg)
+            f.write("%s %s" % (_datetime.now().isoformat(),msg))
     def buildWorker(id):
         return multiprocessing.Process(target=worker, name=str("%d" % (id)),
                                        args=(queue, fileName, fLocker, max_samples,
