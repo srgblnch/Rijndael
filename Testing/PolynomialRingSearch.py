@@ -73,7 +73,7 @@ class SimulatedAnheling(_Logger):
         self._expectedSamples = int(round(log(nTotal)*order))
         if max_samples is not None and \
                 self._expectedSamples > int(max_samples):
-            self._expectedSamples = int(samples)
+            self._expectedSamples = int(max_samples)
         sizeInBits = fieldSize * polynomialRingSize
         sizeInBytes = sizeInBits / 8
         self._hammingGoal = sizeInBits / 2
@@ -497,7 +497,7 @@ def singleProcessing(pairs, max_samples, logLevel=_Logger._info):
             print("\t\tWordsize %d: %s (%r)" % (f, hex(result), result))
 
 
-def worker(queue, fileName, fLocker, samples, logLevel=_Logger._info):
+def worker(queue, fileName, fLocker, max_samples, logLevel=_Logger._info):
     def write2File(msg):
         with fLocker:
             with open(fileName, 'a') as f:
@@ -508,7 +508,7 @@ def worker(queue, fileName, fLocker, samples, logLevel=_Logger._info):
             i, j = queue.get()
             write2File("Worker %d is going to search for pair %d, %d\n"
                        % (id, i, j))
-            searcher = SimulatedAnheling(i, j, samples, logLevel,
+            searcher = SimulatedAnheling(i, j, max_samples, logLevel,
                                          file_compression='gz')
             searcher.stdout = False
             result = searcher.search()
