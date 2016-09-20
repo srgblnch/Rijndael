@@ -459,7 +459,7 @@ def closeSearch(searcher, logFunc=None, worker=None):
     if searcher.compressedLogfile is None:
         msg = "Compress output to bz2"
         if logFunc:
-            logFunc("Worker %d report: %s" % (worker, msg))
+            logFunc("Worker %d report: %s\n" % (worker, msg))
         else:
             print(msg)
         fileName = searcher.getLogFileName()
@@ -470,7 +470,7 @@ def closeSearch(searcher, logFunc=None, worker=None):
     elif searcher._file_compression is 'gz':
         msg = "Convert gzip compression to bz2"
         if logFunc:
-            logFunc("Worker %d report: %s" % (worker, msg))
+            logFunc("Worker %d report: %s\n" % (worker, msg))
         else:
             print(msg)
         fileName = searcher.getLogFileName().split('.gz')[0]
@@ -482,7 +482,7 @@ def closeSearch(searcher, logFunc=None, worker=None):
         msg = "No compression conversion needed. (%s)"\
                 % searcher.compressedLogfile
         if logFunc:
-            logFunc("Worker %d report: %s" % (worker, msg))
+            logFunc("Worker %d report: %s\n" % (worker, msg))
         else:
             print(msg)
 
