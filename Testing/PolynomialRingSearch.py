@@ -518,7 +518,7 @@ def worker(queue, fileName, fLocker, max_samples, logLevel=_Logger._info):
     while not queue.empty():
         try:
             i, j = queue.get()
-            write2File("Worker %d is going to search for pair %d, %d\n"
+            write2File("Worker %d is going to search for pair (%d,%d)\n"
                        % (id, i, j))
             searcher = SimulatedAnheling(i, j, max_samples, logLevel,
                                          file_compression='gz')
@@ -531,7 +531,7 @@ def worker(queue, fileName, fLocker, max_samples, logLevel=_Logger._info):
             closeSearch(searcher, write2File, id)
             del searcher
         except Exception as e:
-            write2File("** Worker %d reports an exception for pair %d, %d: **"
+            write2File("** Worker %d reports an exception for pair (%d,%d): **"
                        "\n\t%s\n" % (id, i, j, e))
 
 
