@@ -453,26 +453,39 @@ def cmdArgs(parser):
     parser.add_option('', "--max-samples", type="int",
                       help="Tell the algorithm how many samples first "
                       "screening must collect as maximum.")
+    
 
-
-def closeSearch(searcher):
+def closeSearch(searcher, logFunc=None, worker=None):
+    
     if searcher.compressedLogfile is None:
-        print("Compress output to bz2")
+        msg = "Compress output to bz2"
+        if logFunc:
+            logFunc("Worker %d report: %s" % (id, msg))
+        else:
+            print(msg)
         fileName = searcher.getLogFileName()
         with open(fileName, 'rb') as input:
             with bz2.BZ2File(fileName+'.bz2', 'wb', compresslevel=9) as output:
                 copyfileobj(input, output)
         os.remove(fileName)
     elif searcher._file_compression is 'gz':
-        print("Convert gzip compression to bz2")
+        msg = "Convert gzip compression to bz2"
+        if logFunc:
+            logFunc("Worker %d report: %s" % (id, msg))
+        else:
+            print(msg)
         fileName = searcher.getLogFileName().split('.gz')[0]
         with gzip.open(fileName+'.gz', 'rb') as input:
             with bz2.BZ2File(fileName+'.bz2', 'wb', compresslevel=9) as output:
                 copyfileobj(input, output)
         os.remove(fileName+'.gz')
     else:
-        print("No compression conversion needed. (%s)"
-              % searcher.compressedLogfile)
+        msg = "No compression conversion needed. (%s)"\
+                % searcher.compressedLogfile
+        if logFunc:
+            logFunc("Worker %d report: %s" % (id, msg))
+        else:
+            print(msg)
 
 
 def singleProcessing(pairs, max_samples, logLevel=_Logger._info):
@@ -512,18 +525,18 @@ def worker(queue, fileName, fLocker, max_samples, logLevel=_Logger._info):
                                          file_compression='gz')
             searcher.stdout = False
             result = searcher.search()
-            write2File("Worker %d has finished:"
+            write2File("Worker %d has finished the task (%d,%d):"
                        "\t%d degree polynomial ring with %d degree field "
-                       "coefficients: %s = %s\n" % (id, i, j, result,
+                       "coefficients: %s = %s\n" % (id, i, j, i, j, result,
                                                     hex(result)))
-            closeSearch(searcher)
+            closeSearch(searcher, write2File, id)
             del searcher
         except Exception as e:
             write2File("** Worker %d reports an exception for pair %d, %d: **"
                        "\n\t%s\n" % (id, i, j, e))
 
 
-CHECKPERIOD = 60  # a minute
+CHECKPERIOD = 600  # ten minutes
 
 
 def parallelProcessing(pairs, processors, max_samples, logLevel=_Logger._info):
@@ -585,8 +598,10 @@ def parallelProcessing(pairs, processors, max_samples, logLevel=_Logger._info):
                 write2File("WARNING: memory use %g"
                            % psutil.virtual_memory().percent)
             sleep(CHECKPERIOD)
+        write2File("The queue is empty")
         for w in workersLst:
             w.join()
+            write2File("worker %d (%d) joined" % (w.name, w.pid))
     except Exception as e:
         print("Uoch! %s" % (e))
         traceback.print_exc()
