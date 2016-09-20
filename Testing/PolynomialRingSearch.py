@@ -459,7 +459,7 @@ def closeSearch(searcher, logFunc=None, worker=None):
     if searcher.compressedLogfile is None:
         msg = "Compress output to bz2"
         if logFunc:
-            logFunc("Worker %d report: %s\n" % (worker, msg))
+            logFunc("Worker %d\t%s\n" % (worker, msg))
         else:
             print(msg)
         fileName = searcher.getLogFileName()
@@ -470,7 +470,7 @@ def closeSearch(searcher, logFunc=None, worker=None):
     elif searcher._file_compression is 'gz':
         msg = "Convert gzip compression to bz2"
         if logFunc:
-            logFunc("Worker %d report: %s\n" % (worker, msg))
+            logFunc("Worker %d\t%s\n" % (worker, msg))
         else:
             print(msg)
         fileName = searcher.getLogFileName().split('.gz')[0]
@@ -482,7 +482,7 @@ def closeSearch(searcher, logFunc=None, worker=None):
         msg = "No compression conversion needed. (%s)"\
                 % searcher.compressedLogfile
         if logFunc:
-            logFunc("Worker %d report: %s\n" % (worker, msg))
+            logFunc("Worker %d\t%s\n" % (worker, msg))
         else:
             print(msg)
 
@@ -518,20 +518,20 @@ def worker(queue, fileName, fLocker, max_samples, logLevel=_Logger._info):
     while not queue.empty():
         try:
             i, j = queue.get()
-            write2File("Worker %d is going to search for pair (%d,%d)\n"
+            write2File("Worker %d\tis going to search for pair (%d,%d)\n"
                        % (id, i, j))
             searcher = SimulatedAnheling(i, j, max_samples, logLevel,
                                          file_compression='gz')
             searcher.stdout = False
             result = searcher.search()
-            write2File("Worker %d has finished the task (%d,%d):"
+            write2File("Worker %d\thas finished the task (%d,%d):"
                        "\t%d degree polynomial ring with %d degree field "
                        "coefficients: %s = %s\n" % (id, i, j, i, j, result,
                                                     hex(result)))
             closeSearch(searcher, write2File, id)
             del searcher
         except Exception as e:
-            write2File("** Worker %d reports an exception for pair (%d,%d): **"
+            write2File("** Worker %d\treports an exception for pair (%d,%d): **"
                        "\n\t%s\n" % (id, i, j, e))
 
 
