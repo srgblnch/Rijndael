@@ -533,15 +533,17 @@ def worker(queue, fileName, fLocker, max_samples, logLevel=_Logger._info):
         except Exception as e:
             write2File("** Worker %d\treports an exception for pair (%d,%d): **"
                        "\n\t%s\n" % (id, i, j, e))
+    write2File("Worker %d\ttasks queue is empty, ending its execution\n" % (id))
 
 
-CHECKPERIOD = 600  # ten minutes
+CHECKPERIOD = 60 # a minute
 
 
 def parallelProcessing(pairs, processors, max_samples, logLevel=_Logger._info):
     def write2File(msg):
-        with open(fileName, 'a') as f:
-            f.write("%s\t%s" % (datetime.now().isoformat(),msg))
+        with fLocker:
+            with open(fileName, 'a') as f:
+                f.write("%s\t%s" % (datetime.now().isoformat(),msg))
     def buildWorker(id):
         return multiprocessing.Process(target=worker, name=str("%d" % (id)),
                                        args=(queue, fileName, fLocker, max_samples,
@@ -558,7 +560,7 @@ def parallelProcessing(pairs, processors, max_samples, logLevel=_Logger._info):
             if processors < 0:
                 processors = maxParallelprocesses + processors
         with open(fileName, 'a') as f:
-            write2File("With %d processors, prepare a set of %d workers\n"
+            write2File("Father\t\tWith %d processors, prepare a set of %d workers\n"
                        % (maxParallelprocesses, processors))
         queue = multiprocessing.Queue()
         for i, j in pairs:
@@ -568,13 +570,13 @@ def parallelProcessing(pairs, processors, max_samples, logLevel=_Logger._info):
             workersLst.append(buildWorker(k))
         for w in workersLst:
             w.start()
-        write2File("All %d workers started. PIDs %s\n"
-                   % (len(workersLst), [w.pid for w in workersLst]))
+        pidsLst = [w.pid for w in workersLst]
+        write2File("Father\t\tAll %d workers started. PIDs %s\n"
+                   % (len(workersLst), pidsLst))
         memoryPercent = int(psutil.virtual_memory().percent)
         while not queue.empty():
-            pidsLst = [w.pid for w in workersLst]
             # --- check if all the workers are alive and working
-            while any([True if pid is not None else False
+            while not all([True if pid is not None else False
                        for pid in pidsLst]):
                 try:
                     idx = pidsLst.index(None)
@@ -582,25 +584,33 @@ def parallelProcessing(pairs, processors, max_samples, logLevel=_Logger._info):
                     pass
                 else:
                     deadWorker = workersLst.pop(idx)
-                    write2File("Worker %s hasn't PID, replacing it"
+                    write2File("Father\t\tWorker %s hasn't PID, replacing it\n"
                                % (deadWorker.name))
                     k += 1
                     newWorker = buildWorker(k)
                     workersLst.append(newWorker)
                     newWorker.start()
-                    write2File("New worker %s replaces %s"
+                    write2File("Father\t\tNew worker %s replaces %s\n"
                                % (newWorker.name, deadWorker.name))
                     deadWorker.join()
             if int(psutil.virtual_memory().percent) != memoryPercent and\
                     psutil.virtual_memory().percent > FIRST_MEM_THRESHOLD:
                 memoryPercent = int(psutil.virtual_memory().percent)
-                write2File("WARNING: memory use %g"
+                write2File("Father\t\tWARNING: memory use %g\n"
                            % psutil.virtual_memory().percent)
             sleep(CHECKPERIOD)
-        write2File("The queue is empty")
-        for w in workersLst:
-            w.join()
-            write2File("worker %d (%d) joined" % (w.name, w.pid))
+            pidsLst = [w.pid for w in workersLst]
+        write2File("Father\t\tThe queue is empty (%s)\n" % queue.empty())
+        while len(workersLst) > 0:
+            for w in workersLst:
+                if w.is_alive():
+                    write2File("Father\t\tWorker %s still working\n" % (w.name))
+                else:
+                    w.join(1)
+                    workersLst.pop(workersLst.index(w))
+                    write2File("Father\t\tWorker %s (%d) joined\n" % (w.name, w.pid))
+            sleep(CHECKPERIOD)
+        write2File("Father\t\tEverything is done.\n")
     except Exception as e:
         print("Uoch! %s" % (e))
         traceback.print_exc()
