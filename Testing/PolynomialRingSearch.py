@@ -603,12 +603,14 @@ def parallelProcessing(pairs, processors, max_samples, logLevel=_Logger._info):
         write2File("Father\t\tThe queue is empty (%s)\n" % queue.empty())
         while len(workersLst) > 0:
             for w in workersLst:
-                if w.is_alive():
-                    write2File("Father\t\tWorker %s still working\n" % (w.name))
-                else:
+                if not w.is_alive():
                     w.join(1)
                     workersLst.pop(workersLst.index(w))
-                    write2File("Father\t\tWorker %s (%d) joined\n" % (w.name, w.pid))
+                    write2File("Father\t\tWorker %s (%d) joined\n"
+                               % (w.name, w.pid))
+                else:
+                    pass  # write2File("Father\t\tWorker %s still working\n"
+                          #            % (w.name))
             sleep(CHECKPERIOD)
         write2File("Father\t\tEverything is done.\n")
     except Exception as e:
