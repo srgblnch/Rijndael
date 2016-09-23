@@ -3,7 +3,7 @@ Generalizing the Rijndael
 
 **Development Status :: 2 - Pre-Alpha**
 
-This is just a probe of concept. You **MUST NOT** use this code in production projects.
+You can consider this as a *toy project*, or a *probe of concept*. You **MUST NOT** use this code in production projects. This development is part of a research project and there are still many checks to be made.
 
 The original schema of the [Rijndael](http://en.wikipedia.org/wiki/Advanced_Encryption_Standard) cryptosystem has one block size with 5 key lengths. During the AES contest process this was restricted to 3 known key length sizes: 128, 192 and 256 bits (discarding the options for 160 and 224). But the parameters flexibility of this schema allows even more possibilities.
 
@@ -19,9 +19,9 @@ $ python setup.py build
 $ python setup.py install
 ```
 
-Remember to use *--prefix* on the install if you like to do the installation on an specific directory.
+Remember to use *--prefix* on the install if you like to do the installation on an specific directory. Remember that, depending on where you like to do the installation, your user may not have write permission and perhaps is needed to launch the install call with sudo (in case your user is a sudoer).
 
-This module has been made to be compiled to improve execution time, but specially to measure differences between 32 and 64 bit architectures setting up different parameter combinations. Now it is under a hard development process but, as soon as it has completed all the mathematical elements, *cython* will come to the scene to have architecture dependent binaries to check difference between them.
+This module is pure python right now, it has been thought to compile it to improve execution time, but specially to measure differences between 32 and 64 bit architectures setting up different parameter combinations. Now it is under a hard development process but, as soon as it has completed all the mathematical elements, *cython* will come to the scene to have architecture dependent binaries to check difference between them.
 
 Testing
 -------
@@ -35,7 +35,7 @@ Extras
 ```python
 >>> import GeneralizedRijndael
 >>> GeneralizedRijndael.version()
-'0.2.1-5'
+'0.2.4-0'
 ```
 
 The main constructor available in this module is *GeneralizedRijndael.GeneralizedRijndael*. A little help in the *docstring* shall be made soon, but there can be listed the arguments that this constructor can have. With:
