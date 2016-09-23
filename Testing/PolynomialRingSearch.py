@@ -600,7 +600,7 @@ def parallelProcessing(pairs, processors, max_samples, logLevel=_Logger._info):
                            % psutil.virtual_memory().percent)
             sleep(CHECKPERIOD)
             pidsLst = [w.pid for w in workersLst]
-        write2File("Father\t\tThe queue is empty (%s)\n" % queue.empty())
+        write2File("Father\t\tThe queue is empty\n")
         while len(workersLst) > 0:
             for w in workersLst:
                 if not w.is_alive():
