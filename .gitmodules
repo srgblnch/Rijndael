@@ -1,0 +1,8 @@
+[submodule "Rijndael-Calculus"]
+	path = Rijndael-Calculus
+	url = https://github.com/srgblnch/Rijndael-Calculus.git
+	branch = master
+[submodule "Calculus"]
+	path = Calculus
+	url = https://github.com/srgblnch/Rijndael-Calculus.git
+	branch = master
