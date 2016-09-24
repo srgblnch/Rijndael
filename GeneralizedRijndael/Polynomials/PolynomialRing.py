@@ -138,23 +138,6 @@ def PolynomialRingModulo(modulo, coefficients_class, variable='x',
             '''
             value = 0
             for degree, coefficient in enumerate(self.coefficients):
-#                 self._debug_stream("For %dth coefficient %s: %d %s"
-#                                    % (degree, coefficient,
-#                                       coefficient.coefficients, bin(coefficient.coefficients)))
-                # shift = degree * (coefficient.modulodegree -1)
-                # shiftedcoeff = coefficient.coefficients << shift
-#                 self._debug_stream("\t%d << %d = %d %s"
-#                                    % (coefficient.coefficients, shift,
-#                                       shiftedcoeff, bin(shiftedcoeff)))
-#                 self._debug_stream("\t%d + %d = %d %s"
-#                                    %(value, shiftedcoeff,
-#                                      value + shiftedcoeff,
-#                                      bin(value + shiftedcoeff)))
-#                 self._debug_stream("For %dth coefficient %s, shifted %d bits, "
-#                                    "is %d to add to %d is %s"
-#                                    % (degree, coefficient, shift, shiftedcoeff,
-#                                       value, value + shiftedcoeff))
-                # value += shiftedcoeff
                 value += coefficient.coefficients <<\
                     (degree * (coefficient.modulodegree-1))
             return value
@@ -281,16 +264,31 @@ def PolynomialRingModulo(modulo, coefficients_class, variable='x',
                             close += 1
                     i = closer
                 elif string[i:i+2] == '0x':
-                    vblePos = string.find(self._variable, i)
-                    coefficient = string[i:vblePos]
+                    vblePos = string.find(self._variable, i+2)
+                    addPos = string.find('+', i+2)
+                    if vblePos == -1:  # if there is no vbles
+                        if addPos == -1:  # if there is no mode monomials
+                            coefficient = string[i:]
+                            i = len(string)  # point to the end
+                        else:
+                            coefficient = string[i:addPos]
+                            i = addPos
+                    else:
+                        coefficient = string[i:vblePos]
+                        i = vblePos
                     self._trace_stream("Found a coefficient in hexadecimal %r"
                                        % (coefficient))
-                    i = vblePos
+                    coefficient = int(coefficient, 16)
                 else:
                     self._trace_stream("No coefficient specified, "
                                        "it would mean '1'")
                     coefficient = '1'
                 # variable area ----
+                if i == len(string):
+                    terms[0] = coefficient
+                    self._trace_stream("Parsing finish! final terms dict: %s"
+                                       % (terms))
+                    break
                 if string[i] != self._variable:
                     self._trace_stream("Variable not found %s != %r"
                                        % (self._variable, string[i]))
@@ -346,11 +344,11 @@ def PolynomialRingModulo(modulo, coefficients_class, variable='x',
             coefficients = []
             for i in range(degree+1):
                 if i in terms:
-                    self._trace_stream("processing degree %d term %s"
+                    self._trace_stream("Processing degree %d term %s"
                                        % (i, terms[i]))
                     coefficients.append(self._coefficientClass(terms[i]))
                 else:
-                    self._trace_stream("processing degree %d without term"
+                    self._trace_stream("Processing degree %d without term"
                                        % (i))
                     coefficients.append(self._coefficientClass(0))
             return coefficients
@@ -910,3 +908,128 @@ class PolynomialRing(_Logger):
                     res[r][c] ^= (a*b)._coefficients
                 shifted_ax = _shift(shifted_ax, -1)
         return res
+
+
+def getPolynomialRingWithBinaryCoefficients(ringDegree, coefficientsDegree):
+    fieldModulo = getBinaryExtensionFieldModulo(coefficientsDegree)
+    field = BinaryExtensionModulo(fieldModulo, variable='z')
+    ring = PolynomialRingModulo('x^%d+1' % ringDegree, field)
+    c_x = {2: {2: '0x3x+0x2',
+               3: '0x6x+0x4',
+               4: '0x5x+0x6',
+               5: '0x5x+0x15',
+               6: '0x34x+0x7',
+               7: '0x2Cx+0x74',
+               8: '0x78x+0xA6',
+               9: '0x146x+0xCE',
+               10: '0x2D8x+0x2F0',
+               11: '0x13Dx+0x343',
+               12: '0x2D3x+0x8D6',
+               13: '0x99Ex+0x1439',
+               14: '0x1E58x+0xDD8',
+               15: '0x60DCx+0x2DCC',
+               16: '0x318Fx+0x76A8'},
+           3: {2: '0x2x^2+0x2x+0x3',
+               3: '0x4x^2+0x4x+0x5',
+               4: '0x3x^2+0xCx+0x3',
+               5: '0x12x^2+0x5x+0x13',
+               6: '0x2Cx^2+0x2Ax+0x19',
+               7: '0x15x^2+0xFx+0x62',
+               8: '0x4Bx^2+0x3Cx+0x33',
+               9: '0x6Ax^2+0xC7x+0xB4',
+               10: '0xEAx^2+0xE5x+0xE5',
+               11: '0x496x^2+0x347x+0x34A',
+               12: '0xE70x^2+0x8E6x+0x41F',
+               13: '0x1B5x^2+0x1C36x+0x536',
+               14: '0x3B21x^2+0x1AE0x+0x2F2C',
+               15: '0x2D1Ax^2+0x4D6Cx+0x5A51',
+               16: '0xB10Ex^2+0x70B9x+0x57AA'},
+           4: {2: '0x2x^2+0x2x+0x3',
+               3: '0x3x^3+0x3x^2+0x2x+0x4',
+               4: '0x3x^3+0x9x^2+0x3x+0xC',
+               5: '0x13x^3+0x9x^2+0xBx+0x9',
+               6: '0xDx^3+0x2Cx^2+0x16x+0x34',
+               7: '0x63x^3+0x58x^2+0x72x+0x43',
+               8: '(z+1)*x^3+x^2+x+(z)',  # 0xCAx^3+0xB8x^2+0xC9x+0x39
+               9: '0xD5x^3+0x17x^2+0x133x+0x145',
+               10: '0x305x^3+0x21Bx^2+0x2D9x+0x1A3',
+               11: '0x24Ex^3+0x17Ax^2+0x40Fx+0xF5',
+               12: '0x26Dx^3+0x569x^2+0xCC6x+0x41F',
+               13: '0xF34x^3+0xD62x^2+0x24Fx+0x1F88',
+               14: '0x857x^3+0x12B2x^2+0x29D9x+0x2EAC',
+               15: '0x4B89x^3+0x558Ax^2+0x56F0x+0x3D68',
+               16: '0x203Fx^3+0xF62Cx^2+0x2D31x+0x9DCC'},
+           5: {2: 'x^4+x^3+x^2+0x2x+0x2',
+               3: '0x5x^4+0x4x^3+0x3x^2+0x4x+0x4',
+               4: '0x3x^4+0x3x^3+0x3x^2+0x3x+0x5',
+               5: '0x6x^4+0x11x^3+0x6x^2+0x7x+0x1A',
+               6: '0x29x^4+0x31x^3+0x1Ax^2+0x16x+0x2C',
+               7: '0x32x^4+0x17x^3+0x43x^2+0x68x+0x47',
+               8: '0x33x^4+0x3Cx^3+0x35x^2+0x3Cx+0x3A',
+               9: '0x1C9x^4+0x57x^3+0x32x^2+0x9Ex+0x11C',
+               10: '0x3A2x^4+0x13Ex^3+0x274x^2+0x243x+0xBC',
+               11: '0x433x^4+0x26Ex^3+0x729x^2+0x34Cx+0x354',
+               12: '0x2B3x^4+0x5Fx^3+0x698x^2+0x11Fx+0x5F4',
+               13: '0xF84x^4+0x10DAx^3+0x1427x^2+0x1AB8x+0x107E',
+               14: '0x1D2Ax^4+0xBCEx^3+0x20E3x^2+0x1A51x+0x325D',
+               15: '0x548Dx^4+0x3D44x^3+0x16E4x^2+0x388Fx+0x1CF1',
+               16: '0x319Fx^4+0x4A1Fx^3+0x8B52x^2+0xD078x+0x1A7E'},
+           6: {2: '0x3x^4+x^3+0x2x^2+x+0x2',
+               3: '0x6x^4+0x5x^3+0x5x^2+0x6x+0x2',
+               4: '0x6x^5+0x9x^4+0x3x^3+0x3x^2+0x3x+0x3',
+               5: '0x14x^5+0x11x^4+0xBx^3+0x15x^2+0x11x+0xE',
+               6: '0x2Bx^5+0x9x^4+0x1Dx^3+0x23x^2+0x24x+0x2C',
+               7: '0x26x^5+0x65x^4+0x50x^3+0x66x^2+0x55x+0x1D',
+               8: '0x6Dx^5+0x1Fx^4+0x2Ex^3+0x62x^2+0x62x+0x8D',
+               9: '0x1CCx^5+0x1Fx^4+0xCDx^3+0x51x^2+0x9Dx+0x149',
+               10: '0x87x^5+0x385x^4+0x332x^3+0x1B9x^2+0x313x+0x263',
+               11: '0x4E4x^5+0x625x^4+0x3D2x^3+0x1C5x^2+0x6DAx+0x433',
+               12: '0x63Ax^5+0x436x^4+0x296x^3+0xCBCx^2+0x2CFx+0xA9C',
+               13: '0x297x^5+0x14D4x^4+0x115Ex^3+0xA33x^2+0x18BAx+0x1674',
+               14: '0x12ADx^5+0x12D9x^4+0x2A23x^3+0x4BDx^2+0x22F6x+0x2595',
+               15: '0x60EAx^5+0x3079x^4+0x383Ex^3+0x293Ex^2+0x4AC9x+0x1E8E',
+               16: '0x7168x^5+0x9DA2x^4+0x66DAx^3+0x394Fx^2+0x3893x+0xFA6'},
+           7: {2: '0x3x^4+0x3x^3+0x2x^2+0x2x+1',
+               3: '0x4x^5+0x3x^4+0x6x^3+0x6x^2+0x4x+0x5',
+               4: '0x3x^6+0x3x^5+0x3x^4+0x3x^3+0x3x^2+0x3x+0x6',
+               5: '0x6x^6+0x5x^5+0x5x^4+0x19x^3+0xDx^2+0x5x+0x1A',
+               6: '0x2Ex^6+0x32x^5+0x17x^4+0x12x^3+0xDx^2+0x6x+0x1C',
+               7: '0x4Cx^6+0x32x^5+0x23x^4+0x3Ex^3+0x64x^2+0x27x+0x4A',
+               8: '0x1Fx^6+0x26x^5+0x1Dx^4+0xA6x^3+0x6Cx^2+0xC6x+0xC5',
+               9: '0x18Dx^6+0x14Cx^5+0x129x^4+0x17x^3+0x13Ax^2+0x14Dx+0x39',
+               10: '0x227x^6+0x115x^5+0x30Fx^4+0x107x^3+0x34Ex^2+0x217x+0x76',
+               11: '0x2Fx^6+0xF1x^5+0x756x^4+0x686x^3+0x436x^2+0x77x+0x591',
+               12: '0xA7Ax^6+0xE8Ax^5+0x1D9x^4+0x30Bx^3+0x371x^2+0xD91x+0xA2E',
+               13: '0x736x^6+0x18CCx^5+0x4C7x^4+0x95Dx^3+0x1D23x^2+0x1D0Cx'
+                   '+0x1583',
+               14: '0x1D0Ex^6+0x3A2Ex^5+0x3612x^4+0x322Fx^3+0x1F1x^2+0x2935x+'
+                   '0x766',
+               15: '0x2C99x^6+0x7446x^5+0x23CEx^4+0x2F70x^3+0x245Fx^2+0x486Dx+'
+                   '0x352C',
+               16: '0x81DEx^6+0x2357x^5+0x225Fx^4+0x7724x^3+0xE9Dx^2+0x6167x+'
+                   '0xB295'},
+           8: {2: '0x2x^7+x^6+0x2x^5+0x2x^4+0x2x^3+0x2x^2+0x2x+0x2',
+               3: '0x3x^6+0x6x^5+0x5x^4+0x3x^3+0x4x^2+0x6x+0x4',
+               4: '0x6x^7+0xEx^6+0x5x^5+0x5x^4+0x5x^3+0xEx^2+0x4x+0x8',
+               5: '0x8x^7+0x7x^6+0x5x^5+0x1Ax^4+0xCx^3+0x1Ax^2+0x7x+0x13',
+               6: '0x2Dx^7+0x16x^6+0xDx^5+0x1Cx^4+0x23x^3+0x1Ax^2+0x11x+0xD',
+               7: '0x35x^7+0x66x^6+0x46x^5+0x38x^4+0x4Ex^3+0x47x^2+0x3Cx+0x30',
+               8: '0x52x^7+0x74x^6+0xD8x^5+0xFx^4+0xCBx^3+0x6Ax^2+0xCAx+0xC5',
+               9: '0x4Ex^7+0x3Dx^6+0xB6x^5+0xCBx^4+0xEAx^3+0x29x^2+0x126x+'
+                  '0x133',
+               10: '0x28Dx^7+0x2Fx^6+0x265x^5+0x131x^4+0xBDx^3+0x23Cx^2+'
+                   '0x329x+0x332',
+               11: '0x7E4x^7+0x31Ax^6+0x1ACx^5+0x2ADx^4+0x652x^3+0x5Dx^2+'
+                   '0x5Fx+0x1C9',
+               12: '0x38Bx^7+0x99Ax^6+0x4CCx^5+0x723x^4+0x15Fx^3+0x45Ax^2+'
+                   '0xCC5x+0xF32',
+               13: '0x978x^7+0x8B8x^6+0x1BC2x^5+0x1196x^4+0x103Fx^3+0x9E6x^2+'
+                   '0x7Fx+0x3DA',
+               14: '0x28D7x^7+0xBCEx^6+0x3055x^5+0x206Fx^4+0x16A4x^3+0x437x^2'
+                   '+0x1799x+0x3346',
+               15: '0x5C0Fx^7+0xA75x^6+0x62CDx^5+0x44DAx^4+0x6A49x^3+0x7C32x^2'
+                   '+0xAC7x+0x1F16',
+               16: '0x3B16x^7+0x84B7x^6+0x6794x^5+0xC1D3x^4+0xB4Fx^3+0xC157x^2'
+                   '+0x879Ax+0x4E87'}
+           }[ringDegree][coefficientsDegree]
+    return ring(c_x)

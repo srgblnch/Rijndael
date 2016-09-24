@@ -24,41 +24,30 @@ __status__ = "development"
 
 from copy import deepcopy as _deepcopy
 from Logger import Logger as _Logger
-from Polynomials import PolynomialRing as _PolynomialRing
+from Polynomials import BinaryExtensionModulo as _BinaryExtensionModulo
 from Polynomials import getBinaryExtensionFieldModulo \
     as _getBinaryExtensionFieldModulo
+from Polynomials import getPolynomialRingWithBinaryCoefficients \
+    as _getPolynomialRingWithBinaryCoefficients
+from Polynomials import PolynomialRing as _PolynomialRing
 from Polynomials import PolynomialRingModulo as _PolynomialRingModulo
-from Polynomials import BinaryExtensionModulo as _BinaryExtensionModulo
+
 
 
 class MixColumns(_Logger):
     def __init__(self, nRows, nColumns, wordSize, *args, **kwargs):
         super(MixColumns, self).__init__(*args, **kwargs)
-        # FIXME: refactor this horrible if ----
-        if wordSize == 8:
-            polynomialModule = _getBinaryExtensionFieldModulo(wordSize)
-            self._subfield = _BinaryExtensionModulo(polynomialModule)
-            if nRows == 4:
-                # MDS matrices (Maximum Distance Separable)
-                self.__c = [0x3, 0x1, 0x1, 0x2]
-                self.__d = [0xB, 0xD, 0x9, 0xE]
-                # c(x) \otimes d(x) = 1 (mod m)
-                self._ring = _PolynomialRingModulo("x^4+1", self._subfield)
-            elif nRows == 3:
-                self.__c = [0xD, 0x1, 0x1]  # FIXME: unknown
-                self.__d = [0x3C, 0xAA, 0x3C]  # FIXME: unknown
-                self._ring = _PolynomialRingModulo("x^3+1", self._subfield)
-            elif nRows == 2:
-                self.__c = [0x2, 0x3]  # FIXME: unknown
-                self.__d = [0x2, 0x3]  # FIXME: unknown
-                self._ring = _PolynomialRingModulo("x^2+1", self._subfield)
+        if (2 <= nRows < 8) and (2 <= wordSize < 16):
+            self.__cx = _getPolynomialRingWithBinaryCoefficients(nRows,
+                                                                 wordSize)
+            self.__dx = ~self.__cx
         else:
-            raise Exception("(__init__)", "There is no MixColumns for %d "
-                            "wordsize" % (wordSize))
-        self.__cx = self._ring([self._subfield(i) for i in self.__c])
-        self.__dx = self._ring([self._subfield(i) for i in self.__d])
+            raise Exception("(__init__)", "There is no MixColumns for the pair"
+                            " %d degree ring (number of rows) "
+                            "with %d degree coefficients (word size)"
+                            % (nRows, wordSize))
         self._nColumns = nColumns
-        self.__polynomialRing = _PolynomialRing(nRows, nColumns, wordSize)
+        # self.__polynomialRing = _PolynomialRing(nRows, nColumns, wordSize)
 
     @property
     def PolynomialRingModulo(self):
