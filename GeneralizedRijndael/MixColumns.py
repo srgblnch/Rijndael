@@ -38,8 +38,8 @@ class MixColumns(_Logger):
     def __init__(self, nRows, nColumns, wordSize, *args, **kwargs):
         super(MixColumns, self).__init__(*args, **kwargs)
         if (2 <= nRows < 8) and (2 <= wordSize < 16):
-            self.__cx = _getPolynomialRingWithBinaryCoefficients(nRows,
-                                                                 wordSize)
+            self.__cx, self.__ring, self.__field = \
+                _getPolynomialRingWithBinaryCoefficients(nRows, wordSize)
             self.__dx = ~self.__cx
         else:
             raise Exception("(__init__)", "There is no MixColumns for the pair"
@@ -66,54 +66,81 @@ class MixColumns(_Logger):
         return hex(self.__dx)
 
     def do(self, input):
+        return self.__product(input, self.__cx)
+    
+    def invert(self, input):
+        return self.__product(input, self.__dx)
+
+    def __product(self, input, polynomial):
         self._debug_stream("input: %s" % (printlist(input)),
                            operation="mixColumns")
-        # First do with the first approach made
-        res = self.__polynomialRing.product(self.__c, input)
-        self._warning_stream("Using the old calculation method: ", data=res,
-                             operation="mixColumns")
-        # Second way with a class that implements a polynomial ring
-        # with coeficients in a binary polynomial field.
         nRows = len(input)
-        output = [[self._subfield(input[r][c])
-                   for c in range(self._nColumns)]
-                  for r in range(nRows)]
-        self._debug_stream("output matrix is %d rows by %d columns (%dx%d)"
-                           % (len(output), len(output[0]), nRows,
-                              self._nColumns),
-                           data=output, operation="mixColumns")
-        for r in range(nRows):
-            sx = self._ring([self._subfield(input[r][c])
-                             for c in range(len(input))])
+        # take the columns, convert each element to a binary polynomial
+        columns = [[self.__field(input[r][c])
+                    for c in range(self._nColumns)]
+                   for r in range(nRows)]
+        self._debug_stream("s'[i] = %s * s[i]" % self.__cx, operation="mixColumns")
+        for i, column in enumerate(columns):
+            sx = self.__ring(column)
             sx_ = self.__cx * sx
-            self._debug_stream("\t%s * %s" % (hex(self.__cx), hex(sx)),
+            self._debug_stream("s[%d] = c(x) * %s = %s" % (i, sx, sx_),
                                operation="mixColumns")
-            self._debug_stream("\t\t= %s" % (hex(sx_)), operation="mixColumns")
-            for c in range(self._nColumns):
-                self._debug_stream("output[%d][%d] %s += %s : %s += %s"
-                                   % (r, c, hex(output[r][c]),
-                                      hex(sx_.coefficients[-r]),
-                                      output[r][c], sx_.coefficients[r]),
-                                   operation="mixColumns")
-                output[r][c] += sx_.coefficients[-r]
+            columns[i] = sx_
+        output = [[None]*nRows]*self._nColumns
         for c in range(self._nColumns):
+            self._debug_stream("Column %d: %s" % (c, columns[c]))
+            coefficients = columns[c].coefficients
             for r in range(nRows):
-                output[r][c] = output[r][c].coefficients
-        self._debug_stream("output: %s" % (printlist(output)),
-                           operation="mixColumns")
-        if res != output:
-            self._warning_stream("For input:\t%s\n\told way result say:\t%s\n"
-                                 "\tbut vector space modulo say:\t%s"
-                                 % (printlist(input), printlist(res),
-                                    printlist(output)),
-                                 operation="mixColumns")
-        return res
-        # if return 'output', then the test didn't pass.
-        # But with 'res' it does: the vector space modulo is not working well!
-
-    def invert(self, input):
-        res = self.__polynomialRing.product(self.__d, input)
-        return res
+                self._debug_stream("Row %d: %s" % (r, coefficients))
+                output[r][c] = coefficients[r].coefficients
+        return output
+        
+# #         # First do with the first approach made
+# #         res = self.__polynomialRing.product(self.__c, input)
+# #         self._warning_stream("Using the old calculation method: ", data=res,
+# #                              operation="mixColumns")
+#         # Second way with a class that implements a polynomial ring
+#         # with coeficients in a binary polynomial field.
+#         nRows = len(input)
+#         output = [[self._subfield(input[r][c])
+#                    for c in range(self._nColumns)]
+#                   for r in range(nRows)]
+#         self._debug_stream("output matrix is %d rows by %d columns (%dx%d)"
+#                            % (len(output), len(output[0]), nRows,
+#                               self._nColumns),
+#                            data=output, operation="mixColumns")
+#         for r in range(nRows):
+#             sx = self._ring([self._subfield(input[r][c])
+#                              for c in range(len(input))])
+#             sx_ = self.__cx * sx
+#             self._debug_stream("\t%s * %s" % (hex(self.__cx), hex(sx)),
+#                                operation="mixColumns")
+#             self._debug_stream("\t\t= %s" % (hex(sx_)), operation="mixColumns")
+#             for c in range(self._nColumns):
+#                 self._debug_stream("output[%d][%d] %s += %s : %s += %s"
+#                                    % (r, c, hex(output[r][c]),
+#                                       hex(sx_.coefficients[-r]),
+#                                       output[r][c], sx_.coefficients[r]),
+#                                    operation="mixColumns")
+#                 output[r][c] += sx_.coefficients[-r]
+#         for c in range(self._nColumns):
+#             for r in range(nRows):
+#                 output[r][c] = output[r][c].coefficients
+#         self._debug_stream("output: %s" % (printlist(output)),
+#                            operation="mixColumns")
+#         if res != output:
+#             self._warning_stream("For input:\t%s\n\told way result say:\t%s\n"
+#                                  "\tbut vector space modulo say:\t%s"
+#                                  % (printlist(input), printlist(res),
+#                                     printlist(output)),
+#                                  operation="mixColumns")
+#         return res
+#         # if return 'output', then the test didn't pass.
+#         # But with 'res' it does: the vector space modulo is not working well!
+# 
+#     def invert(self, input):
+#         res = self.__polynomialRing.product(self.__d, input)
+#         return res
 
 
 def printlist(l):

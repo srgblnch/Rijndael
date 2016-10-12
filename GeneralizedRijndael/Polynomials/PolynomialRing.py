@@ -1032,4 +1032,4 @@ def getPolynomialRingWithBinaryCoefficients(ringDegree, coefficientsDegree):
                16: '0x3B16x^7+0x84B7x^6+0x6794x^5+0xC1D3x^4+0xB4Fx^3+0xC157x^2'
                    '+0x879Ax+0x4E87'}
            }[ringDegree][coefficientsDegree]
-    return ring(c_x)
+    return (ring(c_x), ring, field)

@@ -42,6 +42,19 @@ class GeneralizedRijndael(_Logger):
     '''
         Object that, once created and initialised (parameters and secret key)
         can receive the request to cipher some input or decipher it.
+        
+        Parameters:
+        - key: <mandatory> integer that will be used as a key. It cannot be
+               bigger than the key size that will be build.
+        - nRounds: <default:based on the other parameters>
+        - nRows: <default:4>
+        - nColumns: <default:4>
+        - wordSize: <default:8>
+        - kKeycolumns: <default:nColumns>
+        
+        Extra parameters:
+        - sboxCalc: <default:True>
+        - loglevel:: <default:info>
     '''
     def __init__(self, key,
                  nRounds=None, nRows=4, nColumns=4, wordSize=8,  # stardard aes
