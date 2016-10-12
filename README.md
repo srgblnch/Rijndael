@@ -2,6 +2,7 @@ Generalizing the Rijndael
 =========================
 
 **Development Status :: 2 - Pre-Alpha**
+https://codeship.com/projects/178674/status?branch=master
 
 You can consider this as a *toy project*, or a *probe of concept*. You **MUST NOT** use this code in production projects. This development is part of a research project and there are still many checks to be made.
 
