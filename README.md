@@ -35,7 +35,7 @@ Extras
 ```python
 >>> import GeneralizedRijndael
 >>> GeneralizedRijndael.version()
-'0.2.5-0'
+'0.3.0-0'
 ```
 
 The main constructor available in this module is *GeneralizedRijndael.GeneralizedRijndael*. A little help in the *docstring* shall be made soon, but there can be listed the arguments that this constructor can have. With:
