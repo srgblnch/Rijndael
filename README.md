@@ -1,8 +1,16 @@
 Generalizing the Rijndael
 =========================
 
-**Development Status :: 2 - Pre-Alpha**
+Summary
+-------
+
+![license GPLv3+](https://img.shields.io/badge/license-GPLv3+-green.svg)
+
+**Development Status :: ![2 - Pre-Alpha](https://img.shields.io/badge/DevStatus-2_--_pre--alpha-orange.svg) **
+
 ![Codeship badge](https://codeship.com/projects/43e4bce0-72ae-0134-b36e-76d603c7c101/status?branch=master)
+
+![about](https://img.shields.io/badge/Subject-cryptography-orange.svg?style=social)
 
 You can consider this as a *toy project*, or a *probe of concept*. You **MUST NOT** use this code in production projects. This development is part of a research project and there are still many checks to be made.
 
