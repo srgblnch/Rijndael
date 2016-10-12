@@ -35,19 +35,38 @@ from Polynomials import PolynomialRingModulo as _PolynomialRingModulo
 
 
 class MixColumns(_Logger):
+    """
+        Object in charge of the MixColumns operation:
+        Parameters:
+        - nRows
+        - nColumns
+        - wordSize
+    """
     def __init__(self, nRows, nColumns, wordSize, *args, **kwargs):
         super(MixColumns, self).__init__(*args, **kwargs)
-        if (2 <= nRows < 8) and (2 <= wordSize < 16):
+        self.__nRows = nRows
+        self.__nColumns = nColumns
+        self.__wordSize = wordSize
+        if (2 <= self.__nRows < 8) and (2 <= self.__wordSize < 16):
             self.__cx, self.__ring, self.__field = \
-                _getPolynomialRingWithBinaryCoefficients(nRows, wordSize)
+                _getPolynomialRingWithBinaryCoefficients(self.__nRows,
+                                                         self.__wordSize)
             self.__dx = ~self.__cx
         else:
             raise Exception("(__init__)", "There is no MixColumns for the pair"
                             " %d degree ring (number of rows) "
                             "with %d degree coefficients (word size)"
-                            % (nRows, wordSize))
-        self._nColumns = nColumns
+                            % (self.__nRows, self.__wordSize))
+        
         # self.__polynomialRing = _PolynomialRing(nRows, nColumns, wordSize)
+
+    def __str__(self):
+        parentesis = "%d, %d, %d" % (self.__nRows, self.__nColumns,
+                                         self.__wordSize)
+        return "MixColumns(%s)" % (parentesis)
+
+    def __repr__(self):
+        return "%s" % (self.__str__())
 
     @property
     def PolynomialRingModulo(self):
@@ -76,71 +95,50 @@ class MixColumns(_Logger):
                            operation="mixColumns")
         nRows = len(input)
         # take the columns, convert each element to a binary polynomial
-        columns = [[self.__field(input[r][c])
-                    for c in range(self._nColumns)]
-                   for r in range(nRows)]
+        columns = self.__matrix2Polynomials(input)
+        self._debug_stream("input as field elements: %s" % (columns),
+                           operation="mixColumns")
         self._debug_stream("s'[i] = %s * s[i]" % self.__cx, operation="mixColumns")
         for i, column in enumerate(columns):
             sx = self.__ring(column)
-            sx_ = self.__cx * sx
+            self._debug_stream("column[%d] = %s -> %s" % (i, column, sx), operation="mixColumns")
+            sx_ = polynomial * sx
             self._debug_stream("s[%d] = c(x) * %s = %s" % (i, sx, sx_),
                                operation="mixColumns")
             columns[i] = sx_
-        output = [[None]*nRows]*self._nColumns
-        for c in range(self._nColumns):
-            self._debug_stream("Column %d: %s" % (c, columns[c]))
-            coefficients = columns[c].coefficients
-            for r in range(nRows):
-                self._debug_stream("Row %d: %s" % (r, coefficients))
-                output[r][c] = coefficients[r].coefficients
+        self._debug_stream("output as field elements: %s" % (columns),
+                           operation="mixColumns")
+        output = self._polynomials2matrix(columns)
+        self._debug_stream("output: %s" % (printlist(output)),
+                           operation="mixColumns")
         return output
-        
-# #         # First do with the first approach made
-# #         res = self.__polynomialRing.product(self.__c, input)
-# #         self._warning_stream("Using the old calculation method: ", data=res,
-# #                              operation="mixColumns")
-#         # Second way with a class that implements a polynomial ring
-#         # with coeficients in a binary polynomial field.
-#         nRows = len(input)
-#         output = [[self._subfield(input[r][c])
-#                    for c in range(self._nColumns)]
-#                   for r in range(nRows)]
-#         self._debug_stream("output matrix is %d rows by %d columns (%dx%d)"
-#                            % (len(output), len(output[0]), nRows,
-#                               self._nColumns),
-#                            data=output, operation="mixColumns")
-#         for r in range(nRows):
-#             sx = self._ring([self._subfield(input[r][c])
-#                              for c in range(len(input))])
-#             sx_ = self.__cx * sx
-#             self._debug_stream("\t%s * %s" % (hex(self.__cx), hex(sx)),
-#                                operation="mixColumns")
-#             self._debug_stream("\t\t= %s" % (hex(sx_)), operation="mixColumns")
-#             for c in range(self._nColumns):
-#                 self._debug_stream("output[%d][%d] %s += %s : %s += %s"
-#                                    % (r, c, hex(output[r][c]),
-#                                       hex(sx_.coefficients[-r]),
-#                                       output[r][c], sx_.coefficients[r]),
-#                                    operation="mixColumns")
-#                 output[r][c] += sx_.coefficients[-r]
-#         for c in range(self._nColumns):
-#             for r in range(nRows):
-#                 output[r][c] = output[r][c].coefficients
-#         self._debug_stream("output: %s" % (printlist(output)),
-#                            operation="mixColumns")
-#         if res != output:
-#             self._warning_stream("For input:\t%s\n\told way result say:\t%s\n"
-#                                  "\tbut vector space modulo say:\t%s"
-#                                  % (printlist(input), printlist(res),
-#                                     printlist(output)),
-#                                  operation="mixColumns")
-#         return res
-#         # if return 'output', then the test didn't pass.
-#         # But with 'res' it does: the vector space modulo is not working well!
-# 
-#     def invert(self, input):
-#         res = self.__polynomialRing.product(self.__d, input)
-#         return res
+    
+    def __matrix2Polynomials(self, input):
+        columns = []
+        for c in range(self.__nColumns):
+            column = []
+            for r in range(self.__nRows):
+                column.append(self.__field(input[r][c]))
+            column.reverse() 
+            # s(0,c)*x^(r-1) + s(1,c)*x^(r-2) + ... + s(r,c)*x^(r-r)
+            columns.append(self.__ring(column))
+        return columns
+
+    def _polynomials2matrix(self, input):
+        # FIXME: this undo the __matrix2Polynomials(), but can it be optimized?
+        matrix = []
+        for r in range(self.__nRows):
+            matrix.append([])
+            for c in range(self.__nColumns):
+                matrix[r].append(None)
+        for c, column in enumerate(input):
+            column = column.coefficients
+            while len(column) < self.__nRows:
+                column.append(self.__field(0))
+            column.reverse()
+            for r, cell in enumerate(column):
+                matrix[r][c] = cell.coefficients
+        return matrix
 
 
 def printlist(l):
