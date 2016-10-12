@@ -31,6 +31,12 @@ class ShiftRows(_Logger):
         super(ShiftRows, self).__init__(*args, **kwargs)
         self.__nRows = nRows
 
+    def __str__(self):
+        parentesis = "%d" % (self.__nRows)
+        return "ShiftRows(%s)" % (parentesis)
+
+    def __repr__(self):
+        return "%s" % (self.__str__())
     def do(self, input):
         '''One of the round transformation methods.
            cyclical left shift of the row 'i' of the state matrix by 'i'
@@ -41,7 +47,10 @@ class ShiftRows(_Logger):
         '''
         output = []
         for i in range(self.__nRows):
-            output.append(_shift(input[i], i))
+            shifted = _shift(input[i], i)
+            self._debug_stream("row[%d] = %s -> %s" % (i, input[i], shifted),
+                               operation="shiftRows")
+            output.append(shifted)
         return output
 
     def invert(self, input):
@@ -51,5 +60,8 @@ class ShiftRows(_Logger):
         '''
         output = []
         for i in range(self.__nRows):
-            output.append(_shift(input[i], -i))
+            unshifted = _shift(input[i], -i)
+            self._debug_stream("row[%d] = %s -> %s" % (i, input[i], unshifted),
+                               operation="invShiftRows")
+            output.append(unshifted)
         return output

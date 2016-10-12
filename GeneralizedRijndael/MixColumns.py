@@ -85,32 +85,33 @@ class MixColumns(_Logger):
         return hex(self.__dx)
 
     def do(self, input):
-        return self.__product(input, self.__cx)
+        return self.__product(input, self.__cx, operation="mixColumns")
     
     def invert(self, input):
-        return self.__product(input, self.__dx)
+        return self.__product(input, self.__dx, operation="InvMixColumns")
 
-    def __product(self, input, polynomial):
+    def __product(self, input, polynomial, operation):
         self._debug_stream("input: %s" % (printlist(input)),
-                           operation="mixColumns")
+                           operation=operation)
         nRows = len(input)
         # take the columns, convert each element to a binary polynomial
         columns = self.__matrix2Polynomials(input)
         self._debug_stream("input as field elements: %s" % (columns),
-                           operation="mixColumns")
-        self._debug_stream("s'[i] = %s * s[i]" % self.__cx, operation="mixColumns")
+                           operation=operation)
+        self._debug_stream("s'[i] = %s * s[i]" % self.__cx, operation=operation)
         for i, column in enumerate(columns):
             sx = self.__ring(column)
-            self._debug_stream("column[%d] = %s -> %s" % (i, column, sx), operation="mixColumns")
+            self._debug_stream("column[%d] = %s -> %s" % (i, column, sx),
+                               operation=operation)
             sx_ = polynomial * sx
             self._debug_stream("s[%d] = c(x) * %s = %s" % (i, sx, sx_),
-                               operation="mixColumns")
+                               operation=operation)
             columns[i] = sx_
         self._debug_stream("output as field elements: %s" % (columns),
-                           operation="mixColumns")
+                           operation=operation)
         output = self._polynomials2matrix(columns)
         self._debug_stream("output: %s" % (printlist(output)),
-                           operation="mixColumns")
+                           operation=operation)
         return output
     
     def __matrix2Polynomials(self, input):

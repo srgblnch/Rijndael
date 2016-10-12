@@ -22,6 +22,7 @@ __copyright__ = "Copyright 2013 Sergi Blanch-Torne"
 __license__ = "GPLv3+"
 __status__ = "development"
 
+from copy import deepcopy as _deepcopy
 from Logger import Logger as _Logger
 from Polynomials import getBinaryExtensionFieldModulo
 from Polynomials import getBinaryExtensionRingModulo
@@ -94,31 +95,32 @@ class SBox(_Logger):
            Input:
            Output:
         '''
+        output = _deepcopy(state)
         if self._useCalc:
             if invert:
                 sbox = self._invertsbox_call_
             else:
                 sbox = self._sbox_call_
-            for i in range(len(state)):
-                if type(state[i]) == list:
-                    for j in range(len(state[i])):
-                        state[i][j] = sbox(state[i][j])
+            for i in range(len(output)):
+                if type(output[i]) == list:
+                    for j in range(len(output[i])):
+                        output[i][j] = sbox(output[i][j])
                 else:
-                    state[i] = sbox(state[i])
+                    output[i] = sbox(output[i])
         else:
             if invert:
                 sbox = self._sbox_inverted
             else:
                 sbox = self._sbox
-            for i in range(len(state)):
-                if type(state[i]) == list:
-                    for j in range(len(state[i])):
-                        r, c = self.__hexValue2MatrixCoords(state[i][j])
-                        state[i][j] = sbox[r][c]
+            for i in range(len(output)):
+                if type(output[i]) == list:
+                    for j in range(len(output[i])):
+                        r, c = self.__hexValue2MatrixCoords(output[i][j])
+                        output[i][j] = sbox[r][c]
                 else:
-                    r, c = self.__hexValue2MatrixCoords(state[i])
-                    state[i] = sbox[r][c]
-        return state
+                    r, c = self.__hexValue2MatrixCoords(output[i])
+                    output[i] = sbox[r][c]
+        return output
 
     def __hexValue2MatrixCoords(self, value):
         '''Split the input in to equal halfs that will be used as coordinates
@@ -138,18 +140,29 @@ class SBox(_Logger):
 
     def _sbox_call_(self, value):
         g = ~self._field(value)
+        self._debug_stream("%s -> %s" % (value, g), operation="SBox")
         ax = self._ring(g._coefficients)
+        self._debug_stream("%s -> %s" % (value, ax), operation="SBox")
         mu = self.getMu()
         nu = self.getNu()
         bx = (mu.__matrix_product__(ax))+nu
+        self._debug_stream("b(z) = mu(z) * a(z) + nu(z) = %s * %s + %s = %s"
+                           % (mu, ax, nu, bx), operation="SBox")
+        self._debug_stream("SBox(%s) -> %s" % (value, bx.coefficients),
+                           operation="SBox")
         return bx._coefficients
 
     def _invertsbox_call_(self, value):
         bx = self._ring(value)
+        self._debug_stream("%s -> %s" % (value, bx), operation="SBox")
         inv_mu = ~self.getMu()
         nu = self.getNu()
         ax = inv_mu.__matrix_product__(bx-nu)
         element = ~self._field(ax._coefficients)
+        self._debug_stream("a(z) = ~mu(z) * b(z) + nu(z) = %s * %s + %s = %s"
+                           % (inv_mu, bx, nu, ax), operation="SBox")
+        self._debug_stream("SBox(%s) -> %s" % (value, element.coefficients),
+                           operation="~SBox")
         return element._coefficients
 
 # the sbox, with wordsize = 8

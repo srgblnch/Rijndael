@@ -36,10 +36,20 @@ class SubBytes(_Logger):
        themselves specially to allow arbitrary word sizes and not only the
        original 8 bits and the two included here for 2 and 4 bits.
     '''
-    def __init__(self, wordSize, sboxCalc=False, loglevel=_Logger._info,
+    def __init__(self, wordSize, sboxCalc=True, loglevel=_Logger._info,
                  *args, **kwargs):
         super(SubBytes, self).__init__(*args, **kwargs)
+        self.__wordSize = wordSize
         self.__sbox = SBox(wordSize, useCalc=sboxCalc, loglevel=loglevel)
+
+    def __str__(self):
+        parentesis = "%d" % (self.__wordSize)
+        return "MixColumns(%s)" % (parentesis)
+
+    def __repr__(self):
+        return "%s Mu=%s, Nu=%s, ring=%s, field=%s" % (self.__str__(), self.Mu,
+                                                       self.Nu, self.Ring,
+                                                       self.Field)
 
     @property
     def Field(self):
@@ -57,9 +67,17 @@ class SubBytes(_Logger):
     def Nu(self):
         return _deepcopy(self.__sbox.getNu())
 
+    @property
+    def SBox(self):
+        return self.__sbox
+
     def do(self, input):
-        return self.__sbox.transform(input)
+        output = self.__sbox.transform(input)
+        self._debug_stream("%s -> %s" % (input, output), operation="subBytes")
+        return output
 
     def invert(self, input):
-        return self.__sbox.transform(input, invert=True)
+        output = self.__sbox.transform(input, invert=True)
+        self._debug_stream("%s -> %s" % (input, output), operation="invSubBytes")
+        return output
         # It's the same but different sbox
