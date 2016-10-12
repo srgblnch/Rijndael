@@ -4,9 +4,7 @@ Generalizing the Rijndael
 Summary
 -------
 
-![license GPLv3+](https://img.shields.io/badge/license-GPLv3+-green.svg) ![about](https://img.shields.io/badge/Subject-cryptography-orange.svg?style=social)
-
-![2 - Pre-Alpha](https://img.shields.io/badge/Development_Status-2_--_pre--alpha-orange.svg) ![Codeship badge](https://codeship.com/projects/43e4bce0-72ae-0134-b36e-76d603c7c101/status?branch=master)
+![license GPLv3+](https://img.shields.io/badge/license-GPLv3+-green.svg) ![about](https://img.shields.io/badge/Subject-cryptography-orange.svg?style=social) ![2 - Pre-Alpha](https://img.shields.io/badge/Development_Status-2_--_pre--alpha-orange.svg) ![Codeship badge](https://codeship.com/projects/43e4bce0-72ae-0134-b36e-76d603c7c101/status?branch=master)
 
 
 
