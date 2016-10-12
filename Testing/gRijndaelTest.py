@@ -32,8 +32,8 @@ from datetime import datetime
 import multiprocessing
 from optparse import OptionParser
 from random import randint
-from GeneralizedRijndael import GeneralizedRijndael
-from GeneralizedRijndael.Logger import levelFromMeaning as _levelFromMeaning
+from gRijndael import gRijndael
+from gRijndael.Logger import levelFromMeaning as _levelFromMeaning
 import traceback
 
 
@@ -80,8 +80,8 @@ def doTest(queue, nTests, logLevel):
         blockSize = nRows*nColumns*wordSize
         keySize = nRows*nKeyColumns*wordSize
         k = randint(0, 2**keySize-1)
-        g = GeneralizedRijndael(k, nRounds, nRows, nColumns, wordSize,
-                                nKeyColumns, loglevel=logLevel)
+        g = gRijndael(k, nRounds, nRows, nColumns, wordSize,
+                      nKeyColumns, loglevel=logLevel)
         g.log2file = True
         g.fileSuffix = "%d,%d,%d,%d,%d"\
                        % (nRounds, nRows, nColumns, wordSize, nKeyColumns)

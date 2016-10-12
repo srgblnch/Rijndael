@@ -33,7 +33,6 @@ from Polynomials import PolynomialRing as _PolynomialRing
 from Polynomials import PolynomialRingModulo as _PolynomialRingModulo
 
 
-
 class MixColumns(_Logger):
     """
         Object in charge of the MixColumns operation:
@@ -57,12 +56,10 @@ class MixColumns(_Logger):
                             " %d degree ring (number of rows) "
                             "with %d degree coefficients (word size)"
                             % (self.__nRows, self.__wordSize))
-        
-        # self.__polynomialRing = _PolynomialRing(nRows, nColumns, wordSize)
 
     def __str__(self):
         parentesis = "%d, %d, %d" % (self.__nRows, self.__nColumns,
-                                         self.__wordSize)
+                                     self.__wordSize)
         return "MixColumns(%s)" % (parentesis)
 
     def __repr__(self):
@@ -86,7 +83,7 @@ class MixColumns(_Logger):
 
     def do(self, input):
         return self.__product(input, self.__cx, operation="mixColumns")
-    
+
     def invert(self, input):
         return self.__product(input, self.__dx, operation="InvMixColumns")
 
@@ -98,7 +95,8 @@ class MixColumns(_Logger):
         columns = self.__matrix2Polynomials(input)
         self._debug_stream("input as field elements: %s" % (columns),
                            operation=operation)
-        self._debug_stream("s'[i] = %s * s[i]" % self.__cx, operation=operation)
+        self._debug_stream("s'[i] = %s * s[i]" % (self.__cx),
+                           operation=operation)
         for i, column in enumerate(columns):
             sx = self.__ring(column)
             self._debug_stream("column[%d] = %s -> %s" % (i, column, sx),
@@ -113,14 +111,14 @@ class MixColumns(_Logger):
         self._debug_stream("output: %s" % (printlist(output)),
                            operation=operation)
         return output
-    
+
     def __matrix2Polynomials(self, input):
         columns = []
         for c in range(self.__nColumns):
             column = []
             for r in range(self.__nRows):
                 column.append(self.__field(input[r][c]))
-            column.reverse() 
+            column.reverse()
             # s(0,c)*x^(r-1) + s(1,c)*x^(r-2) + ... + s(r,c)*x^(r-r)
             columns.append(self.__ring(column))
         return columns

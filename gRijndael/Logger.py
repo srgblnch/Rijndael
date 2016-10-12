@@ -106,7 +106,7 @@ class Logger(object):
 
     @property
     def compressedLogfile(self):
-        return self._file_compression == None
+        return self._file_compression is None
 
     @compressedLogfile.setter
     def compressedLogfile(self, value):

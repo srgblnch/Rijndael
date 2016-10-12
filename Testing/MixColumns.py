@@ -22,9 +22,11 @@ __copyright__ = "Copyright 2016 Sergi Blanch-Torne"
 __license__ = "GPLv3+"
 __status__ = "development"
 
-from GeneralizedRijndael import MixColumns
-from GeneralizedRijndael.Logger import levelFromMeaning
+
+from gRijndael import MixColumns
+from gRijndael.Logger import levelFromMeaning
 from optparse import OptionParser
+
 
 def test_standard(loglevel):
     stateMatrix = [[0x00, 0x01, 0x02, 0x03],
@@ -36,13 +38,14 @@ def test_standard(loglevel):
     print("Testing %s, details:\nEach value in a cell will be interpreted "
           "as a polynomial representation of a binary field extension "
           "modulo %s, and the columns as polynomial in a ring modulo %s."
-          % (mixcolumns, mixcolumns.SubfieldModulo, 
+          % (mixcolumns, mixcolumns.SubfieldModulo,
              mixcolumns.PolynomialRingModulo))
     stateConverted = mixcolumns.do(stateMatrix)
     if mixcolumns.invert(stateConverted) == stateMatrix:
         return True
     print("ALERT:\n\t%s\n!=\n\t%s" % (stateMatrix, stateConverted))
     return False
+
 
 def main():
     parser = OptionParser()

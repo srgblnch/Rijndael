@@ -22,9 +22,11 @@ __copyright__ = "Copyright 2016 Sergi Blanch-Torne"
 __license__ = "GPLv3+"
 __status__ = "development"
 
-from GeneralizedRijndael import ShiftRows
-from GeneralizedRijndael.Logger import levelFromMeaning
+
+from gRijndael import ShiftRows
+from gRijndael.Logger import levelFromMeaning
 from optparse import OptionParser
+
 
 def test_standard(loglevel):
     stateMatrix = [[0x00, 0x01, 0x02, 0x03],
@@ -39,6 +41,7 @@ def test_standard(loglevel):
         return True
     print("ALERT:\n\t%s\n!=\n\t%s" % (stateMatrix, stateConverted))
     return False
+
 
 def main():
     parser = OptionParser()

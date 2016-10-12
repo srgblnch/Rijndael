@@ -24,10 +24,10 @@ __status__ = "development"
 
 
 from setuptools import setup, find_packages
-from GeneralizedRijndael import version
+from gRijndael import version
 
 
-setup(name='GeneralizedRijndael',
+setup(name='gRijndael',
       license="GPLv3+",
       description="Python prove of concept to generalize the rijndael's "
                   "parameters.",
@@ -68,7 +68,7 @@ setup(name='GeneralizedRijndael',
 ##############################################################################
 # import sys
 # import warnings
-# from GeneralizedRijndael.version import *
+# from gRijndael.version import *
 # try:
 #     from Cython.Distutils import build_ext
 #     from setuptools import setup, Extension
@@ -82,7 +82,7 @@ setup(name='GeneralizedRijndael',
 # #FIXME: This shall produce only one .so with all the modules inside!
 # #       But is generating one .so for each of the .py files
 # extensions = [
-# Extension('GeneralizedRijndael',
+# Extension('gRijndael',
 #           define_macros = [('MAJOR_VERSION',
 #                             '%d'%MAJOR_VERSION),
 #                            ('MINOR_VERSION',
@@ -92,34 +92,34 @@ setup(name='GeneralizedRijndael',
 #                            ('REVISION_VERSION',
 #                             '%d'%REVISION_VERSION)
 #                            ],
-#           sources = [#'GeneralizedRijndael/*.py',
-# #                    'GeneralizedRijndael/Logger.py',
-# #                    'GeneralizedRijndael/ThirdLevel.py',
-# #                    'GeneralizedRijndael/SBox.py',
-# #                    'GeneralizedRijndael/RoundConstant.py',
-# #                    'GeneralizedRijndael/KeyExpansion.py',
-# #                    'GeneralizedRijndael/SubBytes.py',
-# #                    'GeneralizedRijndael/ShiftRows.py',
-# #                    'GeneralizedRijndael/MixColumns.py',
-# #                    'GeneralizedRijndael/AddRoundKey.py',
-#                     'GeneralizedRijndael/GeneralizedRijndael.py',
+#           sources = [#'gRijndael/*.py',
+# #                    'gRijndael/Logger.py',
+# #                    'gRijndael/ThirdLevel.py',
+# #                    'gRijndael/SBox.py',
+# #                    'gRijndael/RoundConstant.py',
+# #                    'gRijndael/KeyExpansion.py',
+# #                    'gRijndael/SubBytes.py',
+# #                    'gRijndael/ShiftRows.py',
+# #                    'gRijndael/MixColumns.py',
+# #                    'gRijndael/AddRoundKey.py',
+#                     'gRijndael/gRijndael.py',
 #                     ],
 #           language = "c++"),
-# Extension('Logger',['GeneralizedRijndael/Logger.py'],language='c++'),
+# Extension('Logger',['gRijndael/Logger.py'],language='c++'),
 # Extension('KeyExpansion',
-#           ['GeneralizedRijndael/KeyExpansion.py'],language='c++'),
-# Extension('SubBytes',['GeneralizedRijndael/SubBytes.py'],language='c++'),
-# Extension('ShiftRows',['GeneralizedRijndael/ShiftRows.py'],language='c++'),
-# Extension('MixColumns',['GeneralizedRijndael/MixColumns.py'],language='c++'),
-# Extension('AddRoundKey',['GeneralizedRijndael/AddRoundKey.py'],
+#           ['gRijndael/KeyExpansion.py'],language='c++'),
+# Extension('SubBytes',['gRijndael/SubBytes.py'],language='c++'),
+# Extension('ShiftRows',['gRijndael/ShiftRows.py'],language='c++'),
+# Extension('MixColumns',['gRijndael/MixColumns.py'],language='c++'),
+# Extension('AddRoundKey',['gRijndael/AddRoundKey.py'],
 #           language='c++'),
-# Extension('SBox',['GeneralizedRijndael/SBox.py'],language='c++'),
-# Extension('RoundConstant',['GeneralizedRijndael/RoundConstant.py'],
+# Extension('SBox',['gRijndael/SBox.py'],language='c++'),
+# Extension('RoundConstant',['gRijndael/RoundConstant.py'],
 #           language='c++'),
-# Extension('Polynomials',['GeneralizedRijndael/Polynomials.py'],
+# Extension('Polynomials',['gRijndael/Polynomials.py'],
 #           language='c++'),
-# Extension('ThirdLevel',['GeneralizedRijndael/ThirdLevel.py'],language='c++'),
-# Extension('version',['GeneralizedRijndael/version.py'],language='c++'),
+# Extension('ThirdLevel',['gRijndael/ThirdLevel.py'],language='c++'),
+# Extension('version',['gRijndael/version.py'],language='c++'),
 # ]
 #
 # shortDescription = "Generalization of the rijndael for "\
@@ -141,7 +141,7 @@ setup(name='GeneralizedRijndael',
 # current code stage.
 # '''
 #
-# configuration = {'name':'GeneralizedRijndael',
+# configuration = {'name':'gRijndael',
 #                  'version':'%d.%d.%d-%d'
 #                             %(MAJOR_VERSION,MINOR_VERSION,
 #                               BUILD_VERSION,REVISION_VERSION),

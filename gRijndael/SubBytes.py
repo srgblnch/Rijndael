@@ -78,6 +78,7 @@ class SubBytes(_Logger):
 
     def invert(self, input):
         output = self.__sbox.transform(input, invert=True)
-        self._debug_stream("%s -> %s" % (input, output), operation="invSubBytes")
+        self._debug_stream("%s -> %s" % (input, output),
+                           operation="invSubBytes")
         return output
         # It's the same but different sbox

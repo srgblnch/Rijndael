@@ -38,11 +38,11 @@ from ThirdLevel import State as _State
 from version import *
 
 
-class GeneralizedRijndael(_Logger):
+class gRijndael(_Logger):
     '''
         Object that, once created and initialised (parameters and secret key)
         can receive the request to cipher some input or decipher it.
-        
+
         Parameters:
         - key: <mandatory> integer that will be used as a key. It cannot be
                bigger than the key size that will be build.
@@ -51,7 +51,7 @@ class GeneralizedRijndael(_Logger):
         - nColumns: <default:4>
         - wordSize: <default:8>
         - kKeycolumns: <default:nColumns>
-        
+
         Extra parameters:
         - sboxCalc: <default:True>
         - loglevel:: <default:info>
@@ -60,7 +60,7 @@ class GeneralizedRijndael(_Logger):
                  nRounds=None, nRows=4, nColumns=4, wordSize=8,  # stardard aes
                  nKeyColumns=None, sboxCalc=True,
                  loglevel=_Logger._info, *args, **kwargs):
-        super(GeneralizedRijndael, self).__init__(*args, **kwargs)
+        super(gRijndael, self).__init__(*args, **kwargs)
         # Num of encryption rounds {10,12,14}
         if nRounds is None:
             if nKeyColumns is not None:
@@ -85,7 +85,7 @@ class GeneralizedRijndael(_Logger):
                                  "max(N_k,N_c)+6 = max(%d,%d)+6 = %d"
                                  % (self.__nKeyColumns, self.__nColumns,
                                     minRounds))
-        self._debug_stream("Initialising GeneralizedRijndael "
+        self._debug_stream("Initialising gRijndael "
                            "(%d,%d,%d,%d,%d): block=%dbits key=%dbits"
                            % (self.__nRounds, self.__nRows, self.__nColumns,
                               self.__wordSize, self.__nKeyColumns,
@@ -322,14 +322,14 @@ def main():
         print("\n\tError: It was not possible to understand the input key "
               "'%s' as a number.\n" % (options.key))
         sys.exit(-1)
-    gr = GeneralizedRijndael(key=key,
-                             nRounds=options.rounds,
-                             nRows=options.rows,
-                             nColumns=options.columns,
-                             wordSize=options.wordsize,
-                             nKeyColumns=options.kolumns,
-                             sboxCalc=options.calculate_sbox,
-                             loglevel=_levelFromMeaning(options.log_level))
+    gr = gRijndael(key=key,
+                   nRounds=options.rounds,
+                   nRows=options.rows,
+                   nColumns=options.columns,
+                   wordSize=options.wordsize,
+                   nKeyColumns=options.kolumns,
+                   sboxCalc=options.calculate_sbox,
+                   loglevel=_levelFromMeaning(options.log_level))
     if not options.only_keyexpansion:
         plainText = understandInteger(options.plainText)
         if plainText is None:

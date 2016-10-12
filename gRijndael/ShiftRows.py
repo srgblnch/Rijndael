@@ -37,6 +37,7 @@ class ShiftRows(_Logger):
 
     def __repr__(self):
         return "%s" % (self.__str__())
+
     def do(self, input):
         '''One of the round transformation methods.
            cyclical left shift of the row 'i' of the state matrix by 'i'
