@@ -41,7 +41,7 @@ class Word:
            Input: <integer> superWord
            Output: <integer array> wordsArray
            descent methods: []
-           auxiliar methods: []
+           auxiliary methods: []
         '''
         wordsArray = []
         mask = int('0b'+'1'*self.__wordSize, 2)
@@ -55,7 +55,7 @@ class Word:
            Input: <integer array> wordsArray
            Output: <integer> superWord
            descent methods: []
-           auxiliar methods: []
+           auxiliary methods: []
         '''
         superWord = 0
         for j in range(self.__nRows):
@@ -68,7 +68,7 @@ class Long:
         self.__wordSize = wordSize
 
     def toArray(self, input, length):
-        '''Auxilliar method to unpack an integer to a set of smaller integers
+        '''Auxiliary method to unpack an integer to a set of smaller integers
            in an array. The size of each of the integers in the set have the
            wordSize
            Input: <integer>
@@ -88,7 +88,7 @@ class Long:
         return o
 
     def fromArray(self, input, length):
-        '''Auxiliar method to pack an array of integers (with #wordSize bits)
+        '''Auxiliary method to pack an array of integers (with #wordSize bits)
            onto one integer.
            Input: <integer array>
            Output: <integer>

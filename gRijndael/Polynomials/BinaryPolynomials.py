@@ -736,7 +736,7 @@ def getBinaryExtensionRingModulo(wordSize):
     return BinaryExtensionRingModulo
 
 
-def getMu(wordSize, official=False):
+def getMu(wordSize, official=True):
     '''Invertible element in the binary polynomial ring used in the second
        transformation 'f' of the SBoxes.
        b(z) = mu(z) \cdot a(z) + nu(z)
@@ -764,7 +764,7 @@ def getMu(wordSize, official=False):
     return Mu
 
 
-def getNu(wordSize, official=False):
+def getNu(wordSize, official=True):
     '''Element of the binary polynomial ring used in the second transformation
        'f' of the SBoxes:
        b(z) = mu(z) \cdot a(z) + nu(z)

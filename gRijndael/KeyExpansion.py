@@ -45,7 +45,10 @@ class KeyExpansion(_Logger):
         self.__nRows = nRows
         self.__nColumns = nColumns
         self.__wordSize = wordSize
-        self.__nKeyWords = nKeyWords
+        if nKeyWords:
+            self.__nKeyWords = nKeyWords
+        else:
+            self.__nKeyWords = nColumns
         self.__sbox = _SBox(wordSize, sboxCalc, loglevel=loglevel)
         # self.__sbox = _SBox(wordSize, sboxCalc, loglevel=loglevel,
         #                     useCalc=True)
