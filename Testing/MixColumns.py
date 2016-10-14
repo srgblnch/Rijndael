@@ -28,7 +28,7 @@ from gRijndael.Logger import levelFromMeaning
 from optparse import OptionParser
 
 
-def test_standard(loglevel):
+def test_base(loglevel):
     stateMatrix = [[0x00, 0x01, 0x02, 0x03],
                    [0x10, 0x11, 0x12, 0x13],
                    [0x20, 0x21, 0x22, 0x23],
@@ -47,15 +47,35 @@ def test_standard(loglevel):
     return False
 
 
+def test_aes128_round1(loglevel):
+    stateMatrix = [[99, 9, 205, 186],
+                   [83, 96, 112, 202],
+                   [224, 225, 183, 208],
+                   [140, 4, 81, 231]]  # 0x6353e08c0960e104cd70b751bacad0e7
+    stateMixed = [[95, 87, 247, 29],
+                  [114, 245, 190, 185],
+                  [100, 188, 59, 249],
+                  [21, 146, 41, 26]]  # 0x5f72641557f5bc92f7be3b291db9f91a
+    mixcolumns = MixColumns(4, 4, 8, oldStyle=True)
+    mixcolumns.logLevel = levelFromMeaning(loglevel)
+    print("Testing AES128 round1")
+    stateConverted = mixcolumns.do(stateMatrix)
+    if stateMixed == stateConverted:
+        return True
+    print("ALERT:\n\t%s\n!=\n\t%s" % (stateMixed, stateConverted))
+    return False
+
 def main():
     parser = OptionParser()
     parser.add_option('', "--log-level", default="info",
                       help="Set log level: error, warning, info, debug, trace")
     (options, args) = parser.parse_args()
     import sys
-    if test_standard(options.log_level):
-        sys.exit(0)
-    sys.exit(-1)
+    for test in [#test_base,
+                 test_aes128_round1]:
+        if not test(options.log_level):
+            sys.exit(-1)
+    sys.exit(0)
 
 if __name__ == "__main__":
     main()

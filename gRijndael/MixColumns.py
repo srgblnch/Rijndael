@@ -41,11 +41,23 @@ class MixColumns(_Logger):
         - nColumns
         - wordSize
     """
-    def __init__(self, nRows, nColumns, wordSize, *args, **kwargs):
+    def __init__(self, nRows, nColumns, wordSize, oldStyle=True, *args, **kwargs):
         super(MixColumns, self).__init__(*args, **kwargs)
         self.__nRows = nRows
         self.__nColumns = nColumns
         self.__wordSize = wordSize
+        if oldStyle and self.__nRows == 4 and self.__wordSize == 8:
+            self._warning_stream("Not using the polynomial maths")
+            # FIXME: this if shall be removed ---
+            polynomialModule = _getBinaryExtensionFieldModulo(self.__wordSize)
+            self.__field = _BinaryExtensionModulo(polynomialModule)
+            self.__c = [0x3, 0x1, 0x1, 0x2]
+            self.__d = [0xB, 0xD, 0x9, 0xE]
+            self.__ring = _PolynomialRingModulo("x^4+1", self.__field)
+            self.__cx = self.__ring([self.__field(i) for i in self.__c])
+            self.__dx = self.__ring([self.__field(i) for i in self.__d])
+            self.__polynomialRing = _PolynomialRing(nRows, nColumns, wordSize)
+            self.oldStyle = True
         if (2 <= self.__nRows < 8) and (2 <= self.__wordSize < 16):
             self.__cx, self.__ring, self.__field = \
                 _getPolynomialRingWithBinaryCoefficients(self.__nRows,
@@ -82,9 +94,15 @@ class MixColumns(_Logger):
         return hex(self.__dx)
 
     def do(self, input):
+        if self.oldStyle:
+            self._warning_stream("Not using the polynomial maths")
+            return self.__polynomialRing.product(self.__c, input)
         return self.__product(input, self.__cx, operation="mixColumns")
 
     def invert(self, input):
+        if self.oldStyle:
+            self._warning_stream("Not using the polynomial maths")
+            return self.__polynomialRing.product(self.__d, input)
         return self.__product(input, self.__dx, operation="InvMixColumns")
 
     def __product(self, input, polynomial, operation):
@@ -95,16 +113,16 @@ class MixColumns(_Logger):
         columns = self.__matrix2Polynomials(input)
         self._debug_stream("input as field elements: %s" % (columns),
                            operation=operation)
-        self._debug_stream("s'[i] = %s * s[i]" % (self.__cx),
+        self._debug_stream("s'[i] = %s * s[i]" % (polynomial),
                            operation=operation)
         for i, column in enumerate(columns):
-            sx = self.__ring(column)
-            self._debug_stream("column[%d] = %s -> %s" % (i, column, sx),
+            #sx = self.__ring(column)
+            #self._debug_stream("column[%d] = %s -> %s" % (i, column, sx),
+            #                   operation=operation)
+            sx = polynomial * column
+            self._debug_stream("s[%d] = c(x) * %s = %s" % (i, column, sx),
                                operation=operation)
-            sx_ = polynomial * sx
-            self._debug_stream("s[%d] = c(x) * %s = %s" % (i, sx, sx_),
-                               operation=operation)
-            columns[i] = sx_
+            columns[i] = sx
         self._debug_stream("output as field elements: %s" % (columns),
                            operation=operation)
         output = self._polynomials2matrix(columns)
