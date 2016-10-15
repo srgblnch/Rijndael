@@ -41,28 +41,35 @@ class MixColumns(_Logger):
         - nColumns
         - wordSize
     """
-    def __init__(self, nRows, nColumns, wordSize, oldStyle=True, *args, **kwargs):
+    def __init__(self, nRows, nColumns, wordSize, oldStyle=True,
+                 *args, **kwargs):
         super(MixColumns, self).__init__(*args, **kwargs)
         self.__nRows = nRows
         self.__nColumns = nColumns
         self.__wordSize = wordSize
-        if oldStyle and self.__nRows == 4 and self.__wordSize == 8:
-            self._warning_stream("Not using the polynomial maths")
-            # FIXME: this if shall be removed ---
-            polynomialModule = _getBinaryExtensionFieldModulo(self.__wordSize)
-            self.__field = _BinaryExtensionModulo(polynomialModule)
-            self.__c = [0x3, 0x1, 0x1, 0x2]
-            self.__d = [0xB, 0xD, 0x9, 0xE]
-            self.__ring = _PolynomialRingModulo("x^4+1", self.__field)
-            self.__cx = self.__ring([self.__field(i) for i in self.__c])
-            self.__dx = self.__ring([self.__field(i) for i in self.__d])
-            self.__polynomialRing = _PolynomialRing(nRows, nColumns, wordSize)
-            self.oldStyle = True
         if (2 <= self.__nRows < 8) and (2 <= self.__wordSize < 16):
             self.__cx, self.__ring, self.__field = \
-                _getPolynomialRingWithBinaryCoefficients(self.__nRows,
-                                                         self.__wordSize)
+                    _getPolynomialRingWithBinaryCoefficients(self.__nRows,
+                                                             self.__wordSize)
             self.__dx = ~self.__cx
+            if oldStyle:
+                c = self.__cx.coefficients
+                c.reverse()
+                self.__c = []
+                for p in c: self.__c.append(p.coefficients)
+                self._info_stream("Taken c(x) = %s -> %s = %s"
+                                  % (self.__cx, self.__c,
+                                     ["%s"%hex(p) for p in self.__c]))
+                d = self.__dx.coefficients
+                d.reverse()
+                self.__d = []
+                for p in d: self.__d.append(p.coefficients)
+                self._info_stream("Taken d(x) = %s -> %s = %s"
+                                  % (self.__dx, self.__d,
+                                     ["%s"%hex(p) for p in self.__d]))
+                self.__polynomialRing = _PolynomialRing(nRows, nColumns,
+                                                        wordSize)
+                self.oldStyle = True
         else:
             raise Exception("(__init__)", "There is no MixColumns for the pair"
                             " %d degree ring (number of rows) "

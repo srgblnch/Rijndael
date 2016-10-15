@@ -878,7 +878,7 @@ class PolynomialRing(_Logger):
         self._field = BinaryExtensionModulo(field_modulo)
 
     def product(self, ax, sx):
-        '''Given two polynomials over F_{2^8} multiplie them modulo x^{4}+1
+        '''Given two polynomials over F_{2^8} multiply them modulo x^{4}+1
            s'(x) = a(x) \otimes s(x)
            [s'_0,c]   [a_3 a_0 a_1 a_2] [s_0,c]
            [s'_1,c] = [a_2 a_3 a_0 a_1] [s_1,c]
