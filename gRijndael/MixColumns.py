@@ -49,24 +49,26 @@ class MixColumns(_Logger):
         self.__wordSize = wordSize
         if (2 <= self.__nRows < 8) and (2 <= self.__wordSize < 16):
             self.__cx, self.__ring, self.__field = \
-                    _getPolynomialRingWithBinaryCoefficients(self.__nRows,
-                                                             self.__wordSize)
+                _getPolynomialRingWithBinaryCoefficients(self.__nRows,
+                                                         self.__wordSize)
             self.__dx = ~self.__cx
             if oldStyle:
                 c = self.__cx.coefficients
                 c.reverse()
                 self.__c = []
-                for p in c: self.__c.append(p.coefficients)
+                for p in c:
+                    self.__c.append(p.coefficients)
                 self._info_stream("Taken c(x) = %s -> %s = %s"
                                   % (self.__cx, self.__c,
-                                     ["%s"%hex(p) for p in self.__c]))
+                                     ["%s" % hex(p) for p in self.__c]))
                 d = self.__dx.coefficients
                 d.reverse()
                 self.__d = []
-                for p in d: self.__d.append(p.coefficients)
+                for p in d:
+                    self.__d.append(p.coefficients)
                 self._info_stream("Taken d(x) = %s -> %s = %s"
                                   % (self.__dx, self.__d,
-                                     ["%s"%hex(p) for p in self.__d]))
+                                     ["%s" % hex(p) for p in self.__d]))
                 self.__polynomialRing = _PolynomialRing(nRows, nColumns,
                                                         wordSize)
                 self.oldStyle = True
@@ -123,9 +125,6 @@ class MixColumns(_Logger):
         self._debug_stream("s'[i] = %s * s[i]" % (polynomial),
                            operation=operation)
         for i, column in enumerate(columns):
-            #sx = self.__ring(column)
-            #self._debug_stream("column[%d] = %s -> %s" % (i, column, sx),
-            #                   operation=operation)
             sx = polynomial * column
             self._debug_stream("s[%d] = c(x) * %s = %s" % (i, column, sx),
                                operation=operation)

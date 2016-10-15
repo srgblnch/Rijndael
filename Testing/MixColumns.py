@@ -65,13 +65,14 @@ def test_aes128_round1(loglevel):
     print("ALERT:\n\t%s\n!=\n\t%s" % (stateMixed, stateConverted))
     return False
 
+
 def main():
     parser = OptionParser()
     parser.add_option('', "--log-level", default="info",
                       help="Set log level: error, warning, info, debug, trace")
     (options, args) = parser.parse_args()
     import sys
-    for test in [#test_base,
+    for test in [test_base,
                  test_aes128_round1]:
         if not test(options.log_level):
             sys.exit(-1)

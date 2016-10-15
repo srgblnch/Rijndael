@@ -52,17 +52,22 @@ from gRijndael.Logger import _TRACE
 def int2matrix(argin):
     return _State(4, 4).fromArray(_Long(8).toArray(argin, 4*4*8))
 
+
 def matrix2int(argin):
     return _Long(8).fromArray(_State(4, 4).toArray(argin), 4*4*8)
+
 
 def int2key(argin):
     return _Long(8).toArray(argin, 4*4*8)
 
+
 def key2int(argin):
     return _Long(8).fromArray(argin, 4*4*8)
 
+
 def int2subkey(argin):
     return _Long(4*8).toArray(argin, 4*4*8)
+
 
 def subkey2int(argin):
     return _Long(4*8).fromArray(argin, 4*4*8)
@@ -121,7 +126,7 @@ class AES128:
         # round 0 ---
         self._round = 0
         self.addRoundKey()
-        for i in range(1,10):
+        for i in range(1, 10):
             # ith round ---
             self._round = i
             self.subBytes()
@@ -139,6 +144,7 @@ class AES128:
     #     rijndaelObj = gRijndael(aes128['key'])
     #     if rijndaelObj.cipher(aes128['input']) != aes128['output']:
     #         raise AssertionError("Failed AES128: output doesn't correspond")
+
 
 def main():
     try:
