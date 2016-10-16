@@ -41,7 +41,7 @@ class MixColumns(_Logger):
         - nColumns
         - wordSize
     """
-    def __init__(self, nRows, nColumns, wordSize, oldStyle=True,
+    def __init__(self, nRows, nColumns, wordSize,
                  *args, **kwargs):
         super(MixColumns, self).__init__(*args, **kwargs)
         self.__nRows = nRows
@@ -52,26 +52,6 @@ class MixColumns(_Logger):
                 _getPolynomialRingWithBinaryCoefficients(self.__nRows,
                                                          self.__wordSize)
             self.__dx = ~self.__cx
-            if oldStyle:
-                c = self.__cx.coefficients
-                c.reverse()
-                self.__c = []
-                for p in c:
-                    self.__c.append(p.coefficients)
-                self._info_stream("Taken c(x) = %s -> %s = %s"
-                                  % (self.__cx, self.__c,
-                                     ["%s" % hex(p) for p in self.__c]))
-                d = self.__dx.coefficients
-                d.reverse()
-                self.__d = []
-                for p in d:
-                    self.__d.append(p.coefficients)
-                self._info_stream("Taken d(x) = %s -> %s = %s"
-                                  % (self.__dx, self.__d,
-                                     ["%s" % hex(p) for p in self.__d]))
-                self.__polynomialRing = _PolynomialRing(nRows, nColumns,
-                                                        wordSize)
-                self.oldStyle = True
         else:
             raise Exception("(__init__)", "There is no MixColumns for the pair"
                             " %d degree ring (number of rows) "
@@ -103,15 +83,9 @@ class MixColumns(_Logger):
         return hex(self.__dx)
 
     def do(self, input):
-        if self.oldStyle:
-            self._warning_stream("Not using the polynomial maths")
-            return self.__polynomialRing.product(self.__c, input)
         return self.__product(input, self.__cx, operation="mixColumns")
 
     def invert(self, input):
-        if self.oldStyle:
-            self._warning_stream("Not using the polynomial maths")
-            return self.__polynomialRing.product(self.__d, input)
         return self.__product(input, self.__dx, operation="InvMixColumns")
 
     def __product(self, input, polynomial, operation):
@@ -142,8 +116,7 @@ class MixColumns(_Logger):
             column = []
             for r in range(self.__nRows):
                 column.append(self.__field(input[r][c]))
-            column.reverse()
-            # s(0,c)*x^(r-1) + s(1,c)*x^(r-2) + ... + s(r,c)*x^(r-r)
+            # s(r-1,c)*x^(r-1) + s(r-1,c)*x^(r-2) + ... + s(0,c)*x^(r-r)
             columns.append(self.__ring(column))
         return columns
 
@@ -158,7 +131,6 @@ class MixColumns(_Logger):
             column = column.coefficients
             while len(column) < self.__nRows:
                 column.append(self.__field(0))
-            column.reverse()
             for r, cell in enumerate(column):
                 matrix[r][c] = cell.coefficients
         return matrix

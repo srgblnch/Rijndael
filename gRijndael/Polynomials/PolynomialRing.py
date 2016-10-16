@@ -520,8 +520,8 @@ def PolynomialRingModulo(modulo, coefficients_class, variable='x',
                                                    loglevel=self.logLevel)
 
         def __addition__(self, addend1, addend2):
-            size = max(self.modulodegree, len(remainded))
-            size = max(size, len(substractor))
+            size = max(self.modulodegree, len(addend1))
+            size = max(size, len(addend2))
             result = [self._coefficientClass(0)]*size
             addend1 = addend1 +\
                 [self._coefficientClass(0)]*(size-len(addend1))
@@ -864,50 +864,51 @@ def PolynomialRingModulo(modulo, coefficients_class, variable='x',
     return PolynomialRingModuloConstructor
 
 
-class PolynomialRing(_Logger):
-    '''This represents a polynomial over (GF(2^n))^l, with a modulo polynomial
-       composed (decomposable in roots) this becomes a algebraic ring.
-       The coefficients on this polynomial ring are elements of a polynomial
-       field.
-    '''
-    def __init__(self, nRows, nColumns, wordSize, *args, **kwargs):
-        super(PolynomialRing, self).__init__(*args, **kwargs)
-        self.__nRows = nRows
-        self.__nColumns = nColumns
-        field_modulo = getBinaryExtensionFieldModulo(wordSize)
-        self._field = BinaryExtensionModulo(field_modulo)
-
-    def product(self, ax, sx):
-        '''Given two polynomials over F_{2^8} multiply them modulo x^{4}+1
-           s'(x) = a(x) \otimes s(x)
-           [s'_0,c]   [a_3 a_0 a_1 a_2] [s_0,c]
-           [s'_1,c] = [a_2 a_3 a_0 a_1] [s_1,c]
-           [s'_2,c]   [a_1 a_2 a_3 a_0] [s_2,c]
-           [s'_3,c]   [a_0 a_1 a_2 a_3] [s_3,c]
-           s'_0,c = (a_3 \bullet s_0,c) \oplus (a_0 \bullet s_1,c) \oplus
-                    (a_1 \bullet s_2,c) \oplus (a_2 \bullet s_3,c)
-           s'_1,c = (a_2 \bullet s_0,c) \oplus (a_3 \bullet s_1,c) \oplus
-                    (a_0 \bullet s_2,c) \oplus (a_1 \bullet s_3,c)
-           s'_2,c = (a_1 \bullet s_0,c) \oplus (a_2 \bullet s_1,c) \oplus
-                    (a_3 \bullet s_2,c) \oplus (a_0 \bullet s_3,c)
-           s'_3,c = (a_0 \bullet s_0,c) \oplus (a_1 \bullet s_1,c) \oplus
-                    (a_2 \bullet s_2,c) \oplus (a_3 \bullet s_3,c)
-           Where \bullet is the finite field (F_{2^8}) multiplication,
-           and \oplus an xor operation
-           Input:
-           Output:
-        '''
-        res = _deepcopy(sx)  # FIXME: #[[0]*self.__nRows]*self.__nColumns ----
-        for c in range(self.__nColumns):
-            shifted_ax = _shift(ax, self.__nRows-1)
-            for r in range(self.__nRows):
-                res[r][c] = 0
-                for rbis in range(self.__nRows):
-                    a = self._field(shifted_ax[rbis])
-                    b = self._field(sx[rbis][c])
-                    res[r][c] ^= (a*b)._coefficients
-                shifted_ax = _shift(shifted_ax, -1)
-        return res
+# class PolynomialRing(_Logger):
+#     '''This represents a polynomial over (GF(2^n))^l, with a modulo
+#        polynomial composed (decomposable in roots) this becomes a algebraic
+#        ring. The coefficients on this polynomial ring are elements of a
+#        polynomial field.
+#     '''
+#     def __init__(self, nRows, nColumns, wordSize, *args, **kwargs):
+#         super(PolynomialRing, self).__init__(*args, **kwargs)
+#         self.__nRows = nRows
+#         self.__nColumns = nColumns
+#         field_modulo = getBinaryExtensionFieldModulo(wordSize)
+#         self._field = BinaryExtensionModulo(field_modulo)
+# #
+#     def product(self, ax, sx):
+#         '''Given two polynomials over F_{2^8} multiply them modulo x^{4}+1
+#            s'(x) = a(x) \otimes s(x)
+#            [s'_0,c]   [a_3 a_0 a_1 a_2] [s_0,c]
+#            [s'_1,c] = [a_2 a_3 a_0 a_1] [s_1,c]
+#            [s'_2,c]   [a_1 a_2 a_3 a_0] [s_2,c]
+#            [s'_3,c]   [a_0 a_1 a_2 a_3] [s_3,c]
+#            s'_0,c = (a_3 \bullet s_0,c) \oplus (a_0 \bullet s_1,c) \oplus
+#                     (a_1 \bullet s_2,c) \oplus (a_2 \bullet s_3,c)
+#            s'_1,c = (a_2 \bullet s_0,c) \oplus (a_3 \bullet s_1,c) \oplus
+#                     (a_0 \bullet s_2,c) \oplus (a_1 \bullet s_3,c)
+#            s'_2,c = (a_1 \bullet s_0,c) \oplus (a_2 \bullet s_1,c) \oplus
+#                     (a_3 \bullet s_2,c) \oplus (a_0 \bullet s_3,c)
+#            s'_3,c = (a_0 \bullet s_0,c) \oplus (a_1 \bullet s_1,c) \oplus
+#                     (a_2 \bullet s_2,c) \oplus (a_3 \bullet s_3,c)
+#            Where \bullet is the finite field (F_{2^8}) multiplication,
+#            and \oplus an xor operation
+#            Input:
+#            Output:
+#         '''
+#         res = _deepcopy(sx)  # FIXME: [[0]*self.__nRows]*self.__nColumns ----
+#         self._debug_stream("PolynomialRing.product(%s,%s)" % (ax, sx))
+#         for c in range(self.__nColumns):
+#             shifted_ax = _shift(ax, self.__nRows-1)
+#             for r in range(self.__nRows):
+#                 res[r][c] = 0
+#                 for rbis in range(self.__nRows):
+#                     a = self._field(shifted_ax[rbis])
+#                     b = self._field(sx[rbis][c])
+#                     res[r][c] ^= (a*b)._coefficients
+#                 shifted_ax = _shift(shifted_ax, -1)
+#         return res
 
 
 def getPolynomialRingWithBinaryCoefficients(ringDegree, coefficientsDegree):
@@ -950,7 +951,8 @@ def getPolynomialRingWithBinaryCoefficients(ringDegree, coefficientsDegree):
                5: '0x13x^3+0x9x^2+0xBx+0x9',
                6: '0xDx^3+0x2Cx^2+0x16x+0x34',
                7: '0x63x^3+0x58x^2+0x72x+0x43',
-               8: '0x3x^3+x^2+x+0x2',  # (z+1)*x^3+x^2+x+(z)',  # the Rijndael's original
+               # the Rijndael's original
+               8: '0x3x^3+x^2+x+0x2',  # (z+1)*x^3+x^2+x+(z)',
                # 8: '0xCAx^3+0xB8x^2+0xC9x+0x39',
                9: '0xD5x^3+0x17x^2+0x133x+0x145',
                10: '0x305x^3+0x21Bx^2+0x2D9x+0x1A3',

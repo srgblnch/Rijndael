@@ -33,8 +33,7 @@ def test_base(loglevel):
                    [0x10, 0x11, 0x12, 0x13],
                    [0x20, 0x21, 0x22, 0x23],
                    [0x30, 0x31, 0x32, 0x33]]
-    mixcolumns = MixColumns(4, 4, 8)
-    mixcolumns.logLevel = levelFromMeaning(loglevel)
+    mixcolumns = MixColumns(4, 4, 8, loglevel=levelFromMeaning(loglevel))
     print("Testing %s, details:\nEach value in a cell will be interpreted "
           "as a polynomial representation of a binary field extension "
           "modulo %s, and the columns as polynomial in a ring modulo %s."
@@ -56,7 +55,7 @@ def test_aes128_round1(loglevel):
                   [114, 245, 190, 185],
                   [100, 188, 59, 249],
                   [21, 146, 41, 26]]  # 0x5f72641557f5bc92f7be3b291db9f91a
-    mixcolumns = MixColumns(4, 4, 8, oldStyle=True)
+    mixcolumns = MixColumns(4, 4, 8)
     mixcolumns.logLevel = levelFromMeaning(loglevel)
     print("Testing AES128 round1")
     stateConverted = mixcolumns.do(stateMatrix)
