@@ -116,7 +116,7 @@ class MixColumns(_Logger):
             column = []
             for r in range(self.__nRows):
                 column.append(self.__field(input[r][c]))
-            # s(r-1,c)*x^(r-1) + s(r-1,c)*x^(r-2) + ... + s(0,c)*x^(r-r)
+            # s(r-1,c)*x^(r-1) + s(r-2,c)*x^(r-2) + ... + s(0,c)*x^(r-r)
             columns.append(self.__ring(column))
         return columns
 
