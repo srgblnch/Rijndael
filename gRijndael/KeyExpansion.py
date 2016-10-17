@@ -39,7 +39,7 @@ class KeyExpansion(_Logger):
                  nRounds=10, nRows=4, nColumns=4, wordSize=8,  # stardard aes
                  nKeyWords=None, sboxCalc=False,
                  loglevel=_Logger._info, *args, **kwargs):
-        super(KeyExpansion, self).__init__(*args, **kwargs)
+        super(KeyExpansion, self).__init__(loglevel, *args, **kwargs)
         self.__key = key
         self.__nRounds = nRounds
         self.__nRows = nRows
@@ -68,35 +68,36 @@ class KeyExpansion(_Logger):
             self.__keyExpanded[i] = \
                 _Word(self.__nRows, self.__wordSize).fromList(subkey)
         i = self.__nKeyWords
-        while (i < (self.__nColumns*(self.__nRounds+1))):
-            self._debug_stream("i", i, operation='keyExpansion()\t')
+        while (i < (self.__nKeyWords*(self.__nRounds+1))):
+            self._debug_stream("i = %d"% i, operation='keyExpansion()\t')
             temp = self.__keyExpanded[i-1]
-            self._debug_stream("temp", temp, operation='keyExpansion()\t')
+            self._debug_stream("\tw[i-1]", temp, operation='keyExpansion()\t')
             if (i % self.__nKeyWords == 0):
                 rotWord = self.__rotWord(temp)
-                self._debug_stream("rotWord",
+                self._debug_stream("\trotWord",
                                    rotWord, operation='keyExpansion()\t')
                 subWord = self.__subWord(rotWord)
-                self._debug_stream("subWord",
+                self._debug_stream("\tsubWord",
                                    subWord, operation='keyExpansion()\t')
                 rc = [_RC[i/self.__nKeyWords], 0, 0, 0]
                 Rcon = _Word(self.__nRows, self.__wordSize).fromList(rc)
-                subWord ^= Rcon
-                self._debug_stream("Rcon", Rcon, operation='keyExpansion()\t')
-                self._debug_stream("subWord with Rcon", subWord,
+                self._debug_stream("\tRcon", Rcon,
                                    operation='keyExpansion()\t')
-            elif i % self.__nKeyWords == 4:
-                subWord = self.__subWord(subWord)
-                self._debug_stream("subWord",
-                                   subWord, operation='keyExpansion()\t')
+                subWord ^= Rcon
+                self._debug_stream("\tsubWord XOR Rcon", subWord,
+                                   operation='keyExpansion()\t')
+#             elif i % self.__nKeyWords == 4:
+#                 subWord = self.__subWord(subWord)
+#                 self._debug_stream("\tsubWord",
+#                                    subWord, operation='keyExpansion()\t')
             else:
                 subWord = temp
-            self._debug_stream("w[i-Nk]",
+            self._debug_stream("\tw[i-Nk]",
                                self.__keyExpanded[i-self.__nKeyWords],
                                operation='keyExpansion()\t')
             expanded = self.__keyExpanded[i-self.__nKeyWords] ^ subWord
             self.__keyExpanded.append(expanded)
-            self._debug_stream("w[i]", self.__keyExpanded[i],
+            self._debug_stream("\tw[i]", self.__keyExpanded[i],
                                operation='keyExpansion()\t')
             i += 1
         self._debug_stream("keyExpanded", self.__keyExpanded,
@@ -108,8 +109,10 @@ class KeyExpansion(_Logger):
         return self.__keyExpanded
 
     def getSubKey(self, start, end):
+        subkey = self.__keyExpanded[start:end]
+        ashexlist = ["%s" % hex(each) for each in subkey]
         self._debug_stream("Requested part of the key expanded. k[%d:%d] = %s"
-                           % (start, end, self.__keyExpanded[start:end]))
+                           % (start, end, ashexlist))
         return self.__keyExpanded[start:end]
 
     def __rotWord(self, w):

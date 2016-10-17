@@ -27,11 +27,13 @@ __status__ = "development"
 """
 
 from FIPS197_AES128 import *
+from FIPS197_AES192 import *
+from FIPS197_AES256 import *
 
 
 def main():
     Errors = []
-    for testClass in [AES128]:
+    for testClass in [AES128, AES192, AES256]:
         try:
             test = testClass()
             test.test()
