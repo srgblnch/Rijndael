@@ -86,10 +86,10 @@ class KeyExpansion(_Logger):
                 subWord ^= Rcon
                 self._debug_stream("\tsubWord XOR Rcon", subWord,
                                    operation='keyExpansion()\t')
-#             elif i % self.__nKeyWords == 4:
-#                 subWord = self.__subWord(subWord)
-#                 self._debug_stream("\tsubWord",
-#                                    subWord, operation='keyExpansion()\t')
+            elif (self.__nKeyWords > 6 ) and (i % self.__nKeyWords == 4):
+                subWord = self.__subWord(subWord)
+                self._debug_stream("\tsubWord",
+                                   subWord, operation='keyExpansion()\t')
             else:
                 subWord = temp
             self._debug_stream("\tw[i-Nk]",
