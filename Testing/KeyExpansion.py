@@ -26,78 +26,72 @@ __status__ = "development"
 from gRijndael import KeyExpansion
 from gRijndael.Logger import levelFromMeaning
 from gRijndael.ThirdLevel import Long as _Long
+from gRijndaelTest import extractParams
 from optparse import OptionParser
 from _FIPS197_AES128 import *
 from _FIPS197_AES192 import *
 from _FIPS197_AES256 import *
 
 
-def subkey2int(argin):
-    return _Long(4*8).fromArray(argin, 4*4*8)
+def subkey2int(argin, nRows=4, nColumns=4, wordSize=8):
+    return _Long(nRows*wordSize).fromArray(argin, nRows*nColumns*wordSize)
 
 
-def int2subkey(argin):
-    return _Long(4*8).toArray(argin, 4*4*8)
+def int2subkey(argin, nRows=4, nColumns=4, wordSize=8):
+    return _Long(nRows*wordSize).toArray(argin, nRows*nColumns*wordSize)
 
 
-def hexlist(argin):
-    return ["%s" % hex(each) for each in argin]
+def hexlist(argin, nRows=4, wordSize=8):
+    format = "%%%ds" % (2+((nRows*wordSize)/4))
+    return [format % hex(each) for each in argin]
 
 
 def test_AES128(loglevel, rounds=10):
-    key = aes128['key']
-    keyExpansion = KeyExpansion(key, rounds, 4, 4, 8, loglevel=loglevel)
-    for round in aes128_round.keys():
-        subkey = keyExpansion.getSubKey(round*4, (round+1)*4)
-        if len(subkey) > 0:
-            if subkey2int(subkey) != aes128_round[round]['k_sch']:
-                print("For round %d\n\t%s\n\t%s"
-                      % (round, hex(subkey2int(subkey)),
-                         hex(aes128_round[round]['k_sch'])))
-                print("For round %d\n\t%s\n\t%s"
-                      % (round, hexlist(subkey),
-                         hexlist(int2subkey(aes128_round[round]['k_sch']))))
-                print("error!")
-                return False
-    return True
+    return test_AES(loglevel, rounds, aes128, aes128_round, 4)
 
 
 def test_AES192(loglevel, rounds=12):
-    key = aes192['key']
-    keyExpansion = KeyExpansion(key, rounds, 4, 4, 8, nKeyWords=6,
-                                loglevel=loglevel)
-    for round in aes192_round.keys():
-        subkey = keyExpansion.getSubKey(round*4, (round+1)*4)
-        if len(subkey) > 0:
-            if subkey2int(subkey) != aes192_round[round]['k_sch']:
-                print("For round %d\n\t%s\n\t%s"
-                      % (round, hex(subkey2int(subkey)),
-                         hex(aes192_round[round]['k_sch'])))
-                print("For round %d\n\t%s\n\t%s"
-                      % (round, hexlist(subkey),
-                         hexlist(int2subkey(aes192_round[round]['k_sch']))))
-                print("error!")
-                return False
-    return True
+    return test_AES(loglevel, rounds, aes192, aes192_round, 6)
 
 
 def test_AES256(loglevel, rounds=14):
-    key = aes256['key']
-    keyExpansion = KeyExpansion(key, rounds, 4, 4, 8, nKeyWords=8,
+    return test_AES(loglevel, rounds, aes256, aes256_round, 8)
+
+
+def test_AES(loglevel, rounds, aes, aes_round, Nk):
+    key = aes['key']
+    keyExpansion = KeyExpansion(key, rounds, 4, 4, 8, nKeyWords=Nk,
                                 loglevel=loglevel)
-    for round in aes256_round.keys():
+    for round in aes_round.keys():
         subkey = keyExpansion.getSubKey(round*4, (round+1)*4)
         if len(subkey) > 0:
-            if subkey2int(subkey) != aes256_round[round]['k_sch']:
+            if subkey2int(subkey) != aes_round[round]['k_sch']:
                 print("For round %d\n\t%s\n\t%s"
                       % (round, hex(subkey2int(subkey)),
-                         hex(aes256_round[round]['k_sch'])))
+                         hex(aes_round[round]['k_sch'])))
                 print("For round %d\n\t%s\n\t%s"
                       % (round, hexlist(subkey),
-                         hexlist(int2subkey(aes256_round[round]['k_sch']))))
+                         hexlist(int2subkey(aes_round[round]['k_sch']))))
                 print("error!")
                 return False
+            else:
+                print("Round %d ok:\t%s\t%35s" % (round, hexlist(subkey),
+                                                  hex(subkey2int(subkey))))
+        else:
+            return False
     return True
+
+
+def expandKey(key, rounds, nRows, nColumns, wordSize, nKeyColumns, loglevel):
+    keyExpansion = KeyExpansion(key, rounds, nRows, nColumns, wordSize,
+                                nKeyColumns, loglevel)
+    print keyExpansion
+    for round in range(rounds):
+        subkey = keyExpansion.getSubKey(round*nRows, (round+1)*nRows)
+#         print("Round %d:\t%s\t%s" % (round, hexlist(subkey, nRows, wordSize),
+#                                      hex(subkey2int(subkey, nRows, nColumns,
+#                                                     wordSize))))
+        print("Round %d:\t%s" % (round, hexlist(subkey, nRows, wordSize)))
 
 
 def main():
@@ -106,30 +100,37 @@ def main():
                       help="Set log level: error, warning, info, debug, trace")
     parser.add_option('', "--test", type='str')
     parser.add_option('', "--rounds", type='int', default=0)
+    parser.add_option('', "--key", type='int', default=0)
     import sys
     (options, args) = parser.parse_args()
-    print options
-    if options.test.lower() in ["aes128", "aes192", "aes256"]:
-        if options.test.lower() == "aes128":
-            if options.rounds == 0:
-                result = test_AES128(options.log_level)
+    loglevel = levelFromMeaning(options.log_level)
+    if options.test:
+        if options.test.lower() in ["aes128", "aes192", "aes256"]:
+            if options.test.lower() == "aes128":
+                if options.rounds == 0:
+                    result = test_AES128(loglevel)
+                else:
+                    result = test_AES128(loglevel, rounds=options.rounds)
+            elif options.test.lower() == "aes192":
+                if options.rounds == 0:
+                    result = test_AES192(loglevel)
+                else:
+                    result = test_AES192(loglevel, rounds=options.rounds)
+            elif options.test.lower() == "aes256":
+                if options.rounds == 0:
+                    result = test_AES256(loglevel)
+                else:
+                    result = test_AES256(loglevel, rounds=options.rounds)
             else:
-                result = test_AES128(options.log_level, rounds=options.rounds)
-        elif options.test.lower() == "aes192":
-            if options.rounds == 0:
-                result = test_AES192(options.log_level)
-            else:
-                result = test_AES192(options.log_level, rounds=options.rounds)
-        elif options.test.lower() == "aes256":
-            if options.rounds == 0:
-                result = test_AES256(options.log_level)
-            else:
-                result = test_AES256(options.log_level, rounds=options.rounds)
+                result = False
+            if result:
+                sys.exit(0)
+            sys.exit(-1)
         else:
-            result = False
-        if result:
-            sys.exit(0)
-        sys.exit(-1)
+            rounds, nRows, nColumns, wordSize, nKeyColumns = \
+                extractParams(options.test)
+            expandKey(options.key, rounds, nRows, nColumns, wordSize,
+                      nKeyColumns, options.log_level)
     else:
         for test in [test_AES128,
                      test_AES192,

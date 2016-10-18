@@ -81,7 +81,7 @@ class AES128:
         self._keyExpansionObj = _KeyExpansion(key, 10, 4, 4, 8)
         self._subBytesObj = _SubBytes(8)  # , sboxCalc=False)
         self._shiftRowsObj = _ShiftRows(4)
-        self._mixColumnsObj = _MixColumns(4, 4, 8, loglevel=_DEBUG)
+        self._mixColumnsObj = _MixColumns(4, 4, 8)
         self._addRoundKeyObj = _AddRoundKey(4, 4, 8)
         input = aes128_round[0]['start']
         self._state = int2matrix(input)

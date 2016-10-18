@@ -67,43 +67,47 @@ class KeyExpansion(_Logger):
             subkey = key[(self.__nRows*i):(self.__nRows*i)+self.__nRows]
             self.__keyExpanded[i] = \
                 _Word(self.__nRows, self.__wordSize).fromList(subkey)
-        i = self.__nKeyWords
+        i = 0
         while (i < (self.__nKeyWords*(self.__nRounds+1))):
-            self._debug_stream("i = %d"% i, operation='keyExpansion()\t')
-            temp = self.__keyExpanded[i-1]
-            self._debug_stream("\tw[i-1]", temp, operation='keyExpansion()\t')
-            if (i % self.__nKeyWords == 0):
-                rotWord = self.__rotWord(temp)
-                self._debug_stream("\trotWord",
-                                   rotWord, operation='keyExpansion()\t')
-                subWord = self.__subWord(rotWord)
-                self._debug_stream("\tsubWord",
-                                   subWord, operation='keyExpansion()\t')
-                rc = [_RC[i/self.__nKeyWords], 0, 0, 0]
-                Rcon = _Word(self.__nRows, self.__wordSize).fromList(rc)
-                self._debug_stream("\tRcon", Rcon,
+            self._debug_stream("i = %d" % (i), operation='keyExpansion()\t')
+            if i < self.__nKeyWords:
+                self._debug_stream("\tw[%d]" % (i), self.__keyExpanded[i],
                                    operation='keyExpansion()\t')
-                subWord ^= Rcon
-                self._debug_stream("\tsubWord XOR Rcon", subWord,
-                                   operation='keyExpansion()\t')
-            elif (self.__nKeyWords > 6 ) and (i % self.__nKeyWords == 4):
-                subWord = self.__subWord(subWord)
-                self._debug_stream("\tsubWord",
-                                   subWord, operation='keyExpansion()\t')
             else:
-                subWord = temp
-            self._debug_stream("\tw[i-Nk]",
-                               self.__keyExpanded[i-self.__nKeyWords],
-                               operation='keyExpansion()\t')
-            expanded = self.__keyExpanded[i-self.__nKeyWords] ^ subWord
-            self.__keyExpanded.append(expanded)
-            self._debug_stream("\tw[i]", self.__keyExpanded[i],
-                               operation='keyExpansion()\t')
+                subWord = self.__keyExpanded[i-1]
+                self._debug_stream("\tw[i-1]=w[%d]" % (i-1), subWord,
+                                   operation='keyExpansion()\t')
+                if (i % self.__nKeyWords == 0):
+                    rotWord = self.__rotWord(subWord)
+                    subWord = self.__subWord(rotWord)
+                    Rcon = self.__Rcon(i)
+                    subWord = self.__xor(subWord, Rcon,
+                                         "subWord", "Rcon", "subWord")
+                elif (self.__nKeyWords > 6) and (i % self.__nKeyWords == 4):
+                    subWord = self.__subWord(subWord)
+                self._debug_stream("\tw[i-Nk]=w[%d]" % (i-self.__nKeyWords),
+                                   self.__keyExpanded[i-self.__nKeyWords],
+                                   operation='keyExpansion()\t')
+                self.__keyExpanded.append(self.__xor(self.__keyExpanded
+                                                     [i-self.__nKeyWords],
+                                                     subWord, "w[%d]"
+                                                     % (i-self.__nKeyWords),
+                                                     "subWord", "w[%d]" % (i)))
             i += 1
         self._debug_stream("keyExpanded", self.__keyExpanded,
                            operation="keyExpansion()\t")
         self._debug_stream("size of key expanded %d"
                            % (len(self.__keyExpanded)))
+
+    def __str__(self):
+        parentesis = "%d, %d, %d, %d" % (self.__nRounds, self.__nRows,
+                                         self.__nColumns, self.__wordSize)
+        if self.__nKeyWords != self.__nColumns:
+            parentesis += ", %d" % (self.__nKeyWords)
+        return "KeyExpansion(%s)" % (parentesis)
+
+    def __repr__(self):
+        return "%s" % (self.__str__())
 
     def getKey(self):
         return self.__keyExpanded
@@ -124,8 +128,11 @@ class KeyExpansion(_Logger):
         wordMask = int('0b'+('1'*self.__wordSize) +
                        ('0'*(self.__wordSize*(self.__nColumns-1))), 2)
         shiftMask = int('0b'+('1'*(self.__wordSize*(self.__nColumns))), 2)
-        return (((w & wordMask) >> (self.__wordSize * (self.__nRows-1))) |
-                ((w << self.__wordSize) & shiftMask))
+        rotWord = (((w & wordMask) >> (self.__wordSize * (self.__nRows-1))) |
+                   ((w << self.__wordSize) & shiftMask))
+        self._debug_stream("\trotWord(%s)" % (hex(w)), rotWord,
+                           operation='keyExpansion()\t')
+        return rotWord
 
     def __subWord(self, word):
         '''Used in the key expansion. Apply a table lookup (sbox) to the set
@@ -136,4 +143,21 @@ class KeyExpansion(_Logger):
         wordArray = self.__word.toList(word)
         wordArray = self.__sbox.transform(wordArray)
         wordArray.reverse()  # FIXME: Where is this in the fips pub-197?
-        return self.__word.fromList(wordArray)
+        subWord = self.__word.fromList(wordArray)
+        self._debug_stream("\tsubWord(%s)" % (hex(word)), subWord,
+                           operation='keyExpansion()\t')
+        return subWord
+
+    def __Rcon(self, i):
+        rc = [_RC[i/self.__nKeyWords], 0, 0, 0]
+        Rcon = _Word(self.__nRows, self.__wordSize).fromList(rc)
+        self._debug_stream("\tRcon[%d]" % (i), Rcon,
+                           operation='keyExpansion()\t')
+        return Rcon
+
+    def __xor(self, a, b, aName=None, bName=None, cName=None):
+        c = a ^ b
+        self._debug_stream("\t%s=%s^%s=%s^%s"
+                           % (cName, aName, bName, hex(a), hex(b)), c,
+                           operation='keyExpansion()\t')
+        return c

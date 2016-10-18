@@ -82,10 +82,10 @@ class AES256:
         key = aes256['key']
         if key != key2int(int2key(key)):
             raise AssertionError("Failed AES256: key2int")
-        self._keyExpansionObj = _KeyExpansion(key, 14, 4, 8, 8)
+        self._keyExpansionObj = _KeyExpansion(key, 14, 4, 4, 8, nKeyWords=8)
         self._subBytesObj = _SubBytes(8)  # , sboxCalc=False)
         self._shiftRowsObj = _ShiftRows(4)
-        self._mixColumnsObj = _MixColumns(4, 4, 8, loglevel=_DEBUG)
+        self._mixColumnsObj = _MixColumns(4, 4, 8)
         self._addRoundKeyObj = _AddRoundKey(4, 4, 8)
         input = aes256_round[0]['start']
         self._state = int2matrix(input)
@@ -99,7 +99,8 @@ class AES256:
             k_sch = int2subkey(aes256_round[self._round]['k_sch'])
             self._Errors.append("Failed AES256: round%d, getSubKey()"
                                 "\n\t\t\t%s\n\t\t\t%s"
-                                % (self._round, hexlist(subkey), hexlist(k_sch)))
+                                % (self._round, hexlist(subkey),
+                                   hexlist(k_sch)))
             subkey = int2subkey(aes256_round[self._round]['k_sch'])
         self._state = self._addRoundKeyObj.do(self._state, subkey)
         if matrix2int(self._state) != aes256_round[self._round]['end']:
