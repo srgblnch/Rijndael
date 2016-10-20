@@ -36,31 +36,33 @@ class SBox(_Logger):
        sbox and its inverse, for 8 bits word size, as well as it have two
        other pairs of sboxes for word size 2 and 4 made on this development.
     '''
-    def __init__(self, wordSize, useCalc=True, *args, **kwargs):
+    def __init__(self, wordSize,
+                 #useCalc=True,
+                 *args, **kwargs):
         super(SBox, self).__init__(*args, **kwargs)
         # TODO: this must be able to be modified to use a sbox as a table ----
         #       or as the pure calculations
-        self._useCalc = useCalc
+        self._useCalc = True  # useCalc
         self.__wordSize = wordSize
         if self._useCalc:
             field_modulo = getBinaryExtensionFieldModulo(wordSize)
             self._field = BinaryExtensionModulo(field_modulo)
             ring_modulo = getBinaryExtensionRingModulo(wordSize)
             self._ring = BinaryExtensionModulo(ring_modulo)
-        else:
-            if wordSize == 8:
-                self._sbox = sbox_word8b
-                self._sbox_inverted = sbox_word8b_inverted
-#            elif  self.__wordSize == 4:
-#                self._sbox = sbox_word4b
-#                self._sbox_inverted = sbox_word4b_inverted
-#            elif  self.__wordSize == 2:
-#                self._sbox = sbox_word2b
-#                self._sbox_inverted = sbox_word2b_inverted
-            if not (hasattr(self, "_sbox") or hasattr(self, "_sbox_inverted")):
-                raise Exception("(__init__)",
-                                "There is no Sbox for %d wordsize"
-                                % (self.__wordSize))
+#         else:
+#             if wordSize == 8:
+#                 self._sbox = sbox_word8b
+#                 self._sbox_inverted = sbox_word8b_inverted
+# #            elif  self.__wordSize == 4:
+# #                self._sbox = sbox_word4b
+# #                self._sbox_inverted = sbox_word4b_inverted
+# #            elif  self.__wordSize == 2:
+# #                self._sbox = sbox_word2b
+# #                self._sbox_inverted = sbox_word2b_inverted
+#             if not (hasattr(self, "_sbox") or hasattr(self, "_sbox_inverted")):
+#                 raise Exception("(__init__)",
+#                                 "There is no Sbox for %d wordsize"
+#                                 % (self.__wordSize))
 
     def getField(self):
         if self._useCalc:

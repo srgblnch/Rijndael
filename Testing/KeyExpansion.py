@@ -34,15 +34,15 @@ from _FIPS197_AES256 import *
 
 
 def subkey2int(argin, nRows=4, nColumns=4, wordSize=8):
-    return _Long(nRows*wordSize).fromArray(argin, nRows*nColumns*wordSize)
+    return _Long(nColumns*wordSize).fromArray(argin, nRows*nColumns*wordSize)
 
 
 def int2subkey(argin, nRows=4, nColumns=4, wordSize=8):
-    return _Long(nRows*wordSize).toArray(argin, nRows*nColumns*wordSize)
+    return _Long(nColumns*wordSize).toArray(argin, nRows*nColumns*wordSize)
 
 
-def hexlist(argin, nRows=4, wordSize=8):
-    format = "%%%ds" % (2+((nRows*wordSize)/4))
+def hexlist(argin, nColumns=4, wordSize=8):
+    format = "%%%ds" % (2+((nColumns*wordSize)/4))
     return [format % hex(each) for each in argin]
 
 
@@ -83,15 +83,25 @@ def test_AES(loglevel, rounds, aes, aes_round, Nk):
 
 
 def expandKey(key, rounds, nRows, nColumns, wordSize, nKeyColumns, loglevel):
+    print loglevel
     keyExpansion = KeyExpansion(key, rounds, nRows, nColumns, wordSize,
-                                nKeyColumns, loglevel)
+                                nKeyColumns, loglevel=loglevel)
     print keyExpansion
     for round in range(rounds):
         subkey = keyExpansion.getSubKey(round*nRows, (round+1)*nRows)
-#         print("Round %d:\t%s\t%s" % (round, hexlist(subkey, nRows, wordSize),
-#                                      hex(subkey2int(subkey, nRows, nColumns,
-#                                                     wordSize))))
-        print("Round %d:\t%s" % (round, hexlist(subkey, nRows, wordSize)))
+        subkeyLst = hexlist(subkey, nColumns, wordSize)
+        try:  # FIXME!
+            subkeyHex = hex(subkey2int(subkey, nRows, nColumns, wordSize))
+        except:
+            if len(subkeyLst) == 0:
+                subkeyHex = ""
+            else:
+                subkeyHex = "subkey2int exception"
+        print("Round %d:\t%s\t%s" % (round, subkeyLst, subkeyHex))
+    print("block size: %d, key size: %d bits (%d blocks of %d bits), "
+          "expanded to %d bits (%d rounds)"
+          % (nRows*nColumns*wordSize, nRows*nKeyColumns*wordSize, nRows,
+             nColumns*wordSize, rounds*nRows*nColumns*wordSize, rounds))
 
 
 def main():

@@ -33,14 +33,15 @@ lock = _Lock()
 
 def levelFromMeaning(value):
     try:
-        return {'error': Logger._error,
+        return {'silence': Logger._silence,
+                'error': Logger._error,
                 'warning': Logger._warning,
                 'info': Logger._info,
                 'debug': Logger._debug,
                 'trace': Logger._trace}[value.lower()]
     except:
         if value is not None:
-            print("Not recognized log level '%s', using default 'info' level."
+            print("Not recognised log level '%s', using default 'info' level."
                   % (value))
         return Logger._info
 
@@ -68,7 +69,14 @@ class Logger(object):
         '''
         '''
         super(Logger, self).__init__(*args, **kwargs)
-        self._logLevel = loglevel
+        if type(loglevel) == str:
+            self._logLevel = levelFromMeaning(loglevel)
+        elif type(loglevel) in [int] and _SILENCE < loglevel < _TRACE:
+            self._logLevel = loglevel
+        elif type(loglevel) is None:
+            self._logLevel = _INFO
+        else:
+            raise EnvironmentError("impossible to setup the log level")
         self._when_build = _datetime.now()
         self._log2file = False
         self._stdout = True
@@ -85,6 +93,15 @@ class Logger(object):
     @property
     def logLevel(self):
         return self._logLevel
+
+    @property
+    def logLevelStr(self):
+        return {Logger._silence: 'silence',
+                Logger._error: 'error',
+                Logger._warning: 'warning',
+                Logger._info: 'info',
+                Logger._debug: 'debug',
+                Logger._trace: 'trace'}[self._logLevel]
 
     @logLevel.setter
     def logLevel(self, level):

@@ -22,7 +22,7 @@ __copyright__ = "Copyright 2013 Sergi Blanch-Torne"
 __license__ = "GPLv3+"
 __status__ = "development"
 
-from Logger import Logger as _Logger
+from Logger import Logger as _Logger, _DEBUG
 from SBox import SBox as _SBox
 from RoundConstant import RC as _RC
 from ThirdLevel import Word as _Word
@@ -37,8 +37,7 @@ class KeyExpansion(_Logger):
     '''
     def __init__(self, key,
                  nRounds=10, nRows=4, nColumns=4, wordSize=8,  # stardard aes
-                 nKeyWords=None, sboxCalc=False,
-                 loglevel=_Logger._info, *args, **kwargs):
+                 nKeyWords=None, loglevel=_Logger._info, *args, **kwargs):
         super(KeyExpansion, self).__init__(loglevel, *args, **kwargs)
         self.__key = key
         self.__nRounds = nRounds
@@ -49,10 +48,8 @@ class KeyExpansion(_Logger):
             self.__nKeyWords = nKeyWords
         else:
             self.__nKeyWords = nColumns
-        self.__sbox = _SBox(wordSize, sboxCalc, loglevel=loglevel)
-        # self.__sbox = _SBox(wordSize, sboxCalc, loglevel=loglevel,
-        #                     useCalc=True)
-        self.__word = _Word(nRows, wordSize)
+        self.__sbox = _SBox(self.__wordSize, loglevel=loglevel)
+        self.__word = _Word(self.__nRows, self.__wordSize)
         self.__keyExpanded = [None]*self.__nKeyWords
         self._debug_stream("key", key, operation="keyExpansion()\t")
         try:
@@ -104,6 +101,7 @@ class KeyExpansion(_Logger):
                                          self.__nColumns, self.__wordSize)
         if self.__nKeyWords != self.__nColumns:
             parentesis += ", %d" % (self.__nKeyWords)
+        parentesis += ", %s" % (self.logLevelStr)
         return "KeyExpansion(%s)" % (parentesis)
 
     def __repr__(self):
@@ -149,7 +147,8 @@ class KeyExpansion(_Logger):
         return subWord
 
     def __Rcon(self, i):
-        rc = [_RC[i/self.__nKeyWords], 0, 0, 0]
+        rc = [0]*self.__nRows
+        rc[0] = _RC[i/self.__nKeyWords]
         Rcon = _Word(self.__nRows, self.__wordSize).fromList(rc)
         self._debug_stream("\tRcon[%d]" % (i), Rcon,
                            operation='keyExpansion()\t')
