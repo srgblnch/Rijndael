@@ -36,11 +36,11 @@ class SubBytes(_Logger):
        themselves specially to allow arbitrary word sizes and not only the
        original 8 bits and the two included here for 2 and 4 bits.
     '''
-    def __init__(self, wordSize, sboxCalc=True, loglevel=_Logger._info,
+    def __init__(self, wordSize, loglevel=_Logger._info,
                  *args, **kwargs):
         super(SubBytes, self).__init__(*args, **kwargs)
         self.__wordSize = wordSize
-        self.__sbox = SBox(wordSize, useCalc=sboxCalc, loglevel=loglevel)
+        self.__sbox = SBox(wordSize, loglevel=loglevel)
 
     def __str__(self):
         parentesis = "%d" % (self.__wordSize)

@@ -76,7 +76,8 @@ class Logger(object):
         elif type(loglevel) is None:
             self._logLevel = _INFO
         else:
-            raise EnvironmentError("impossible to setup the log level")
+            raise EnvironmentError("impossible to setup the log level (%s)"
+                                   % (loglevel))
         self._when_build = _datetime.now()
         self._log2file = False
         self._stdout = True

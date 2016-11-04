@@ -47,7 +47,7 @@ class MixColumns(_Logger):
         self.__nRows = nRows
         self.__nColumns = nColumns
         self.__wordSize = wordSize
-        if (2 <= self.__nRows < 8) and (2 <= self.__wordSize < 16):
+        if (2 <= self.__nRows <= 16) and (2 <= self.__wordSize <= 16):
             self.__cx, self.__ring, self.__field = \
                 _getPolynomialRingWithBinaryCoefficients(self.__nRows,
                                                          self.__wordSize)

@@ -58,9 +58,8 @@ class gRijndael(_Logger):
     '''
     def __init__(self, key,
                  nRounds=None, nRows=4, nColumns=4, wordSize=8,  # stardard aes
-                 nKeyColumns=None, sboxCalc=True,
-                 loglevel=_Logger._info, *args, **kwargs):
-        super(gRijndael, self).__init__(*args, **kwargs)
+                 nKeyColumns=None, loglevel=_Logger._info, *args, **kwargs):
+        super(gRijndael, self).__init__(loglevel, *args, **kwargs)
         # Num of encryption rounds {10,12,14}
         if nRounds is None:
             if nKeyColumns is not None:
@@ -94,9 +93,9 @@ class gRijndael(_Logger):
         self.__keyExpanderObj = _KeyExpansion(key, self.__nRounds,
                                               self.__nRows, self.__nColumns,
                                               self.__wordSize,
-                                              self.__nKeyColumns, sboxCalc,
+                                              self.__nKeyColumns,
                                               loglevel)
-        self.__subBytesObj = _SubBytes(wordSize, sboxCalc, loglevel)
+        self.__subBytesObj = _SubBytes(wordSize, loglevel)
         self.__shiftRowsObj = _ShiftRows(nRows, loglevel)
         self.__mixColumnsObj = _MixColumns(nRows, nColumns, wordSize, loglevel)
         self.__addRoundKeyObj = _AddRoundKey(nRows, nColumns, wordSize,
