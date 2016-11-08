@@ -65,10 +65,10 @@ class Logger(object):
     _debug = _DEBUG
     _trace = _TRACE
 
-    def __init__(self, loglevel=_INFO, file_compression=None, *args, **kwargs):
+    def __init__(self, loglevel=_INFO, file_compression=None):
         '''
         '''
-        super(Logger, self).__init__(*args, **kwargs)
+        super(Logger, self).__init__()
         if type(loglevel) == str:
             self._logLevel = levelFromMeaning(loglevel)
         elif type(loglevel) in [int] and _SILENCE < loglevel < _TRACE:

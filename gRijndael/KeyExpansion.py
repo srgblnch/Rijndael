@@ -60,12 +60,33 @@ class KeyExpansion(_Logger):
         except:
             raise Exception("Key length doesn't fit with the matrix size")
         self._debug_stream("key array", key, operation="keyExpansion()\t")
+        self.__initialize(key)
+        #self.__expand(self.__nKeyWords*(self.__nRounds+1))
+        self._debug_stream("keyExpanded", self.__keyExpanded,
+                           operation="keyExpansion()\t")
+        self._debug_stream("size of key expanded %d"
+                           % (len(self.__keyExpanded)))
+
+    def __str__(self):
+        parentesis = "%d, %d, %d, %d" % (self.__nRounds, self.__nRows,
+                                         self.__nColumns, self.__wordSize)
+        if self.__nKeyWords != self.__nColumns:
+            parentesis += ", %d" % (self.__nKeyWords)
+        parentesis += ", %s" % (self.logLevelStr)
+        return "KeyExpansion(%s)" % (parentesis)
+
+    def __repr__(self):
+        return "%s" % (self.__str__())
+
+    def __initialize(self, key):
         for i in range(self.__nKeyWords):
             subkey = key[(self.__nRows*i):(self.__nRows*i)+self.__nRows]
             self.__keyExpanded[i] = \
                 _Word(self.__nRows, self.__wordSize).fromList(subkey)
-        i = 0
-        while (i < (self.__nKeyWords*(self.__nRounds+1))):
+
+    def __expand(self, end):
+        i = len(self.__keyExpanded)
+        while i < end:
             self._debug_stream("i = %d" % (i), operation='keyExpansion()\t')
             if i < self.__nKeyWords:
                 self._debug_stream("\tw[%d]" % (i), self.__keyExpanded[i],
@@ -91,23 +112,10 @@ class KeyExpansion(_Logger):
                                                      % (i-self.__nKeyWords),
                                                      "subWord", "w[%d]" % (i)))
             i += 1
-        self._debug_stream("keyExpanded", self.__keyExpanded,
-                           operation="keyExpansion()\t")
-        self._debug_stream("size of key expanded %d"
-                           % (len(self.__keyExpanded)))
-
-    def __str__(self):
-        parentesis = "%d, %d, %d, %d" % (self.__nRounds, self.__nRows,
-                                         self.__nColumns, self.__wordSize)
-        if self.__nKeyWords != self.__nColumns:
-            parentesis += ", %d" % (self.__nKeyWords)
-        parentesis += ", %s" % (self.logLevelStr)
-        return "KeyExpansion(%s)" % (parentesis)
-
-    def __repr__(self):
-        return "%s" % (self.__str__())
 
     def getKey(self):
+        if len(self.__keyExpanded) < self.__nKeyWords*(self.__nRounds+1):
+            self.__expand(self.__nKeyWords*(self.__nRounds+1))
         return self.__keyExpanded
 
     def getSubKey(self, start, end):
@@ -115,6 +123,8 @@ class KeyExpansion(_Logger):
         ashexlist = ["%s" % hex(each) for each in subkey]
         self._debug_stream("Requested part of the key expanded. k[%d:%d] = %s"
                            % (start, end, ashexlist))
+        if len(self.__keyExpanded) < end:
+            self.__expand(end)
         return self.__keyExpanded[start:end]
 
     def __rotWord(self, w):
