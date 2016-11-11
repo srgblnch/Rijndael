@@ -26,9 +26,11 @@ __status__ = "development"
 from copy import deepcopy as _deepcopy
 try:
     from ..Logger import Logger as _Logger
+    from ..Logger import XORctr as _XORctr
     from ..ThirdLevel import shift as _shift
 except:
     from Logger import Logger as _Logger
+    from Logger import XORctr as _XORctr
     from ThirdLevel import shift as _shift
 from BinaryPolynomials import *
 
@@ -70,7 +72,7 @@ def PolynomialRingModulo(modulo, coefficients_class, variable='x',
         raise Exception("modulo %s is not defined over %s variable"
                         % (modulo, variable))
 
-    class PolynomialRingModuloConstructor(_Logger):
+    class PolynomialRingModuloConstructor(_Logger, _XORctr):
         '''
             Once have the builder of elements it can be used to generate
             objects that represents and have operations defined. The allow
@@ -103,6 +105,7 @@ def PolynomialRingModulo(modulo, coefficients_class, variable='x',
             self._coefficientClass = coefficients_class
             self._variable = variable
             self._coefficients = self.__interpretCoefficients(value)
+            self.includeInstance(self._coefficients)
             self._modulo = self.__interpretCoefficients(modulo)
             self.reduce()
             self._gcd = None

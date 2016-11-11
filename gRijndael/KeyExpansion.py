@@ -22,14 +22,15 @@ __copyright__ = "Copyright 2013 Sergi Blanch-Torne"
 __license__ = "GPLv3+"
 __status__ = "development"
 
-from Logger import Logger as _Logger, _DEBUG
+from Logger import Logger as _Logger
+from Logger import XORctr as _XORctr
 from SBox import SBox as _SBox
 from RoundConstant import RC as _RC
 from ThirdLevel import Word as _Word
 from ThirdLevel import Long as _Long
 
 
-class KeyExpansion(_Logger):
+class KeyExpansion(_Logger, _XORctr):
     '''a Pseudo Random Generator that takes the key as a seed to expand
        it to generate all the subkeys need for each round of the Rijndael.
        Input: <integer> seed
@@ -49,6 +50,7 @@ class KeyExpansion(_Logger):
         else:
             self.__nKeyWords = nColumns
         self.__sbox = _SBox(self.__wordSize, loglevel=loglevel)
+        self.includeInstance(self.__sbox)
         self.__word = _Word(self.__nRows, self.__wordSize)
         self.__keyExpanded = [None]*self.__nKeyWords
         self._debug_stream("key", key, operation="keyExpansion()\t")
@@ -166,6 +168,7 @@ class KeyExpansion(_Logger):
 
     def __xor(self, a, b, aName=None, bName=None, cName=None):
         c = a ^ b
+        self.xors = (self.__nRows * self.__wordSize)*2
         self._debug_stream("\t%s=%s^%s=%s^%s"
                            % (cName, aName, bName, hex(a), hex(b)), c,
                            operation='keyExpansion()\t')

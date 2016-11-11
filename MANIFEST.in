@@ -1,0 +1,4 @@
+include gRijndael/*.py
+include gRijndael/Polynomials/*.py
+exclude Testing/*
+exclude .gitignore .gitmodules

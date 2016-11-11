@@ -273,6 +273,39 @@ class Logger(object):
                            round, operation)
 
 
+# TODO: document the methods
+class XORctr(object):
+    '''
+    '''
+    def __init__(self):
+        '''
+        '''
+        super(XORctr, self).__init__()
+        self._ctr = 0
+        self._instances = []
+
+    @property
+    def xors(self):
+        value = self._ctr
+        for instance in self._instances:
+            if type(instance) == list:
+                for element in instance:
+                    value += element.xors
+            else:  #if hasattr(instance, 'xors'):
+                value += instance.xors
+        return value
+
+    @xors.setter
+    def xors(self, value):
+        # print("adding ", value)
+        self._ctr += value
+        # print("accum: %s" % self._ctr)
+
+    def includeInstance(self,instance):
+        if hasattr(instance, 'xors') or type(instance) in [list]:
+            self._instances.append(instance)
+
+
 def debug(decoratedMethod):
     def magic(self, *args, **kwargs):
         try:

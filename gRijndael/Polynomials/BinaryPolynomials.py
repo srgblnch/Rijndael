@@ -27,8 +27,10 @@ from copy import copy as _copy
 from copy import deepcopy as _deepcopy
 try:
     from ..Logger import Logger as _Logger
+    from ..Logger import XORctr as _XORctr
 except:
     from Logger import Logger as _Logger
+    from Logger import XORctr as _XORctr
 
 
 def BinaryExtensionModulo(modulo, variable='z', loglevel=_Logger._info):
@@ -65,7 +67,7 @@ def BinaryExtensionModulo(modulo, variable='z', loglevel=_Logger._info):
         raise Exception("modulo %s is not defined over %s variable"
                         % (modulo, variable))
 
-    class BinaryExtensionModuloConstructor(_Logger):
+    class BinaryExtensionModuloConstructor(_Logger, _XORctr):
         def __init__(self, value, *args, **kwargs):
             '''
                 Once have the builder of elements it can be used to generate
@@ -282,7 +284,9 @@ def BinaryExtensionModulo(modulo, variable='z', loglevel=_Logger._info):
             return value
 
         def __abs__(self):
-            return BinaryExtensionModuloConstructor(abs(self._coefficients))
+            abs = BinaryExtensionModuloConstructor(abs(self._coefficients))
+            abs.xors = self.xors
+            return abs
 
         def __len__(self):
             bits = "{0:b}".format(self._coefficients)
@@ -324,11 +328,16 @@ def BinaryExtensionModulo(modulo, variable='z', loglevel=_Logger._info):
         def __add__(self, other):  # => a+b
             a = _copy(self.coefficients)
             b = _copy(other.coefficients)
-            return BinaryExtensionModuloConstructor(a ^ b)
+            s = BinaryExtensionModuloConstructor(a ^ b)
+            self.xors = other.xors + self.modulodegree-1
+            s.xors = self.xors
+            return s
 
         def __iadd__(self, other):  # => a += b
             bar = self + other
-            return BinaryExtensionModuloConstructor(bar._coefficients)
+            s = BinaryExtensionModuloConstructor(bar._coefficients)
+            s.xors = self.xors
+            return s
 
         def __pos__(self):  # => +a
             return self
@@ -342,11 +351,16 @@ def BinaryExtensionModulo(modulo, variable='z', loglevel=_Logger._info):
             # bar = -other it is itself
             a = _copy(self.coefficients)
             b = _copy(other.coefficients)
-            return BinaryExtensionModuloConstructor(a ^ b)
+            s = BinaryExtensionModuloConstructor(a ^ b)
+            self.xors = other.xors + self.modulodegree-1
+            s.xors = self.xors
+            return s
 
         def __isub__(self, other):  # => a-=b
             bar = self - other
-            return BinaryExtensionModuloConstructor(bar._coefficients)
+            s = BinaryExtensionModuloConstructor(bar._coefficients)
+            s.xors = self.xors
+            return s
 
         # * Product ----
 
@@ -366,11 +380,15 @@ def BinaryExtensionModulo(modulo, variable='z', loglevel=_Logger._info):
                                % (self.__interpretToStr__(a),
                                   self.__interpretToStr__(b),
                                   self.__interpretToStr__(res)))
-            return BinaryExtensionModuloConstructor(res)
+            p = BinaryExtensionModuloConstructor(res)
+            p.xors = self.xors
+            return p
 
         def __imul__(self, other):  # => a*=b
             bar = self * other
-            return BinaryExtensionModuloConstructor(bar._coefficients)
+            p = BinaryExtensionModuloConstructor(bar._coefficients)
+            p.xors = self.xors + other.xors
+            return p
 
         def xtimes(self):
             return self << 1
@@ -411,6 +429,7 @@ def BinaryExtensionModulo(modulo, variable='z', loglevel=_Logger._info):
                Output: <integer> (the accumulated result of the product)
             '''
             aShifted = a << i
+            self.xors = self.modulodegree-1
             newerAccum = accum ^ aShifted
             if bit:
                 self._debug_stream("aShifted: %s"
@@ -419,70 +438,70 @@ def BinaryExtensionModulo(modulo, variable='z', loglevel=_Logger._info):
             else:
                 return accum
 
-        def __matrix_product__(self, other):
-            '''In equivalence to the product operation, there is another way
-               to do this operation by interpret the polynomials in GF(2^w)
-               or a ring of this grade, as bit arrays in GF(2)^w.
-               Then proceed with a matrix product converting the first term in
-               a MDS (Maximum Distance Separable) matrix using the bit
-               rotation.
-               Self is converted like:
-               [[ 0   w  w-1 w-2 ... 1],
-                [ 1   0   w  w-1 ... 2],
-                [          ...        ],
-                [w-1 w-2 w-3 w-4 ... w],
-                [ w  w-1 w-2 w-3 ... 0]]
-                and other like:
-                [0,1,...,w-1,w]
-                Having a matrix wxw and a vector wx1, the result is a matrix
-                mx1 that can be back interpreted each bit as the coeffiecient
-                in a polynomial GF(2^w) if it was irreducible modulo or a ring.
-            '''
-            self._debug_stream("self * other: %r * %r = %s * %s"
-                               % (self, other, bin(self._coefficients),
-                                  bin(other._coefficients)))
-            # self._coefficients in binary corresponds to last row
-            # 1 shift to the left is row0
-            row = self._cyclic_rshift_(1)
-            res = 0
-            self._debug_stream("input: %s %r"
-                               % (bin(other._coefficients), other))
-            input = self.__mirrorbits__(other._coefficients)
-            for i in range(self.modulodegree-1):
-                res = res << 1
-                self._debug_stream("row[%d]: %s %r"
-                                   % (i, bin(row._coefficients), row))
-                bitProduct = row._coefficients & input
-                parity = self.__parity__(bitProduct)
-                row = row._cyclic_rshift_(1)
-                res |= parity
-            self._debug_stream("result: %s" % (bin(res)))
-            return BinaryExtensionModuloConstructor(self.__mirrorbits__(res))
-
-        def __parity__(self, bits):
-            '''Given a number, use a bit representation to proceed with an xor
-               (addition in GF(2)) of each of its elements.
-            '''
-            msg = "parity = %s" % (bin(bits))
-            while bits > 1:
-                bits = (bits >> 1) ^ (bits & 1)
-            self._debug_stream("%s = %d" % (msg, bits))
-            return bits
-
-        def __mirrorbits__(self, bits):
-            '''Exchange the bit significance by placing the LSB first and the
-               MSB at the end.
-            '''
-            maxbits = self.modulodegree-1
-            origin = bits
-            mirror = 0
-            for i in range(maxbits):  # while bits > 0:
-                mirror <<= 1
-                mirror |= origin & 1
-                origin >>= 1
-            self._debug_stream("mirrored %s to %s"
-                               % (bin(bits), bin(mirror)))
-            return mirror
+#         def __matrix_product__(self, other):
+#             '''In equivalence to the product operation, there is another way
+#                to do this operation by interpret the polynomials in GF(2^w)
+#                or a ring of this grade, as bit arrays in GF(2)^w.
+#                Then proceed with a matrix product converting the first term in
+#                a MDS (Maximum Distance Separable) matrix using the bit
+#                rotation.
+#                Self is converted like:
+#                [[ 0   w  w-1 w-2 ... 1],
+#                 [ 1   0   w  w-1 ... 2],
+#                 [          ...        ],
+#                 [w-1 w-2 w-3 w-4 ... w],
+#                 [ w  w-1 w-2 w-3 ... 0]]
+#                 and other like:
+#                 [0,1,...,w-1,w]
+#                 Having a matrix wxw and a vector wx1, the result is a matrix
+#                 mx1 that can be back interpreted each bit as the coeffiecient
+#                 in a polynomial GF(2^w) if it was irreducible modulo or a ring.
+#             '''
+#             self._debug_stream("self * other: %r * %r = %s * %s"
+#                                % (self, other, bin(self._coefficients),
+#                                   bin(other._coefficients)))
+#             # self._coefficients in binary corresponds to last row
+#             # 1 shift to the left is row0
+#             row = self._cyclic_rshift_(1)
+#             res = 0
+#             self._debug_stream("input: %s %r"
+#                                % (bin(other._coefficients), other))
+#             input = self.__mirrorbits__(other._coefficients)
+#             for i in range(self.modulodegree-1):
+#                 res = res << 1
+#                 self._debug_stream("row[%d]: %s %r"
+#                                    % (i, bin(row._coefficients), row))
+#                 bitProduct = row._coefficients & input
+#                 parity = self.__parity__(bitProduct)
+#                 row = row._cyclic_rshift_(1)
+#                 res |= parity
+#             self._debug_stream("result: %s" % (bin(res)))
+#             return BinaryExtensionModuloConstructor(self.__mirrorbits__(res))
+# 
+#         def __parity__(self, bits):
+#             '''Given a number, use a bit representation to proceed with an xor
+#                (addition in GF(2)) of each of its elements.
+#             '''
+#             msg = "parity = %s" % (bin(bits))
+#             while bits > 1:
+#                 bits = (bits >> 1) ^ (bits & 1)
+#             self._debug_stream("%s = %d" % (msg, bits))
+#             return bits
+# 
+#         def __mirrorbits__(self, bits):
+#             '''Exchange the bit significance by placing the LSB first and the
+#                MSB at the end.
+#             '''
+#             maxbits = self.modulodegree-1
+#             origin = bits
+#             mirror = 0
+#             for i in range(maxbits):  # while bits > 0:
+#                 mirror <<= 1
+#                 mirror |= origin & 1
+#                 origin >>= 1
+#             self._debug_stream("mirrored %s to %s"
+#                                % (bin(bits), bin(mirror)))
+#             return mirror
 
         # /% Division ----
 
@@ -518,8 +537,9 @@ def BinaryExtensionModulo(modulo, variable='z', loglevel=_Logger._info):
                 subs = divisor << shift
                 self._debug_stream("subs", subs)
                 if len("{0:b}".format(temp)) == len("{0:b}".format(subs)):
+                    self.xors = self.modulodegree-1
                     bar = temp ^ subs
-                    self._debug_stream("temp ^subs", bar)
+                    self._debug_stream("temp ^ subs", bar)
                     if shift > 0:
                         mask = int('1'*shift, 2)
                         quotient = quotient | 1 << (shift)
@@ -536,21 +556,29 @@ def BinaryExtensionModulo(modulo, variable='z', loglevel=_Logger._info):
 
         def __div__(self, other):  # => a/b
             q, r = self.__division__(self._coefficients, other._coefficients)
-            return BinaryExtensionModuloConstructor(q)
+            q = BinaryExtensionModuloConstructor(q)
+            q.xors = self.xors
+            return q
             # FIXME: the constructor will reduce it having the rest
             #        and not the quotient
 
         def __idiv__(self, other):  # => a/=b
             q, r = self.__division__(self._coefficients, other._coefficients)
-            return BinaryExtensionModuloConstructor(q)
+            q = BinaryExtensionModuloConstructor(q)
+            q.xors = self.xors
+            return q
 
         def __mod__(self, other):  # => a%b
             q, r = self.__division__(self._coefficients, other._coefficients)
-            return BinaryExtensionModuloConstructor(r)
+            r = BinaryExtensionModuloConstructor(r)
+            r.xors = self.xors
+            return r
 
         def _imod__(self, other):  # => a%=b
             q, r = self.__division__(self._coefficients, other._coefficients)
-            return BinaryExtensionModuloConstructor(r)
+            r = BinaryExtensionModuloConstructor(r)
+            r.xors = self.xors
+            return r
 
         # ~ Multiplicative inverse ----
         # - operator.__inv__(a) => ~a
@@ -587,6 +615,7 @@ def BinaryExtensionModulo(modulo, variable='z', loglevel=_Logger._info):
                 u = u ^ (v << j)
                 g1 = g1 ^ (g2 << j)
                 h1 = h1 ^ (h2 << j)
+                self.xors = (self.modulodegree-1)*3
                 self._debug_stream("\tu", u)
                 self._debug_stream("\tg1", g1)
                 self._debug_stream("\th1", h1)
@@ -608,7 +637,9 @@ def BinaryExtensionModulo(modulo, variable='z', loglevel=_Logger._info):
         def __invert__(self):  # => ~a, that means like a^-1
             if self._multinv is None:
                 self._multinv = self.__multiplicativeInverse__()
-            return BinaryExtensionModuloConstructor(self._multinv)
+            inv = BinaryExtensionModuloConstructor(self._multinv)
+            inv.xors = self.xors
+            return inv
 
         def __multiplicativeInverse__(self):
             '''Multiplicative inverse based on ...
@@ -636,21 +667,31 @@ def BinaryExtensionModulo(modulo, variable='z', loglevel=_Logger._info):
 
         # <<>> Shifts ----
         def __lshift__(self, n):  # => <<
-            return BinaryExtensionModuloConstructor(self._coefficients << n)
+            s = BinaryExtensionModuloConstructor(self._coefficients << n)
+            s.xors = self.xors
+            return s
 
         def __rshift__(self, n):  # => >>
-            return BinaryExtensionModuloConstructor(self._coefficients >> n)
+            s = BinaryExtensionModuloConstructor(self._coefficients >> n)
+            s.xors = self.xors
+            return s
 
         def __ilshift__(self, n):  # => <<=
-            return BinaryExtensionModuloConstructor(self._coefficients << n)
+            s = BinaryExtensionModuloConstructor(self._coefficients << n)
+            s.xors = self.xors
+            return s
 
         def __irshift__(self, n):  # => >>=
-            return BinaryExtensionModuloConstructor(self._coefficients >> n)
+            s = BinaryExtensionModuloConstructor(self._coefficients >> n)
+            s.xors = self.xors
+            return s
 
         def _cyclic_lshift_(self, n):
             '''
             '''
-            return BinaryExtensionModuloConstructor(self._bit_lshift_(n))
+            s = BinaryExtensionModuloConstructor(self._bit_lshift_(n))
+            s.xors = self.xors
+            return s
 
         def _bit_lshift_(self, n):
             '''Using the polynomial coefficients as a bit string, return a bit
@@ -666,7 +707,9 @@ def BinaryExtensionModulo(modulo, variable='z', loglevel=_Logger._info):
         def _cyclic_rshift_(self, n):
             '''
             '''
-            return BinaryExtensionModuloConstructor(self._bit_rshift_(n))
+            s = BinaryExtensionModuloConstructor(self._bit_rshift_(n))
+            s.xors = self.xors
+            return s
 
         def _bit_rshift_(self, n):
             '''Using the polynomial coefficients as a bit string, return a bit
