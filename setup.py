@@ -23,17 +23,18 @@ __license__ = "GPLv3+"
 __status__ = "development"
 
 
-from setuptools import setup, find_packages
+# from Cython.Distutils import build_ext
 from gRijndael import version
+from setuptools import setup, find_packages
 
 
 setup(name='gRijndael',
       license="GPLv3+",
-      description="Python prove of concept to generalize the rijndael's "
+      description="Python prove of concept to generalise the rijndael's "
                   "parameters.",
       version=version(),
       author="Sergi Blanch-Torn\'e",
-      author_email="sblanch@cells.es",
+      author_email="srgblnchtrn@protonmail.ch",
       classifiers=['Development Status :: 2 - Pre-Alpha',
                    'Intended Audience :: Developers',
                    'Intended Audience :: Information Technology',
@@ -53,6 +54,8 @@ setup(name='gRijndael',
                    ''],
       packages=find_packages(),
       url="https://github.com/srgblnch/Rijndael",
+      # entry_points={'console_scripts': 'gRijndael=gRijndael:Launcher'},
+      # build_ext=build_ext
       )
 
 # for the classifiers review see:
