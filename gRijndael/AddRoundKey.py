@@ -23,15 +23,17 @@ __license__ = "GPLv3+"
 __status__ = "development"
 
 from Logger import Logger as _Logger
+from Logger import XORctr as _XORctr
 from ThirdLevel import Word as _Word
 
 
-class AddRoundKey(_Logger):
+class AddRoundKey(_Logger, _XORctr):
     def __init__(self, nRows, nColumns, wordSize, *args, **kwargs):
         super(AddRoundKey, self).__init__(*args, **kwargs)
         self.__nRows = nRows
         self.__nColumns = nColumns
-        self.__word = _Word(nRows, wordSize)
+        self.__wordSize = wordSize
+        self.__word = _Word(nRows, self.__wordSize)
 
     def do(self, input, subkey):
         '''One of the round transformation methods.
@@ -47,5 +49,6 @@ class AddRoundKey(_Logger):
             for i in range(self.__nRows):
                 bar = output[i][j]
                 bar ^= byteSubkey[i]
+                self.xors = self.__wordSize
                 output[i][j] = bar
         return output

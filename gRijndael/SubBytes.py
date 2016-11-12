@@ -24,10 +24,11 @@ __status__ = "development"
 
 from copy import deepcopy as _deepcopy
 from Logger import Logger as _Logger
+from Logger import XORctr as _XORctr
 from SBox import SBox
 
 
-class SubBytes(_Logger):
+class SubBytes(_Logger, _XORctr):
     '''This class is made to do the subBytes Rijndael's non-linear
        substitution to provide confusion to the ciphertext, and its inverse.
        It uses a secondary object SBox as a builder pattern to allow the
@@ -41,6 +42,7 @@ class SubBytes(_Logger):
         super(SubBytes, self).__init__(*args, **kwargs)
         self.__wordSize = wordSize
         self.__sbox = SBox(wordSize, loglevel=loglevel)
+        self.includeInstance(self.__sbox)
 
     def __str__(self):
         parentesis = "%d" % (self.__wordSize)

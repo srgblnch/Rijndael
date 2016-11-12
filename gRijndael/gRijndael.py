@@ -25,6 +25,7 @@ __status__ = "development"
 import sys
 
 from Logger import Logger as _Logger
+from Logger import XORctr as _XORctr
 from Logger import debug, trace
 from Logger import levelFromMeaning as _levelFromMeaning
 from KeyExpansion import KeyExpansion as _KeyExpansion
@@ -38,7 +39,7 @@ from ThirdLevel import State as _State
 from version import *
 
 
-class gRijndael(_Logger):
+class gRijndael(_Logger, _XORctr):
     '''
         Object that, once created and initialised (parameters and secret key)
         can receive the request to cipher some input or decipher it.
@@ -102,6 +103,10 @@ class gRijndael(_Logger):
                                              loglevel)
         self.__state = None  # FIXME: this memory is not protected and shall be
         self.__round = None
+        self.includeInstance(self.__keyExpanderObj)
+        self.includeInstance(self.__subBytesObj)
+        self.includeInstance(self.__mixColumnsObj)
+        self.includeInstance(self.__addRoundKeyObj)
 
     def __str__(self):
         parentesis = "%d, %d, %d, %d" % (self.__nRounds, self.__nRows,

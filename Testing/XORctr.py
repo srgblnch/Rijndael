@@ -26,6 +26,10 @@ from gRijndael.Polynomials import *
 from random import randint
 from gRijndael import SBox
 from gRijndael import KeyExpansion
+from gRijndael import AddRoundKey
+from gRijndael import SubBytes
+from gRijndael import MixColumns
+from gRijndael import gRijndael
 
 
 def BinaryPolynomialsXORCtr():
@@ -77,9 +81,12 @@ def SBoxXORctr():
 
 def doSBox(nRows, nColumns, wordSize):
     sbox = SBox(wordSize)
-    state = [[2**wordSize  # randint(0, 2**wordSize)\
-              for i in range(nRows)]\
-             for j in range(nColumns)]
+#     state = [[2**wordSize  # randint(0, 2**wordSize)\
+#               for i in range(nRows)]\
+#              for j in range(nColumns)]
+    state = [[randint(0, 2**wordSize)\
+              for i in range(nColumns)]\
+             for j in range(nRows)]
     sbox.transform(state)
     print("%2d x %2d matrix with %2d bits cell: SBox transformation -> "
           "%5d xors" % (nRows, nColumns, wordSize, sbox.xors))
@@ -101,11 +108,98 @@ def doKeyExpansion(nRounds, nRows, nColumns, wordSize, nKeyWords):
           % (nRounds, nRows, nColumns, wordSize, nKeyWords, keyExp.xors))
 
 
+def addRoundKeyXORctr():
+    for nRows in range(2, 9):
+        for nColumns in range(2, 9):
+            for wordSize in range(3, 17):
+                doAddRoundKey(nRows, nColumns, wordSize)
+
+
+def doAddRoundKey(nRows, nColumns, wordSize):
+    ark = AddRoundKey(nRows, nColumns, wordSize)
+    state = [[randint(0, 2**wordSize)\
+              for i in range(nColumns)]\
+             for j in range(nRows)]
+    subkey = [randint(0, 2**(wordSize*nRows))\
+             for j in range(nColumns)]
+    ark.do(state, subkey)
+    print("addRoundKey(%2d, %2d, %2d)-> %6d xors"
+          % (nRows, nColumns, wordSize, ark.xors))
+
+
+def subBytesXORctr():
+    for nRows in range(2, 9):
+        for nColumns in range(2, 9):
+            for wordSize in range(3, 17):
+                    doSubBytes(nRows, nColumns, wordSize)
+
+
+def doSubBytes(nRows, nColumns, wordSize):
+    subBytes = SubBytes(wordSize)
+    state = [[randint(0, 2**wordSize)\
+              for i in range(nColumns)]\
+             for j in range(nRows)]
+    subBytes.do(state)
+    print("subBytes(%2d, %2d, %2d)-> %6d xors"
+          % (nRows, nColumns, wordSize, subBytes.xors))
+
+
+# ShiftRows doesn't do any xor operation
+
+
+def mixColumnsXORctr():
+    for nRows in range(2, 9):
+        for nColumns in range(2, 9):
+            for wordSize in range(3, 17):
+                    doMixColumns(nRows, nColumns, wordSize)
+
+
+def doMixColumns(nRows, nColumns, wordSize):
+    mixColumns = MixColumns(nRows, nColumns, wordSize)
+    state = [[randint(0, 2**wordSize)\
+              for i in range(nColumns)]\
+             for j in range(nRows)]
+    mixColumns.do(state)
+    print("MixColumns(%2d, %2d, %2d)-> %6d xors"
+          % (nRows, nColumns, wordSize, mixColumns.xors))
+
+
+def gRijndaelXORxtr():
+    for nRows in range(2, 9):
+        for nColumns in range(2, 17):
+            for wordSize in range(3, 17):
+                for nKolumns in range(2, 17):
+                    nRounds = max(nKolumns, nColumns) + 6
+                    doRijndael(nRounds, nRows, nColumns, wordSize, nKolumns)
+
+
+def doRijndael(nRounds, nRows, nColumns, wordSize, nKolumns):
+    data= randint(0, 2**(nRows*nColumns*wordSize))
+    key = randint(0, 2**(nRows*nKolumns*wordSize))
+    rijndael = gRijndael(key, nRounds, nRows, nColumns, wordSize, nKolumns)
+    encData = rijndael.cipher(data)
+    encrXors = rijndael.xors
+    rijndael.reset()
+    if data != rijndael.decipher(encData):
+#         raise AssertionError("gRijndael(%2d, %2d, %2d, %2d, %2d)"
+#                              % (nRounds, nRows, nColumns, wordSize, nKolumns))
+        error = "AssertionError"
+    else:
+        error = ""
+    print("gRijndael(%2d, %2d, %2d, %2d, %2d): (b%4d, k%4d)-> %7d xors & %7d xors\t%s"
+          % (nRounds, nRows, nColumns, wordSize, nKolumns, rijndael.blockSize,
+             rijndael.keySize, encrXors, rijndael.xors, error))
+
+
 def main():
     #BinaryPolynomialsXORCtr()
     #PolynomialRingXORCtr()
     #SBoxXORctr()
-    keyExpansionXORctr()
+    #keyExpansionXORctr()
+    #addRoundKeyXORctr()
+    #subBytesXORctr()
+    #mixColumnsXORctr()
+    gRijndaelXORxtr()
 
 
 if __name__ == "__main__":

@@ -24,6 +24,7 @@ __status__ = "development"
 
 from copy import deepcopy as _deepcopy
 from Logger import Logger as _Logger
+from Logger import XORctr as _XORctr
 from Polynomials import BinaryExtensionModulo as _BinaryExtensionModulo
 from Polynomials import getBinaryExtensionFieldModulo \
     as _getBinaryExtensionFieldModulo
@@ -33,7 +34,7 @@ from Polynomials import PolynomialRing as _PolynomialRing
 from Polynomials import PolynomialRingModulo as _PolynomialRingModulo
 
 
-class MixColumns(_Logger):
+class MixColumns(_Logger, _XORctr):
     """
         Object in charge of the MixColumns operation:
         Parameters:
@@ -100,6 +101,7 @@ class MixColumns(_Logger):
                            operation=operation)
         for i, column in enumerate(columns):
             sx = polynomial * column
+            self.xors = sx.xors
             self._debug_stream("s[%d] = c(x) * %s = %s" % (i, column, sx),
                                operation=operation)
             columns[i] = sx

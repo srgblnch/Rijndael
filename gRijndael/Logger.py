@@ -284,6 +284,9 @@ class XORctr(object):
         self._ctr = 0
         self._instances = []
 
+    def reset(self):
+        self._ctr = 0
+
     @property
     def xors(self):
         value = self._ctr
