@@ -63,7 +63,6 @@ class KeyExpansion(_Logger, _XORctr):
             raise Exception("Key length doesn't fit with the matrix size")
         self._debug_stream("key array", key, operation="keyExpansion()\t")
         self.__initialize(key)
-        #self.__expand(self.__nKeyWords*(self.__nRounds+1))
         self._debug_stream("keyExpanded", self.__keyExpanded,
                            operation="keyExpansion()\t")
         self._debug_stream("size of key expanded %d"

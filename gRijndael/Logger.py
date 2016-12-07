@@ -294,7 +294,7 @@ class XORctr(object):
             if type(instance) == list:
                 for element in instance:
                     value += element.xors
-            else:  #if hasattr(instance, 'xors'):
+            else:  # if hasattr(instance, 'xors'):
                 value += instance.xors
         return value
 
@@ -304,7 +304,7 @@ class XORctr(object):
         self._ctr += value
         # print("accum: %s" % self._ctr)
 
-    def includeInstance(self,instance):
+    def includeInstance(self, instance):
         if hasattr(instance, 'xors') or type(instance) in [list]:
             self._instances.append(instance)
 

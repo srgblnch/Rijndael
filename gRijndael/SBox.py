@@ -208,7 +208,7 @@ class SBox(_Logger, _XORctr):
 #      [0x8C, 0xA1, 0x89, 0x0D, 0xBF, 0xE6, 0x42, 0x68,
 #       0x41, 0x99, 0x2D, 0x0F, 0xB0, 0x54, 0xBB, 0x16]   # 0xF
 #      ]
-# 
+
 # # 0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7,
 # # 0x8, 0x9, 0xA, 0xB, 0xC, 0xD, 0xE, 0xF
 # sbox_word8b_inverted = \
@@ -284,12 +284,12 @@ def main():
     wordSize = 8
     loglevel = Logger._debug
 
-    #SBoxUsingTables = SBox(wordSize, loglevel=loglevel)
+    # SBoxUsingTables = SBox(wordSize, loglevel=loglevel)
     SBoxUsingCalculation = SBox(wordSize, loglevel=loglevel)  # , useCalc=True)
 
     # TODO: loop with a bigger sample set.
     bar = 0
-    #barUsingTables = SBoxUsingTables.transform([bar])[0]
+    # barUsingTables = SBoxUsingTables.transform([bar])[0]
     barUsingCalculation = SBoxUsingCalculation.transform([bar])[0]
 
 #     if barUsingTables != barUsingCalculation:

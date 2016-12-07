@@ -31,12 +31,32 @@ from FIPS197_AES192 import *
 from FIPS197_AES256 import *
 
 
+def operation(operationObj, operationName):
+    try:
+        operationObj()
+    except AssertionError as e:
+        print("\n\t%s: %d test failed:" % (operationName, len(e.message)))
+        for error in e.message:
+            print("\t\t%s" % error)
+        print("\n")
+        return False
+    except Exception as e:
+        print("\n\t%s: Unmanaged exception: %s" % (operationName, e))
+        print_exc()
+        return False
+    else:
+        print("\t%s: All has passed\n" % operationName)
+        return True
+
+
 def main():
     Errors = []
-    for testClass in [AES128, AES192, AES256]:
+    for testClass, testName in [[AES128, 'AES128'], [AES192, 'AES192'],
+                                [AES256, 'AES256']]:
         try:
             test = testClass()
-            test.test()
+            operation(test.cipher, "%s cipher" % testName)
+            operation(test.decipher, "%s decipher" % testName)
         except Exception as e:
             Errors += e.message
     if len(Errors) > 0:
@@ -46,7 +66,6 @@ def main():
         print("\n")
         sys.exit(-1)
     else:
-        print("\tAll has passed\n")
         sys.exit(0)
 
 if __name__ == "__main__":

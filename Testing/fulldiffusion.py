@@ -22,7 +22,25 @@ __copyright__ = "Copyright 2016 Sergi Blanch-Torne"
 __license__ = "GPLv3+"
 __status__ = "development"
 
-# from datetime import datetime
+# From AES Proposal: Rijndael v2 1999/09/03
+# section 7.6
+#    Two rounds of Rijndael provide "full diffusion" in the following sense:
+# every state bit depends on all state bits two rounds ago, or, a change in
+# one state bit is likely to affect half of the state bits after two rounds.
+# Adding 4 rounds can be seen as adding a "full diffusion" step at the
+# beginning and at the end of the cipher. The high diffusion of a Rijndael
+# round is thanks to its uniform structure that operates on all state bits.
+# For so-called Feistel ciphers, a round only operates on half of the state
+# bits and full diffusion can at best be obtained after 3 rounds and in
+# practice it typically takes 4 rounds or more.
+
+# Then, having two state matrix with one single bit different (all 0s in one,
+# and the other identical but with one single 1 somewhere), how many rounds
+# are necessary to have at least half different state bits. That is, the
+# hamming distance between two vectors.
+
+
+from datetime import datetime
 from gRijndael.AddRoundKey import AddRoundKey as _AddRoundKey
 from gRijndael.KeyExpansion import KeyExpansion as _KeyExpansion
 from gRijndael.Logger import levelFromMeaning
@@ -63,14 +81,18 @@ class Convertible(object):
         return _Long(self._nKeyColumns*self._wordSize).\
             fromArray(argin, self._blockSize)
 
+    def hammingWeight(self, value):
+        """Get the hamming weight of the polynomial.
+           Hamming weight is defined as the number of non null elements. In
+           the binary case, the number of ones.
+        """
+        return bin(value).count('1')
 
-class RindaelTest(Convertible):
+
+class DiffusionTest(Convertible):
     def __init__(self, logLevel, nRounds, nRows, nColumns, wordSize,
                  nKeyColumns):
-        super(RindaelTest, self).__init__()
-        print("nRounds = %d, nRows = %d, nColumns = %d, wordSize = %d, "
-              "nKeyColumns = %d"
-              % (nRounds, nRows, nColumns, wordSize, nKeyColumns))
+        super(DiffusionTest, self).__init__()
         self._nRounds = nRounds
         self._nRows = nRows
         self._nColumns = nColumns
@@ -79,8 +101,8 @@ class RindaelTest(Convertible):
         self._blockSize = nRows*nColumns*wordSize
         self._keySize = nRows*nKeyColumns*wordSize
         self._key = 0
-        self._keyExpansionObj = _KeyExpansion(self._key, self._nRounds, 
-                                              self._nRows, self._nColumns, 
+        self._keyExpansionObj = _KeyExpansion(self._key, self._nRounds,
+                                              self._nRows, self._nColumns,
                                               self._wordSize,
                                               self._nKeyColumns,
                                               loglevel=logLevel)
@@ -90,47 +112,70 @@ class RindaelTest(Convertible):
                                           self._wordSize, loglevel=logLevel)
         self._addRoundKeyObj = _AddRoundKey(self._nRows, self._nColumns,
                                             self._wordSize, loglevel=logLevel)
+        self.resetStates()
+
+    def resetStates(self):
         self._round = 0
-        self._state = self.int2matrix(0)
-        self._bitFlags = 0
+        self._stateA = self.int2matrix(0)
+#         self._stateB = self._stateA[:]
+#         rbit = (randint(0, self._nRows-1), randint(0, self._nColumns-1),
+#                 randint(0, self.__wordSize))
+        self._stateB = self.int2matrix(1)
 
     def addRoundKey(self):
-        subkey = self._keyExpansionObj.getSubKey(self._round*4,
-                                                 (self._round+1)*4)
-        self._state = self._addRoundKeyObj.do(self._state, subkey)
-        stateInt = self.matrix2int(self._state)
-        print stateInt
-        self._bitFlags |= stateInt
-        if self._bitFlags == 2**self._blockSize-1:
-            raise StopIteration("Full diffusion at round %d, in addRoundKey()"
-                                % (self._round))
+        subkey = \
+            self._keyExpansionObj.getSubKey(self._round*self._nColumns,
+                                            (self._round+1)*self._nColumns)
+        self._stateA = self._addRoundKeyObj.do(self._stateA, subkey)
+        self._stateB = self._addRoundKeyObj.do(self._stateB, subkey)
+        stateDist = self.diffStates()
+#         print("Round %d, addRoundKey() diffusion: %d"
+#               % (self._round, stateDist))
+        if stateDist > self._blockSize/2:
+            raise StopIteration([self._round,
+                                 "Reached half-diffusion (%d) with %d rounds "
+                                 "with addRoundKey() operation"
+                                 % (stateDist, self._round)])
 
     def subBytes(self):
-        self._state = self._subBytesObj.do(self._state)
-        stateInt = self.matrix2int(self._state)
-        print stateInt
-        self._bitFlags |= stateInt
-        if self._bitFlags == 2**self._blockSize-1:
-            raise StopIteration("Full diffusion at round %d, in subBytes()"
-                                % (self._round))
+        self._stateA = self._subBytesObj.do(self._stateA)
+        self._stateB = self._subBytesObj.do(self._stateB)
+        stateDist = self.diffStates()
+#         print("Round %d, subBytes() diffusion: %d"
+#               % (self._round, stateDist))
+        if stateDist > self._blockSize/2:
+            raise StopIteration([self._round,
+                                 "Reached half-diffusion (%d) with %d rounds "
+                                 "with subBytes() operation"
+                                 % (stateDist, self._round)])
 
     def shiftRows(self):
-        self._state = self._shiftRowsObj.do(self._state)
-        stateInt = self.matrix2int(self._state)
-        print stateInt
-        self._bitFlags |= stateInt
-        if self._bitFlags == 2**self._blockSize-1:
-            raise StopIteration("Full diffusion at round %d, in shiftRows()"
-                                % (self._round))
+        self._stateA = self._shiftRowsObj.do(self._stateA)
+        self._stateB = self._shiftRowsObj.do(self._stateB)
+        stateDist = self.diffStates()
+#         print("Round %d, shiftRows() diffusion: %d"
+#               % (self._round, stateDist))
+        if stateDist > self._blockSize/2:
+            raise StopIteration([self._round,
+                                 "Reached half-diffusion (%d) with %d rounds "
+                                 "with shiftRows() operation"
+                                 % (stateDist, self._round)])
 
     def mixColumns(self):
-        self._state = self._mixColumnsObj.do(self._state)
-        stateInt = self.matrix2int(self._state)
-        print stateInt
-        self._bitFlags |= stateInt
-        if self._bitFlags == 2**self._blockSize-1:
-            raise StopIteration("Full diffusion at round %d, in mixColumns()"
-                                % (self._round))
+        self._stateA = self._mixColumnsObj.do(self._stateA)
+        self._stateB = self._mixColumnsObj.do(self._stateB)
+        stateDist = self.diffStates()
+#         print("Round %d, mixColumns() diffusion: %d"
+#               % (self._round, stateDist))
+        if stateDist > self._blockSize/2:
+            raise StopIteration([self._round,
+                                 "Reached half-diffusion (%d) with %d rounds "
+                                 "with mixColumns() operation"
+                                 % (stateDist, self._round)])
+
+    def diffStates(self):
+        diff = self.matrix2int(self._stateA) ^ self.matrix2int(self._stateB)
+        return self.hammingWeight(diff)
 
     def encrypt(self):
         self._bitFlags = 0
@@ -151,8 +196,8 @@ class RindaelTest(Convertible):
         self.addRoundKey()
 
     def diffusionLoop(self, operations):
-        self._bitFlags = 0
-        for i in range(self._nRounds+1):
+        self.resetStates()
+        for self._round in range(self._nRounds+1):
             for operation in operations:
                 operation()
 
@@ -173,12 +218,14 @@ def encryptionDiffusion(operation):
     try:
         operation()
     except StopIteration as e:
-        print("Test succeed: %s" % e)
+        print("Test succeed: %s" % e.message[1])
+        return e.message[0]
     except Exception as e:
         print("Something went wrong: %s" % e)
         print_exc()
     else:
         print("Test failed, no full diffusion")
+    return -1
 
 
 def main():
@@ -196,18 +243,55 @@ def main():
     loglevel = levelFromMeaning(options.log_level)
     if options.rijndael is not None:
         parameters = extractParams(options.rijndael)
-        rindaelTest = RindaelTest(options.log_level, *parameters)
+        rindaelTest = DiffusionTest(options.log_level, *parameters)
         print("Encryption process")
-        encryptionDiffusion(rindaelTest.encrypt)
-        print("subBytes process")
-        encryptionDiffusion(rindaelTest.subBytesDiffusion)
-        print("shiftRows process")
-        encryptionDiffusion(rindaelTest.shiftRowsDiffusion)
-        print("mixColumns process")
-        encryptionDiffusion(rindaelTest.mixColumnsDiffusion)
-        print("subBytes & mixColumns process")
-        encryptionDiffusion(rindaelTest.subBytesAndmixColumnsDiffusion)
-
+        halfdiffusion = encryptionDiffusion(rindaelTest.encrypt)
+        print("\n\tHalf-diffusion: %d" % (halfdiffusion))
+        print("\tFull-diffusion: %d\n\n" % (halfdiffusion*2))
+#         print("subBytes process")
+#         if encryptionDiffusion(rindaelTest.subBytesDiffusion):
+#             print("\n\tFull diffusion: %d\n\n" % (halfdiffusion*2))
+#         print("shiftRows process")
+#         if encryptionDiffusion(rindaelTest.shiftRowsDiffusion):
+#             print("\n\tFull diffusion: %d\n\n" % (halfdiffusion*2))
+#         print("mixColumns process")
+#         if encryptionDiffusion(rindaelTest.mixColumnsDiffusion):
+#             print("\n\tFull diffusion: %d\n\n" % (halfdiffusion*2))
+#         print("subBytes & mixColumns process")
+#         if encryptionDiffusion(rindaelTest.subBytesAndmixColumnsDiffusion):
+#             print("\n\tFull diffusion: %d\n\n" % (halfdiffusion*2))
+    else:
+        now = datetime.now().strftime("%Y%m%d_%H%M%S")
+        fileName = "%s_fulldiffusion.csv" % (now)
+        with open(fileName, 'a') as f:
+            f.write("rounds\trow\tcolumns\twordsize\tkolumns\tblock\tkey"
+                    "\tfull-diffusion\n")
+        for nRows in range(2, 9):
+            for nColumns in range(2, 17):
+                for wordSize in range(3, 17):
+                    for nKolumns in range(2, 17):
+                        if nKolumns >= nColumns:
+                            nRounds = max(nKolumns, nColumns) + 6
+                            blockSize = nRows*nColumns*wordSize
+                            keySize = nRows*nKolumns*wordSize
+                            rindaelTest = DiffusionTest(options.log_level,
+                                                        nRounds, nRows,
+                                                        nColumns, wordSize,
+                                                        nKolumns)
+                            halfdiffusion = \
+                                encryptionDiffusion(rindaelTest.encrypt)
+                            print("nRounds = %2d, nRows = %2d, "
+                                  "nColumns = %2d, wordSize = %2d, "
+                                  "nKeyColumns = %2d, blockSize = %4d, "
+                                  "keySize = %4s -> full-diffusion = %2d"
+                                  % (nRounds, nRows, nColumns, wordSize,
+                                     nKolumns, blockSize, keySize,
+                                     halfdiffusion*2))
+                            with open(fileName, 'a') as f:
+                                f.write("%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n"
+                                        % (nRounds, nRows, nColumns, wordSize,
+                                           nKolumns, blockSize, keySize,
+                                           halfdiffusion*2))
 
 if __name__ == "__main__":
     main()

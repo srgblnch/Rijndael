@@ -81,7 +81,7 @@ class gRijndael(_Logger, _XORctr):
             self.__nKeyColumns = nKeyColumns  # Usually {4,6,8}
         minRounds = max(self.__nKeyColumns, self.__nColumns) + 6
         if self.__nRounds < minRounds:
-            self._warning_stream(" Perhaps this is not enough rounds: "
+            self._warning_stream(" Perhaps there are not enough rounds: "
                                  "max(N_k,N_c)+6 = max(%d,%d)+6 = %d"
                                  % (self.__nKeyColumns, self.__nColumns,
                                     minRounds))
@@ -188,18 +188,18 @@ class gRijndael(_Logger, _XORctr):
            Output: <integer> plainText
         '''
         self.__convertInput2State(cipher)
-        self.__round = self.__nRounds
-        self.__addRoundKey()
+        self.__round = 0
+        self.__invAddRoundKey()
         # [Nr-1..1] step -1
-        for self.__round in range(self.__nRounds-1, 0, -1):
+        for self.__round in range(1, self.__nRounds):  # [1..Nr-1] step 1
             self.__invShiftRows()
             self.__invSubBytes()
-            self.__addRoundKey()
+            self.__invAddRoundKey()
             self.__invMixColumns()
-        self.__round = 0
+        self.__round = self.__nRounds
         self.__invShiftRows()
         self.__invSubBytes()
-        self.__addRoundKey()
+        self.__invAddRoundKey()
         return self.__convertState2output()
 
     # Rijndael Operations ----
@@ -210,7 +210,7 @@ class gRijndael(_Logger, _XORctr):
                            "cipher->subBytes()\t")
 
     def __invSubBytes(self):
-        self.__subBytesObj.invert(self.__state)
+        self.__state = self.__subBytesObj.invert(self.__state)
         self._debug_stream("state", self.__state, self.__round,
                            "decipher->invSubBytes()\t")
 
@@ -235,14 +235,20 @@ class gRijndael(_Logger, _XORctr):
                            "decipher->invMixColumns()\t")
 
     def __addRoundKey(self):
-        self.__state = self.__addRoundKeyObj.do(self.__state,
-                                                self.__keyExpanderObj.getSubKey
-                                                ((self.__round *
-                                                  self.__nColumns),
-                                                 (self.__round+1) *
-                                                 (self.__nColumns)))
+        start = (self.__round)*self.__nColumns
+        end = (self.__round+1)*self.__nColumns
+        subkey = self.__keyExpanderObj.getSubKey(start, end)
+        self.__state = self.__addRoundKeyObj.do(self.__state, subkey)
         self._debug_stream("state", self.__state, self.__round,
                            "cipher->addRoundKey()\t")
+
+    def __invAddRoundKey(self):
+        start = (self.__nRounds-self.__round)*self.__nColumns
+        end = (self.__nRounds-self.__round+1)*self.__nColumns
+        subkey = self.__keyExpanderObj.getSubKey(start, end)
+        self.__state = self.__addRoundKeyObj.do(self.__state, subkey)
+        self._debug_stream("state", self.__state, self.__round,
+                           "cipher->invAddRoundKey()\t")
 
     # Data conversions ----
 
