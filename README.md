@@ -40,7 +40,7 @@ Extras
 ```python
 >>> import gRijndael
 >>> gRijndael.version()
-'0.3.0-2'
+'0.3.2-0'
 ```
 
 The main constructor available in this module is *gRijndael.gRijndael*. A little help in the *docstring* shall be made soon, but there can be listed the arguments that this constructor can have. With:
