@@ -55,11 +55,11 @@ class SubBytes(_Logger, _XORctr):
 
     @property
     def Field(self):
-        return _deepcopy(self.__sbox.getField())
+        return _deepcopy(self.__sbox.getField()(0).modulo)
 
     @property
     def Ring(self):
-        return _deepcopy(self.__sbox.getRing())
+        return _deepcopy(self.__sbox.getRing()(0).modulo)
 
     @property
     def Mu(self):

@@ -40,7 +40,7 @@ Extras
 ```python
 >>> import gRijndael
 >>> gRijndael.version()
-'0.3.2-0'
+'0.4.0-0'
 ```
 
 The main constructor available in this module is *gRijndael.gRijndael*. A little help in the *docstring* shall be made soon, but there can be listed the arguments that this constructor can have. With:
@@ -74,20 +74,16 @@ Or deeper details about the *SBOX*:
 
 ```python
 rijndael128.sbox.Field, rijndael128.sbox.Ring, rijndael128.sbox.Mu, rijndael128.sbox.Nu
-("z^8+z^4+z^3+z+1 (the Rijndael's original)",
- "z^8+1 (the Rijndael's original)",
- "z^4+z^3+z^2+z+1 (the Rijndael's original)",
- "z^6+z^5+z+1 (the Rijndael's original)")
+('z^8+z^4+z^3+z+1', 'z^8+1', z^4+z^3+z^2+z+1, z^6+z^5+z+1)
 ```
+
+Those are polynomials from the original Rijndael for this parameter combintaion.
 
 And details about the *MixColumns* maths:
 
 ```python
 rijndael128.mixColumns.PolynomialRingModulo, rijndael128.mixColumns.SubfieldModulo, rijndael128.mixColumns.Cx, rijndael128.mixColumns.Dx
-('x^4+1',
- 'z^8+z^4+z^3+z+1',
- '0x3x^3+x^2+x+0x2',
- '0xBx^3+0xDx^2+0x9x+0xE'
+('x^4+1', 'z^8+z^4+z^3+z+1', '0x3x^3+x^2+x+0x2', '0xBx^3+0xDx^2+0x9x+0xE')
 ```
 
 The test vectors from the Rijndael's standard can be used. But also something more, on the fly like:
