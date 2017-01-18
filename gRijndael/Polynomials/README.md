@@ -1,5 +1,5 @@
-Using the polynomials
-=====================
+Using those polynomials
+=======================
 
 Polynomials over the binay field
 --------------------------------
