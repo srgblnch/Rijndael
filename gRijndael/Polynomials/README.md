@@ -1,9 +1,9 @@
 Using those polynomials
 =======================
 
-```
-from gRijndael import Polynomials
-from random import randint
+```python
+>>> from gRijndael import Polynomials
+>>> from random import randint
 ```
 
 Polynomials over the binay field
@@ -11,7 +11,7 @@ Polynomials over the binay field
 
 ![equation](http://latex.codecogs.com/gif.latex?%5Cmathbb{F}_{2^w}=%5Cfrac{%5Cmathbb{F}_{2}[z]}{m(z)})
 
-```
+```python
 >>> w = 8
 >>> binRing = Polynomials.BinaryExtensionModulo(Polynomials.getBinaryExtensionRingModulo(w))
 >>> binField = Polynomials.BinaryExtensionModulo(Polynomials.getBinaryExtensionFieldModulo(w))
@@ -19,7 +19,7 @@ Polynomials over the binay field
 
 Random elements:
 
-```
+```python
 >>> element = binRing(randint(0, 2**w))
 >>> element
 z^7+z^6+z^4+z^3
@@ -31,7 +31,7 @@ z^7+z^6+z^4+z^3
 
 Operations
 
-```
+```python
 >>> another = binRing(randint(0, 2**w))
 >>> another
 z^6+z+1
@@ -48,7 +48,7 @@ Polynomials over a binary field extension
 
 ![equation](http://latex.codecogs.com/gif.latex?(%5Cmathbb{F}_{2^w})^l=%5Cfrac{%5Cmathbb{F}_{2^w}[x]}{l(x)})
 
-```
+```python
 >>> l=4
 >>> cx, ring, subfield = Polynomials.getPolynomialRingWithBinaryCoefficients(l, w)
 >>> cx
@@ -68,7 +68,7 @@ Polynomials over a binary field extension
 
 Random elements:
 
-```
+```python
 >>> ax = ring([randint(0, 2*w) for i in range(l)])
 >>> ax
 (z^2+z+1)*x^3+x^2+(z^2)*x+(z^3+z^2+1) (mod x^4+1)
@@ -78,7 +78,7 @@ Random elements:
 
 Operations
 
-```
+```python
 >>> ax + cx
 (z^2)*x^3+(z^2+1)*x+(z^3+z^2+z+1) (mod x^4+1)
 >>> ax * dx
