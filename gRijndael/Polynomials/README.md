@@ -46,7 +46,7 @@ z+1
 Polynomials over a binary field extension
 -----------------------------------------
 
-![equation](http://latex.codecogs.com/gif.latex?(%5Cmathbb{F}_{2^w})^l=%5Cfrac{%5Cmathbb{F}_{2^w}[x]}{l(x)})
+![equation](http://latex.codecogs.com/gif.latex?%5Cmathbb{F}_{2^{w^l}}=%5Cfrac{%5Cmathbb{F}_{2^w}[x]}{l(x)})
 
 ```python
 >>> l=4
