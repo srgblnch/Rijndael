@@ -9,7 +9,7 @@ Using those polynomials
 Polynomials over the binay field
 --------------------------------
 
-![equation](http://latex.codecogs.com/gif.latex?%5Cmathbb{F}_{2^w}=%5Cfrac{%5Cmathbb{F}_{2}[z]}{m(z)})
+![equation](http://latex.codecogs.com/gif.latex?(%5Cmathbb{F}_{2^w])^l=%5Cmathbb{F}_{2^w}=%5Cmathbb{F}_{2^{w%5Ctimes l}=%5Cfrac{%5Cmathbb{F}_{2}[z]}{m(z)})
 
 ```python
 >>> w = 8
