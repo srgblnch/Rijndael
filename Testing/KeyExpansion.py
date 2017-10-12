@@ -83,10 +83,10 @@ def test_AES(loglevel, rounds, aes, aes_round, Nk):
 
 
 def expandKey(key, rounds, nRows, nColumns, wordSize, nKeyColumns, loglevel):
-    print loglevel
+    print(loglevel)
     keyExpansion = KeyExpansion(key, rounds, nRows, nColumns, wordSize,
                                 nKeyColumns, loglevel=loglevel)
-    print keyExpansion
+    print(keyExpansion)
     for round in range(rounds):
         subkey = keyExpansion.getSubKey(round*nRows, (round+1)*nRows)
         subkeyLst = hexlist(subkey, nColumns, wordSize)

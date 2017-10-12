@@ -51,6 +51,7 @@ from gRijndael.ThirdLevel import Long as _Long
 from gRijndael.ThirdLevel import State as _State
 from gRijndaelTest import extractParams
 from optparse import OptionParser
+from sys import version_info
 from traceback import print_exc
 
 
@@ -133,9 +134,11 @@ class DiffusionTest(Convertible):
 #               % (self._round, stateDist))
         if stateDist > self._blockSize/2:
             raise StopIteration([self._round,
-                                 "Reached half-diffusion (%d) with %d rounds "
-                                 "with addRoundKey() operation"
-                                 % (stateDist, self._round)])
+                                 "Rijndael-%d-%d reached half-diffusion "
+                                 "(distance: %d) with %d rounds with "
+                                 "addRoundKey() operation"
+                                 % (self._blockSize, self._keySize,
+                                    stateDist, self._round)])
 
     def subBytes(self):
         self._stateA = self._subBytesObj.do(self._stateA)
@@ -145,9 +148,11 @@ class DiffusionTest(Convertible):
 #               % (self._round, stateDist))
         if stateDist > self._blockSize/2:
             raise StopIteration([self._round,
-                                 "Reached half-diffusion (%d) with %d rounds "
-                                 "with subBytes() operation"
-                                 % (stateDist, self._round)])
+                                 "Rijndael-%d-%d reached half-diffusion "
+                                 "(distance: %d) with %d rounds with "
+                                 "subBytes() operation"
+                                 % (self._blockSize, self._keySize,
+                                    stateDist, self._round)])
 
     def shiftRows(self):
         self._stateA = self._shiftRowsObj.do(self._stateA)
@@ -157,9 +162,11 @@ class DiffusionTest(Convertible):
 #               % (self._round, stateDist))
         if stateDist > self._blockSize/2:
             raise StopIteration([self._round,
-                                 "Reached half-diffusion (%d) with %d rounds "
-                                 "with shiftRows() operation"
-                                 % (stateDist, self._round)])
+                                 "Rijndael-%d-%d reached half-diffusion "
+                                 "(distance: %d) with %d rounds with "
+                                 "shiftRows() operation"
+                                 % (self._blockSize, self._keySize,
+                                    stateDist, self._round)])
 
     def mixColumns(self):
         self._stateA = self._mixColumnsObj.do(self._stateA)
@@ -169,9 +176,11 @@ class DiffusionTest(Convertible):
 #               % (self._round, stateDist))
         if stateDist > self._blockSize/2:
             raise StopIteration([self._round,
-                                 "Reached half-diffusion (%d) with %d rounds "
-                                 "with mixColumns() operation"
-                                 % (stateDist, self._round)])
+                                 "Rijndael-%d-%d reached half-diffusion "
+                                 "(distance: %d) with %d rounds with "
+                                 "mixColumns() operation"
+                                 % (self._blockSize, self._keySize,
+                                    stateDist, self._round)])
 
     def diffStates(self):
         diff = self.matrix2int(self._stateA) ^ self.matrix2int(self._stateB)
@@ -218,8 +227,14 @@ def encryptionDiffusion(operation):
     try:
         operation()
     except StopIteration as e:
-        print("Test succeed: %s" % e.message[1])
-        return e.message[0]
+        if version_info.major == 2:
+            value = e.message[0]
+            message = e.message[1]
+        else:
+            value = e.value[0]
+            message = e.value[1]
+        print("Test succeed: %s" % message)
+        return value
     except Exception as e:
         print("Something went wrong: %s" % e)
         print_exc()

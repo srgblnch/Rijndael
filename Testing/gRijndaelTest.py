@@ -56,7 +56,7 @@ def prepareMultipleTest(parallel, processors, nTests, logLevel):
     queue = multiprocessing.Queue()
     for nRows in range(2, 9):
         for nColumns in range(2, 9):
-            for wordSize in range(2, 17):
+            for wordSize in range(3, 17):
                 blockSize = nRows*nColumns*wordSize
                 # TODO: discard too small sizes for keys
                 for nKeyColumns in range(2, 8):
@@ -68,7 +68,7 @@ def prepareMultipleTest(parallel, processors, nTests, logLevel):
                                nKeyColumns])
     write2File("preparing %s tests" % queue.qsize())
     if parallel:
-        doParallelTest(processors)
+        doParallelTest(processors, queue, nTests, logLevel)
     else:
         while not queue.empty():
             doTest(queue, nTests, logLevel)
@@ -96,7 +96,7 @@ def doTest(queue, nTests, logLevel):
                 break
 
 
-def doParallelTest(processors):
+def doParallelTest(processors, queue, nTests, logLevel):
     def buildWorker(id):
         return multiprocessing.Process(target=doTest, name=str("%d" % (id)),
                                        args=(queue, nTests, logLevel))
@@ -132,6 +132,7 @@ def extractParams(paramsStr):
 
 def arginOptions(parser):
     parser.add_option('', "--loglevel", type="str",
+                      default=_levelFromMeaning('info'),
                       help="output prints log level: "
                       "{error,warning,info,debug,trace}.")
     parser.add_option('', "--test-all", action="store_true",
@@ -154,7 +155,7 @@ def arginOptions(parser):
                       "this number of parallel jobs in execution, and a "
                       "negative number will decrease from the maximum of "
                       "available")
-    parser.add_option('', "--max-tests", type="int",
+    parser.add_option('', "--max-tests", type="int", default=10,
                       help="Tell the test procedure to execute, as maximum, "
                       "the given number of checks")
 
