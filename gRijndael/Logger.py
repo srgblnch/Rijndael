@@ -26,9 +26,13 @@ import bz2
 import gzip
 from datetime import datetime as _datetime
 from threading import Lock as _Lock
+from sys import version_info
 
 global lock
 lock = _Lock()
+
+if version_info.major == 3:
+    long = int
 
 
 def levelFromMeaning(value):
@@ -231,7 +235,7 @@ class Logger(object):
                 with open(fileName, 'a') as logfile:
                     logfile.write(msg+"\n")
         if self._stdout:
-            print msg
+            print(msg)
 
     def _print_stream(self, logtext, loglevel,
                       data=None, round=None, operation=None):

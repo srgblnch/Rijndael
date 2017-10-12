@@ -26,7 +26,7 @@ __status__ = "development"
    levels above the Rijndael operations.
 '''
 
-from Logger import Logger as _Logger
+from .Logger import Logger as _Logger
 
 binlen = lambda x: len(bin(x))-2
 
@@ -80,9 +80,9 @@ class Long:
         o = []
         # cut the input blocs of the word size
         mask = (int('0b'+('1'*self.__wordSize), 2) << (length-self.__wordSize))
-        for i in range(length/self.__wordSize):
-            e = (input & mask) >> \
-                (((length/self.__wordSize)-i-1)*self.__wordSize)
+        nBlocks = int(length/self.__wordSize)
+        for i in range(nBlocks):
+            e = (input & mask) >> (((nBlocks)-i-1)*self.__wordSize)
             o.append(int(e))
             mask >>= self.__wordSize
         return o
@@ -96,8 +96,9 @@ class Long:
            auxiliar methods: []
         '''
         o = 0
-        for i in range(length/self.__wordSize):
-            o |= (input[i] << (((length/self.__wordSize)-i-1)*self.__wordSize))
+        nBlocks = int(length/self.__wordSize)
+        for i in range(nBlocks):
+            o |= (input[i] << (((nBlocks)-i-1)*self.__wordSize))
         return o
 
 

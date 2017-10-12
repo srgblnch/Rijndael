@@ -22,13 +22,11 @@ __copyright__ = "Copyright 2013 Sergi Blanch-Torne"
 __license__ = "GPLv3+"
 __status__ = "development"
 
-from BinaryPolynomials import *
-from PolynomialRing import *
+from .BinaryPolynomials import *
+from .PolynomialRing import *
 
-try:
-    from ..Logger import Logger as _Logger
-except:
-    from Logger import Logger as _Logger
+from ..Logger import Logger as _Logger
+
 from random import randint
 
 

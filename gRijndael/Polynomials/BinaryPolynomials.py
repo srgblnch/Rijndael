@@ -25,12 +25,10 @@ __status__ = "development"
 
 from copy import copy as _copy
 from copy import deepcopy as _deepcopy
-try:
-    from ..Logger import Logger as _Logger
-    from ..Logger import XORctr as _XORctr
-except:
-    from Logger import Logger as _Logger
-    from Logger import XORctr as _XORctr
+from sys import version_info
+
+from ..Logger import Logger as _Logger
+from ..Logger import XORctr as _XORctr
 
 
 def BinaryExtensionModulo(modulo, variable='z', loglevel=_Logger._info):
@@ -61,7 +59,11 @@ def BinaryExtensionModulo(modulo, variable='z', loglevel=_Logger._info):
     # >>> Polynomials.BinaryExtensionModulo?
     if len(variable) != 1:
         raise NameError("The indeterminate must be a single character.")
-    if ord('a') > variable.lower() > ord('z'):
+    if version_info.major == 2:
+        variablecode = variable.lower()
+    elif version_info.major == 3:
+        variablecode = ord(variable.lower())
+    if ord('a') > variablecode > ord('z'):
         raise NameError("The indeterminate must be a valid alphabet letter.")
     if type(modulo) == str and modulo.count(variable) == 0:
         raise Exception("modulo %s is not defined over %s variable"

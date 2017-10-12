@@ -22,12 +22,12 @@ __copyright__ = "Copyright 2013 Sergi Blanch-Torne"
 __license__ = "GPLv3+"
 __status__ = "development"
 
-from Logger import Logger as _Logger
-from Logger import XORctr as _XORctr
-from SBox import SBox as _SBox
-from RoundConstant import RC as _RC
-from ThirdLevel import Word as _Word
-from ThirdLevel import Long as _Long
+from .Logger import Logger as _Logger
+from .Logger import XORctr as _XORctr
+from .SBox import SBox as _SBox
+from .RoundConstant import RC as _RC
+from .ThirdLevel import Word as _Word
+from .ThirdLevel import Long as _Long
 
 
 class KeyExpansion(_Logger, _XORctr):
@@ -159,7 +159,7 @@ class KeyExpansion(_Logger, _XORctr):
 
     def __Rcon(self, i):
         rc = [0]*self.__nRows
-        rc[0] = _RC[i/self.__nKeyWords]
+        rc[0] = _RC[int(i/self.__nKeyWords)]
         Rcon = _Word(self.__nRows, self.__wordSize).fromList(rc)
         self._debug_stream("\tRcon[%d]" % (i), Rcon,
                            operation='keyExpansion()\t')

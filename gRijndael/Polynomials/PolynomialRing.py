@@ -24,15 +24,10 @@ __status__ = "development"
 
 
 from copy import deepcopy as _deepcopy
-try:
-    from ..Logger import Logger as _Logger
-    from ..Logger import XORctr as _XORctr
-    from ..ThirdLevel import shift as _shift
-except:
-    from Logger import Logger as _Logger
-    from Logger import XORctr as _XORctr
-    from ThirdLevel import shift as _shift
-from BinaryPolynomials import *
+from ..Logger import Logger as _Logger
+from ..Logger import XORctr as _XORctr
+from ..ThirdLevel import shift as _shift
+from .BinaryPolynomials import *
 
 
 def PolynomialRingModulo(modulo, coefficients_class, variable='x',
@@ -63,7 +58,11 @@ def PolynomialRingModulo(modulo, coefficients_class, variable='x',
     '''
     if len(variable) != 1:
         raise NameError("The indeterminate must be a single character.")
-    if ord('a') > variable.lower() > ord('z'):
+    if version_info.major == 2:
+        variablecode = variable.lower()
+    elif version_info.major == 3:
+        variablecode = ord(variable.lower())
+    if ord('a') > variablecode  > ord('z'):
         raise NameError("The indeterminate must be a valid alphabet letter.")
     if coefficients_class(0).variable == variable:
         raise NameError("The indeterminate must be different that the "
@@ -341,7 +340,7 @@ def PolynomialRingModulo(modulo, coefficients_class, variable='x',
                 self._trace_stream("Current terms dict: %s" % terms)
                 i += 1
                 self._trace_stream("i = %d" % (i))
-            degrees = terms.keys()
+            degrees = list(terms.keys())
             degrees.sort()
             degree = degrees[-1]
             coefficients = []

@@ -22,8 +22,8 @@ __copyright__ = "Copyright 2013 Sergi Blanch-Torne"
 __license__ = "GPLv3+"
 __status__ = "development"
 
-from Logger import Logger as _Logger
-from ThirdLevel import shift as _shift
+from .Logger import Logger as _Logger
+from .ThirdLevel import shift as _shift
 
 
 class ShiftRows(_Logger):

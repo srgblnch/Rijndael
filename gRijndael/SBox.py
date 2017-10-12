@@ -23,12 +23,12 @@ __license__ = "GPLv3+"
 __status__ = "development"
 
 from copy import deepcopy as _deepcopy
-from Logger import Logger as _Logger
-from Logger import XORctr as _XORctr
-from Polynomials import getBinaryExtensionFieldModulo
-from Polynomials import getBinaryExtensionRingModulo
-from Polynomials import getMu, getNu
-from Polynomials import BinaryExtensionModulo
+from .Logger import Logger as _Logger
+from .Logger import XORctr as _XORctr
+from .Polynomials import getBinaryExtensionFieldModulo
+from .Polynomials import getBinaryExtensionRingModulo
+from .Polynomials import getMu, getNu
+from .Polynomials import BinaryExtensionModulo
 
 
 class SBox(_Logger, _XORctr):

@@ -23,15 +23,15 @@ __license__ = "GPLv3+"
 __status__ = "development"
 
 from copy import deepcopy as _deepcopy
-from Logger import Logger as _Logger
-from Logger import XORctr as _XORctr
-from Polynomials import BinaryExtensionModulo as _BinaryExtensionModulo
-from Polynomials import getBinaryExtensionFieldModulo \
+from .Logger import Logger as _Logger
+from .Logger import XORctr as _XORctr
+from .Polynomials import BinaryExtensionModulo as _BinaryExtensionModulo
+from .Polynomials import getBinaryExtensionFieldModulo \
     as _getBinaryExtensionFieldModulo
-from Polynomials import getPolynomialRingWithBinaryCoefficients \
+from .Polynomials import getPolynomialRingWithBinaryCoefficients \
     as _getPolynomialRingWithBinaryCoefficients
-from Polynomials import PolynomialRing as _PolynomialRing
-from Polynomials import PolynomialRingModulo as _PolynomialRingModulo
+from .Polynomials import PolynomialRing as _PolynomialRing
+from .Polynomials import PolynomialRingModulo as _PolynomialRingModulo
 
 
 class MixColumns(_Logger, _XORctr):
@@ -77,11 +77,11 @@ class MixColumns(_Logger, _XORctr):
 
     @property
     def Cx(self):
-        return hex(self.__cx)
+        return self.__cx.__hex__()
 
     @property
     def Dx(self):
-        return hex(self.__dx)
+        return self.__dx.__hex__()
 
     def do(self, input):
         return self.__product(input, self.__cx, operation="mixColumns")

@@ -22,14 +22,14 @@ __copyright__ = "Copyright 2013 Sergi Blanch-Torne"
 __license__ = "GPLv3+"
 __status__ = "development"
 
-import version
-from gRijndael import gRijndael
-from KeyExpansion import KeyExpansion
-from AddRoundKey import AddRoundKey
-from MixColumns import MixColumns
-from ShiftRows import ShiftRows
-from SubBytes import SubBytes
-from SBox import SBox
-import ThirdLevel as _ThirdLevel
-import Polynomials
-from version import version, VERSION
+
+from .gRijndael import gRijndael
+from .KeyExpansion import KeyExpansion
+from .AddRoundKey import AddRoundKey
+from .MixColumns import MixColumns
+from .ShiftRows import ShiftRows
+from .SubBytes import SubBytes
+from .SBox import SBox
+from . import ThirdLevel as _ThirdLevel
+from . import Polynomials
+from .version import version, VERSION

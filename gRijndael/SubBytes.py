@@ -23,9 +23,9 @@ __license__ = "GPLv3+"
 __status__ = "development"
 
 from copy import deepcopy as _deepcopy
-from Logger import Logger as _Logger
-from Logger import XORctr as _XORctr
-from SBox import SBox
+from .Logger import Logger as _Logger
+from .Logger import XORctr as _XORctr
+from .SBox import SBox
 
 
 class SubBytes(_Logger, _XORctr):

@@ -22,9 +22,9 @@ __copyright__ = "Copyright 2013 Sergi Blanch-Torne"
 __license__ = "GPLv3+"
 __status__ = "development"
 
-from Logger import Logger as _Logger
-from Logger import XORctr as _XORctr
-from ThirdLevel import Word as _Word
+from .Logger import Logger as _Logger
+from .Logger import XORctr as _XORctr
+from .ThirdLevel import Word as _Word
 
 
 class AddRoundKey(_Logger, _XORctr):

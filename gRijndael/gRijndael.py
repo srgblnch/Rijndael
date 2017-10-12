@@ -24,19 +24,19 @@ __status__ = "development"
 
 import sys
 
-from Logger import Logger as _Logger
-from Logger import XORctr as _XORctr
-from Logger import debug, trace
-from Logger import levelFromMeaning as _levelFromMeaning
-from KeyExpansion import KeyExpansion as _KeyExpansion
-from SubBytes import SubBytes as _SubBytes
-from ShiftRows import ShiftRows as _ShiftRows
-from MixColumns import MixColumns as _MixColumns
-from AddRoundKey import AddRoundKey as _AddRoundKey
-from ThirdLevel import Long as _Long
-from ThirdLevel import State as _State
+from .Logger import Logger as _Logger
+from .Logger import XORctr as _XORctr
+from .Logger import debug, trace
+from .Logger import levelFromMeaning as _levelFromMeaning
+from .KeyExpansion import KeyExpansion as _KeyExpansion
+from .SubBytes import SubBytes as _SubBytes
+from .ShiftRows import ShiftRows as _ShiftRows
+from .MixColumns import MixColumns as _MixColumns
+from .AddRoundKey import AddRoundKey as _AddRoundKey
+from .ThirdLevel import Long as _Long
+from .ThirdLevel import State as _State
 
-from version import *
+from .version import *
 
 
 class gRijndael(_Logger, _XORctr):
